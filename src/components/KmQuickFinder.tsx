@@ -67,7 +67,9 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
   prefillToKm,
   clearPrefill
 }) => {
-  const [kmInput, setKmInput] = useState('1170.500');
+  const [kmInput, setKmInput] = useState(() => {
+    return prefillFromKm || localStorage.getItem('raildiary_last_searched_km') || '1170.500';
+  });
   const [isSearching, setIsSearching] = useState(false);
 
   // Raw collections
@@ -82,7 +84,23 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
   const [allDefects, setAllDefects] = useState<TrackDefectRecord[]>([]);
 
   // Search Results State
-  const [activeKm, setActiveKm] = useState<number>(1170.500);
+  const [activeKm, setActiveKm] = useState<number>(() => {
+    const p = parseFloat(prefillFromKm || localStorage.getItem('raildiary_last_searched_km') || '1170.500');
+    return isNaN(p) ? 1170.500 : p;
+  });
+
+  const activeKmRef = React.useRef<number>(activeKm);
+  const kmInputRef = React.useRef<string>(kmInput);
+
+  useEffect(() => {
+    activeKmRef.current = activeKm;
+    localStorage.setItem('raildiary_last_searched_km', activeKm.toFixed(3));
+  }, [activeKm]);
+
+  useEffect(() => {
+    kmInputRef.current = kmInput;
+  }, [kmInput]);
+
   const [matchedKeymen, setMatchedKeymen] = useState<KeymanRecord[]>([]);
   const [matchedDayPatrol, setMatchedDayPatrol] = useState<PatrolShiftRecord[]>([]);
   const [matchedNightPatrol, setMatchedNightPatrol] = useState<PatrolShiftRecord[]>([]);
@@ -120,7 +138,8 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
       setAllPatrol(pat);
       setAllDefects(def);
 
-      executeSearch(activeKm || 1170.500, brg, pc, crv, lc, km, pat, def, lwr, sej);
+      const targetKm = activeKmRef.current ?? (parseFloat(kmInputRef.current) || 1170.500);
+      executeSearch(targetKm, brg, pc, crv, lc, km, pat, def, lwr, sej);
     } catch (err) {
       console.error('Failed to load collections for KM finder:', err);
     }
@@ -142,6 +161,8 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
       const parsed = parseFloat(prefillFromKm);
       if (!isNaN(parsed)) {
         setKmInput(parsed.toFixed(3));
+        kmInputRef.current = parsed.toFixed(3);
+        activeKmRef.current = parsed;
         executeSearch(parsed);
       }
       if (clearPrefill) clearPrefill();

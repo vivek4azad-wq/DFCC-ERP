@@ -101,7 +101,8 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
 
   // Call Google Gemini API
   const queryGeminiAPI = async (userPrompt: string, contextSummary: string, key: string): Promise<string> => {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+    // Model updated to gemini-3.6-flash as requested
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
     const systemPrompt = `You are the Official DFCCIL Railway Senior Section Engineer & P-Way Intelligence AI Assistant for Section KRJN–SMUN–SBJN–NSIR–SNL (Km 1167.210 to 1249.720, Total 88.679 Km under IMSD SMUN HQ).
 Here is the LIVE, REAL-TIME ERP DATABASE CONTEXT:
 ${contextSummary}
@@ -270,7 +271,7 @@ Answer the user's question accurately, professionally, and concisely using the r
                 </span>
               </div>
               <p className="text-[11px] text-blue-200 font-mono">
-                {geminiApiKey ? 'Connected to Google Gemini 2.5 Flash & Firebase' : 'Real-time Semantic Query on ERP Databases'}
+                {geminiApiKey ? 'Connected to Google Gemini 3.6 Flash & Firebase' : 'Real-time Semantic Query on ERP Databases'}
               </p>
             </div>
           </div>

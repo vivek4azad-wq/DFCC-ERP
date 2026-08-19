@@ -856,15 +856,15 @@ export interface GangWorkTypeRecord {
 
 export interface StoreItemRecord {
   id: string;
-  itemCode: string; // e.g. "PWAY-ERC-MK3"
-  name: string; // "Elastic Rail Clip (ERC Mk-III)"
-  category: 'FITTINGS' | 'FASTENERS' | 'TOOLS' | 'TURNOUT_COMPONENTS' | 'SAFETY_GEAR' | 'CONSUMABLES' | 'RAW_MATERIAL';
+  itemCode: string; // e.g. "PWAY-ERC-MK3" or Price list code "49"
+  name: string; // "Elastic Rail Clip" or "Crockery Items"
+  category: string; // "T&P" | "C&P" | "Furniture" | "P.way material" | "P.way machines" | string
   categoryLabel: string;
   specification: string; // "RDSO/T-3701, 60kg Rail"
-  unit: string; // "Nos", "Sets", "MT", "Meters", "Kgs"
+  unit: string; // "Nos", "Sets", "Tonnes", "Kgs", "Meters"
   currentStock: number;
   minBufferThreshold: number;
-  location: string; // "IMSD SMUN Central Store - Bay 3"
+  location: string; // "IMSD SMUN Central Store"
   unitRate?: number;
   inwardTotal: number;
   outwardTotal: number;
@@ -872,22 +872,31 @@ export interface StoreItemRecord {
   lastIssuedDate?: string;
   supplier?: string;
   remarks?: string;
+  // Departmental Ledger & Tally Book Metadata (विभागीय खाता मिलान पुस्तक)
+  tallyCodeNo?: string | number; // मिलान पत्र संख्या (e.g. 1)
+  priceListCode?: string | number; // मूल्य सूची / कूट संख्या (e.g. 49)
+  accountsFileNo?: string | number; // लेखा कार्यालय पृष्ठ संख्या (e.g. 3195)
   [key: string]: any;
 }
 
 export interface StoreTransactionRecord {
   id: string;
-  date: string; // YYYY-MM-DD
-  type: 'INWARD' | 'OUTWARD';
+  date: string; // YYYY-MM-DD (माह और तारीख)
+  type: 'INWARD' | 'OUTWARD' | 'TRANSFER';
   itemId: string;
   itemName: string;
   quantity: number;
   unit: string;
-  referenceNo: string; // e.g. "DC-2026/042" or "ISSUE-GANG1-019"
-  issuedToOrReceivedFrom: string; // "Gang 1+15 (Mate Joginder Singh)" or "SAIL Bhilai Plant"
-  purposeOrSection: string; // "Through Packing at Km 1172.500"
+  referenceNo: string; // प्राप्त या निर्गम वाउचर संख्या और तारीख (e.g. "Glass/771 Dated 10.09.2024")
+  issuedToOrReceivedFrom: string; // किससे प्राप्त हुआ या किसे जारी किया (e.g. "CIODW Ami Bartan Bhandar/")
+  purposeOrSection: string; // प्राप्ति या निर्गम का उद्देश्य (e.g. "IMSD/USED")
   authorizedBy: string; // "Vivek Kumar Azad (APM)"
   remarks?: string;
   createdAt: string;
+  // Departmental Tally Ledger Quantities
+  receiptQty?: number; // प्राप्ति (Receipt)
+  transferQty?: number; // स्थानांतरण (Transfer)
+  issueQty?: number; // निर्गम (Issues)
+  balanceQty?: number; // शेष (Balance)
   [key: string]: any;
 }

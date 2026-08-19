@@ -75,34 +75,34 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Filter tabs according to strict role constraints
   const allTabs = [
     { id: 'analytics', label: 'Dashboard', icon: '📊', count: null },
-    { id: 'categories', label: 'Asset Categories', icon: '🗂️', count: '8 Groups' },
-    { id: 'staff', label: 'Staff Directory', icon: '👥', count: '82' },
-    { id: 'pway_work', label: 'P-Way Work', icon: '🏗️', count: '1+15 Gang' },
-    { id: 'store', label: 'Store & Depot', icon: '📦', count: 'Depot' },
-    { id: 'attendance', label: 'Attendance', icon: '📋', count: 'ERP' },
-    { id: 'defects', label: 'Rail Defects', icon: '📍', count: '48' },
-    { id: 'gpsmap', label: 'DFCCIL Map', icon: '🗺️', count: null },
-    { id: 'linear', label: 'Linear Diagram', icon: '📐', count: null },
+    { id: 'categories', label: 'Assets', icon: '🗂️', count: null },
+    { id: 'staff', label: 'Staff', icon: '👥', count: null },
+    { id: 'pway_work', label: 'P.way', icon: '🏗️', count: null },
+    { id: 'store', label: 'Store', icon: '📦', count: null },
+    { id: 'attendance', label: 'Attendence', icon: '📋', count: null },
+    { id: 'defects', label: 'DFWO', icon: '📍', count: null },
+    { id: 'gpsmap', label: 'Map', icon: '🗺️', count: null },
+    { id: 'linear', label: 'Linear', icon: '📐', count: null },
   ];
 
   const visibleTabs = React.useMemo(() => {
     if (currentAppRole === 'MTS' || role === 'STAFF') {
-      // 🔒 Strictly visible for MTS: KM Finder, P.Way, Map, Staff, and own attendance
+      // 🔒 Strictly visible for MTS: KM Finder, P.way, Map, Staff, and own attendance
       return [
-        { id: 'kmfinder', label: 'KM Finder', icon: '🔍', count: 'Quick' },
-        { id: 'pway_work', label: 'P.Way Work', icon: '🏗️', count: '1+15 Gang' },
-        { id: 'gpsmap', label: 'DFCCIL Map', icon: '🗺️', count: null },
-        { id: 'staff', label: 'Staff Directory', icon: '👥', count: '82' },
-        { id: 'attendance', label: 'Own Attendance', icon: '📋', count: 'Field' },
+        { id: 'kmfinder', label: 'KM Finder', icon: '🔍', count: null },
+        { id: 'pway_work', label: 'P.way', icon: '🏗️', count: null },
+        { id: 'gpsmap', label: 'Map', icon: '🗺️', count: null },
+        { id: 'staff', label: 'Staff', icon: '👥', count: null },
+        { id: 'attendance', label: 'Attendence', icon: '📋', count: null },
       ];
     }
     if (currentAppRole === 'StoreKeeper' || role === 'STORE_KEEPER') {
       return [
-        { id: 'store', label: 'Store Inventory', icon: '📦', count: 'Depot' },
-        { id: 'staff', label: 'Staff Directory', icon: '👥', count: '82' },
-        { id: 'pway_work', label: 'P-Way Work', icon: '🏗️', count: 'Gang' },
+        { id: 'store', label: 'Store', icon: '📦', count: null },
+        { id: 'staff', label: 'Staff', icon: '👥', count: null },
+        { id: 'pway_work', label: 'P.way', icon: '🏗️', count: null },
         { id: 'kmfinder', label: 'KM Finder', icon: '🔍', count: null },
-        { id: 'gpsmap', label: 'DFCCIL Map', icon: '🗺️', count: null },
+        { id: 'gpsmap', label: 'Map', icon: '🗺️', count: null },
       ];
     }
     return allTabs;
@@ -408,21 +408,21 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {/* Horizontal Navigation Tabs */}
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-[#1b3d75]/80 py-1.5">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar border-t border-[#1b3d75]/80 py-2">
           {visibleTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              className={`px-4 py-2 sm:px-5 rounded-xl text-xs sm:text-[13px] font-bold transition flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm ${
                 activeTab === tab.id
-                  ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+                  ? 'bg-cyan-400 text-slate-950 shadow-md font-black ring-2 ring-cyan-300/60'
+                  : 'text-blue-200 hover:text-white hover:bg-white/15'
               }`}
             >
-              <span>{tab.icon}</span>
+              <span className="text-sm">{tab.icon}</span>
               <span>{tab.label}</span>
               {tab.count && (
-                <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
                   activeTab === tab.id ? 'bg-slate-950 text-cyan-300' : 'bg-blue-900/80 text-blue-200'
                 }`}>
                   {tab.count}

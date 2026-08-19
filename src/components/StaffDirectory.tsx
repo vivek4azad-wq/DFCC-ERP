@@ -173,25 +173,51 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  sectionCode: 'IMSD SMUN SPD-01 (KRJN - SMUN)'
  });
 
- // Regular Add/Edit Staff Modal State
- const [isStaffFormOpen, setIsStaffFormOpen] = useState(false);
- const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
- const [staffFormData, setStaffFormData] = useState<Partial<OfficerStaffRecord>>({
- name: '',
- nameHi: '',
- post: 'Track Maintainer',
- role: 'STAFF',
- employmentType: 'OUTSOURCED',
- email: '',
- phone: '',
- headquarters: 'IMSD SMUN',
- assignedSection: 'SMUN-SBJN',
- awpoId: '',
- advanceBeatCode: '',
- lap: 30,
- cl: 8,
- photoUrl: ''
- });
+  // Google Translate Auto-Hindi Helper
+  const translateNameToHindi = async (englishText: string) => {
+    if (!englishText.trim()) return '';
+    try {
+      const res = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURIComponent(englishText.trim())}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data[0] && data[0][0] && data[0][0][0]) {
+          return data[0][0][0];
+        }
+      }
+    } catch (err) {
+      console.warn('Auto translate warning:', err);
+    }
+    return '';
+  };
+
+  // Regular Add/Edit Staff Modal State
+  const [isStaffFormOpen, setIsStaffFormOpen] = useState(false);
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+  const [staffFormData, setStaffFormData] = useState<Record<string, any>>({
+    name: '',
+    nameHi: '',
+    fatherName: '',
+    post: 'Executive',
+    role: 'STAFF',
+    employmentType: 'REGULAR',
+    email: '',
+    phone: '',
+    emergencyContact: '',
+    headquarters: 'IMSD SMUN HQ',
+    residence: '',
+    assignedSection: 'KRJN-SMUN',
+    awpoId: '',
+    beatNo: 'SPD-01',
+    beatFromTo: 'Km 1167.210 – 1170.435',
+    lcNo: 'LC-119',
+    bridgeNoOrKm: 'Bridge 239 (Km 1174.500)',
+    advanceBeatCode: '',
+    lap: 30,
+    cl: 8,
+    photoUrl: ''
+  });
 
  // Delete Confirmation Modal State
  const [deleteTarget, setDeleteTarget] = useState<{
@@ -914,133 +940,149 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  };
 
  const handleSaveStaff = async (e: React.FormEvent) => {
- e.preventDefault();
- try {
- if (editingStaffId) {
- await db.updateDocument(
- 'officers_staff',
- editingStaffId,
- {
- name: staffFormData.name,
- nameHi: staffFormData.nameHi,
- post: staffFormData.post,
- role: staffFormData.role,
- employmentType: staffFormData.employmentType,
- email: staffFormData.email,
- phone: staffFormData.phone,
- headquarters: staffFormData.headquarters,
- assignedSection: staffFormData.assignedSection,
- awpoId: staffFormData.awpoId || null,
- photoUrl: staffFormData.photoUrl || undefined,
- leaveBalance: {
- lap: Number(staffFormData.lap) || 0,
- lhap: 15,
- cl: Number(staffFormData.cl) || 0,
- rh: 2
- }
- },
- currentUser
- );
- } else {
- const newId = staffFormData.employmentType === 'REGULAR'
- ? `EMP-${String(100800 + staffList.length)}`
- : (staffFormData.awpoId ? `AWPO-${staffFormData.awpoId.replace(/^AWPO-/i, '')}` : `AWPO-${String(88120 + staffList.length)}`);
- 
- await db.addDocument(
- 'officers_staff',
- {
- id: newId,
- name: staffFormData.name,
- nameHi: staffFormData.nameHi,
- post: staffFormData.post,
- role: staffFormData.role,
- employmentType: staffFormData.employmentType,
- email: staffFormData.email || `${newId.toLowerCase()}@dfcc.co.in`,
- phone: staffFormData.phone,
- headquarters: staffFormData.headquarters,
- assignedSection: staffFormData.assignedSection,
- awpoId: staffFormData.awpoId || null,
- photoUrl: staffFormData.photoUrl || undefined,
- leaveBalance: {
- lap: Number(staffFormData.lap) || 0,
- lhap: 15,
- cl: Number(staffFormData.cl) || 0,
- rh: 2
- },
- qrCodeId: `RD-${newId}`,
- dateOfJoining: new Date().toISOString().split('T')[0],
- bloodGroup: 'O+'
- },
- currentUser
- );
+    e.preventDefault();
+    try {
+      const payload: any = {
+        name: staffFormData.name,
+        nameHi: staffFormData.nameHi,
+        fatherName: staffFormData.fatherName || '',
+        post: staffFormData.post || 'Staff',
+        designation: staffFormData.post || 'Staff',
+        role: staffFormData.role || 'STAFF',
+        employmentType: staffFormData.employmentType,
+        staffCategory: staffFormData.employmentType === 'REGULAR' ? 'PERMANENT' : (staffFormData.employmentType === 'MTS_OUTSOURCE' || staffFormData.employmentType === 'OFFICE_STAFF' ? 'OUTSOURCE' : 'EX_SERVICEMAN'),
+        email: staffFormData.email,
+        phone: staffFormData.phone,
+        emergencyContact: staffFormData.emergencyContact || '',
+        otherMobile: staffFormData.emergencyContact || '',
+        headquarters: staffFormData.headquarters || 'IMSD SMUN HQ',
+        residence: staffFormData.residence || '',
+        assignedSection: staffFormData.assignedSection || 'KRJN-SMUN',
+        awpoId: staffFormData.awpoId || null,
+        beatNo: staffFormData.beatNo || staffFormData.advanceBeatCode || '',
+        advanceBeatCode: staffFormData.beatNo || staffFormData.advanceBeatCode || '',
+        beatFromTo: staffFormData.beatFromTo || '',
+        lcNo: staffFormData.lcNo || '',
+        bridgeNoOrKm: staffFormData.bridgeNoOrKm || '',
+        photoUrl: staffFormData.photoUrl || undefined,
+        leaveBalance: {
+          lap: Number(staffFormData.lap) || 30,
+          lhap: 15,
+          cl: Number(staffFormData.cl) || 8,
+          rh: 2
+        }
+      };
 
- // If user chose to allot a beat in advance during staff registration
- if (staffFormData.advanceBeatCode) {
- const beatCode = staffFormData.advanceBeatCode;
- const isNight = beatCode.startsWith('SPN');
- const route = DEFAULT_BEAT_ROUTES[beatCode] || {
- fromKm: 1167.210,
- toKm: 1170.435,
- section: `IMSD SMUN ${beatCode}`,
- shiftHoursDay: '15:00 - 23:00',
- shiftHoursNight: '23:00 - 07:00'
- };
- const existingPatrol = patrolList.find(p => p.beatCode === beatCode);
- const patrolPayload = {
- id: existingPatrol?.id || `PAT-${beatCode}`,
- beatCode: beatCode,
- sectionCode: route.section,
- fromKm: route.fromKm,
- toKm: route.toKm,
- shiftCode: isNight ? 'SHIFT_C_NIGHT' : 'SHIFT_A_DAY',
- shiftHours: isNight ? route.shiftHoursNight : route.shiftHoursDay,
- shiftType: isNight ? 'NIGHT' : 'DAY',
- patrolType: isNight ? 'COLD_WEATHER_NIGHT' : 'HOT_WEATHER',
- patrolmanName: staffFormData.name,
- patrolmanStaffId: newId,
- patrolmanPhone: staffFormData.phone,
- pairId: beatCode,
- isFilled: true,
- status: 'ACTIVE' as const,
- restDay: 'Sunday',
- equipmentChecked: true,
- lastReportedKm: route.fromKm,
- lastReportedTime: isNight ? '23:00' : '15:00',
- qrCodeId: `RD-${beatCode}`,
- remarks: `Advance Allotted to ${staffFormData.name} (${newId})`
- };
+      if (editingStaffId) {
+        await db.updateDocument('officers_staff', editingStaffId, payload, currentUser);
+      } else {
+        const newId = staffFormData.employmentType === 'REGULAR'
+          ? (staffFormData.awpoId ? staffFormData.awpoId : `EMP-${String(100800 + staffList.length)}`)
+          : (staffFormData.awpoId ? (staffFormData.awpoId.startsWith('AWPO-') ? staffFormData.awpoId : `AWPO-${staffFormData.awpoId}`) : `AWPO-${String(88120 + staffList.length)}`);
 
- if (existingPatrol) {
- await db.updateDocument('patrol_shifts', existingPatrol.id, patrolPayload as any, currentUser);
- } else {
- await db.addDocument('patrol_shifts', patrolPayload as any, currentUser);
- }
- }
- }
+        payload.id = newId;
+        payload.email = staffFormData.email || `${newId.toLowerCase()}@dfcc.co.in`;
+        payload.qrCodeId = `RD-${newId}`;
+        payload.dateOfJoining = new Date().toISOString().split('T')[0];
+        payload.bloodGroup = 'O+';
 
- setIsStaffFormOpen(false);
- setEditingStaffId(null);
- setStaffFormData({
- name: '',
- nameHi: '',
- post: 'Track Maintainer',
- role: 'STAFF',
- employmentType: 'OUTSOURCED',
- email: '',
- phone: '',
- headquarters: 'IMSD SMUN',
- assignedSection: 'SMUN-SBJN',
- awpoId: '',
- advanceBeatCode: '',
- lap: 30,
- cl: 8,
- photoUrl: ''
- });
- await loadAllData();
- } catch (err: any) {
- alert(`Error saving staff: ${err.message}`);
- }
- };
+        await db.addDocument('officers_staff', payload, currentUser);
+      }
+
+      // Synchronize into specific collections (Keymen, Patrol, Level Crossings, Bridge Watchmen)
+      const empType = staffFormData.employmentType;
+      if (empType === 'KEYMAN' && staffFormData.beatNo) {
+        const beatNum = parseInt(staffFormData.beatNo.replace(/\D/g, '')) || 1;
+        const existingKm = keymenList.find(k => k.beatNo === beatNum || k.awpoId === staffFormData.awpoId);
+        const kmPayload: any = {
+          beatNo: beatNum,
+          name: staffFormData.name,
+          awpoId: staffFormData.awpoId || 'AWPO-88100',
+          fatherName: staffFormData.fatherName || '',
+          mobileNo: staffFormData.phone,
+          residence: staffFormData.residence || 'IMSD SMUN HQ',
+          fromKm: 1167.210 + (beatNum - 1) * 6,
+          toKm: 1173.210 + (beatNum - 1) * 6,
+          sectionCode: `IMSD SMUN Beat ${beatNum}`,
+          photoUrl: staffFormData.photoUrl
+        };
+        if (existingKm) {
+          await db.updateDocument('keymen', existingKm.id, kmPayload, currentUser);
+        } else {
+          kmPayload.id = `KM-${beatNum}`;
+          await db.addDocument('keymen', kmPayload, currentUser);
+        }
+      }
+
+      if ((empType === 'PATROLMAN_DAY' || empType === 'PATROLMAN_NIGHT') && staffFormData.beatNo) {
+        const beatCode = staffFormData.beatNo;
+        const isNight = empType === 'PATROLMAN_NIGHT' || beatCode.startsWith('SPN');
+        const route = DEFAULT_BEAT_ROUTES[beatCode] || {
+          fromKm: 1167.210,
+          toKm: 1170.435,
+          section: `IMSD SMUN ${beatCode}`,
+          shiftHoursDay: '15:00 - 23:00',
+          shiftHoursNight: '23:00 - 07:00'
+        };
+        const existingPatrol = patrolList.find(p => p.beatCode === beatCode);
+        const patrolPayload: any = {
+          beatCode: beatCode,
+          sectionCode: route.section,
+          fromKm: route.fromKm,
+          toKm: route.toKm,
+          shiftCode: isNight ? 'SHIFT_C_NIGHT' : 'SHIFT_A_DAY',
+          shiftHours: isNight ? route.shiftHoursNight : route.shiftHoursDay,
+          shiftType: isNight ? 'NIGHT' : 'DAY',
+          patrolType: isNight ? 'COLD_WEATHER_NIGHT' : 'HOT_WEATHER',
+          patrolmanName: staffFormData.name,
+          patrolmanStaffId: staffFormData.awpoId || staffFormData.id,
+          patrolmanPhone: staffFormData.phone,
+          isFilled: true,
+          status: 'ACTIVE',
+          restDay: 'Sunday',
+          equipmentChecked: true,
+          lastReportedKm: route.fromKm,
+          lastReportedTime: isNight ? '23:00' : '15:00',
+          photoUrl: staffFormData.photoUrl
+        };
+        if (existingPatrol) {
+          await db.updateDocument('patrol_shifts', existingPatrol.id, patrolPayload, currentUser);
+        } else {
+          patrolPayload.id = `PAT-${beatCode}`;
+          await db.addDocument('patrol_shifts', patrolPayload, currentUser);
+        }
+      }
+
+      await loadAllData();
+      setIsStaffFormOpen(false);
+      setEditingStaffId(null);
+      setStaffFormData({
+        name: '',
+        nameHi: '',
+        fatherName: '',
+        post: 'Executive',
+        role: 'STAFF',
+        employmentType: 'REGULAR',
+        email: '',
+        phone: '',
+        emergencyContact: '',
+        headquarters: 'IMSD SMUN HQ',
+        residence: '',
+        assignedSection: 'KRJN-SMUN',
+        awpoId: '',
+        beatNo: 'SPD-01',
+        beatFromTo: 'Km 1167.210 – 1170.435',
+        lcNo: 'LC-119',
+        bridgeNoOrKm: 'Bridge 239 (Km 1174.500)',
+        advanceBeatCode: '',
+        lap: 30,
+        cl: 8,
+        photoUrl: ''
+      });
+    } catch (err: any) {
+      alert(`Save staff failed: ${err.message}`);
+    }
+  };
 
  const getStationPillText = (hq?: string) => {
  if (!hq) return 'NEW SHAMBHU';
@@ -3092,6 +3134,478 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  Cancel
  </button>
  </div>
+ </div>
+ </div>
+ )}
+
+ {/* 👥 Add/Edit Staff Modal with Google Translation and Exact Role Fields */}
+ {isStaffFormOpen && (
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+ <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto animate-scaleUp">
+ <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+ <div className="flex items-center gap-2">
+ <Users className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+ <span className="text-base font-black text-slate-900 dark:text-white">
+ {editingStaffId ? 'Edit Staff Record' : 'Register New Staff Member'}
+ </span>
+ </div>
+ <button
+ onClick={() => setIsStaffFormOpen(false)}
+ className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+ >
+ <X className="w-5 h-5" />
+ </button>
+ </div>
+
+ <form onSubmit={handleSaveStaff} className="space-y-3.5 text-xs">
+ {/* 1. Employment Type Selector */}
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Employment Type (श्रेणी / पद प्रकार) *</label>
+ <select
+ value={staffFormData.employmentType}
+ onChange={e => {
+ const val = e.target.value;
+ let defaultPost = staffFormData.post;
+ if (val === 'REGULAR') defaultPost = 'Executive';
+ else if (val === 'MTS_OUTSOURCE') defaultPost = 'MTS';
+ else if (val === 'KEYMAN') defaultPost = 'KEYMAN';
+ else if (val === 'PATROLMAN_DAY') defaultPost = 'Patrolman (Day)';
+ else if (val === 'PATROLMAN_NIGHT') defaultPost = 'Patrolman (Night)';
+ else if (val === 'GATEMAN') defaultPost = 'GATEMAN';
+ else if (val === 'BR_WATCHMAN') defaultPost = 'Bridge Watchman';
+ else if (val === 'OFFICE_STAFF') defaultPost = 'Office Boy';
+
+ setStaffFormData(prev => ({
+ ...prev,
+ employmentType: val,
+ post: defaultPost
+ }));
+ }}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-blue-500/60 rounded-xl text-slate-900 dark:text-white font-bold"
+ >
+ <option value="REGULAR">Regular (Permanent Staff)</option>
+ <option value="MTS_OUTSOURCE">MTS (Outsource)</option>
+ <option value="KEYMAN">Keyman</option>
+ <option value="PATROLMAN_DAY">Patrolman (Day)</option>
+ <option value="PATROLMAN_NIGHT">Patrolman (Night)</option>
+ <option value="GATEMAN">Gateman</option>
+ <option value="BR_WATCHMAN">Br. Watchman</option>
+ <option value="OFFICE_STAFF">Office Staff</option>
+ </select>
+ </div>
+
+ {/* 2. Names Row with Google Auto-Hindi Translation */}
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Name (English) *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. Ramesh Kumar"
+ value={staffFormData.name}
+ onChange={async e => {
+ const val = e.target.value;
+ setStaffFormData(prev => ({ ...prev, name: val }));
+ if (val.trim()) {
+ const translated = await translateNameToHindi(val);
+ if (translated) {
+ setStaffFormData(prev => ({ ...prev, nameHi: translated }));
+ }
+ }
+ }}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-semibold"
+ />
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold flex items-center justify-between">
+ <span>Name (Hindi)</span>
+ <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">✨ Auto Google Translation</span>
+ </label>
+ <input
+ type="text"
+ placeholder="e.g. रमेश कुमार"
+ value={staffFormData.nameHi || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, nameHi: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-semibold"
+ />
+ </div>
+ </div>
+
+ {/* 3. Father's Name */}
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Father's Name (पिता का नाम)</label>
+ <input
+ type="text"
+ placeholder="e.g. Shri Dharam Pal"
+ value={staffFormData.fatherName || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, fatherName: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+
+ {/* ========================================================================= */}
+ {/* CASE A: FOR PERMANENT / REGULAR */}
+ {/* ========================================================================= */}
+ {staffFormData.employmentType === 'REGULAR' && (
+ <>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Designation Dropdown *</label>
+ <select
+ value={staffFormData.post}
+ onChange={e => setStaffFormData(prev => ({ ...prev, post: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+ >
+ <option value="Dy.PM">Dy.PM / Dy.CPM</option>
+ <option value="APM">APM / Civil</option>
+ <option value="Sr. Executive">Sr. Executive / P-Way</option>
+ <option value="Executive">Executive / Civil</option>
+ <option value="Jr. Executive">Jr. Executive</option>
+ <option value="MTS">MTS</option>
+ </select>
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Employee ID *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. 101518 / EMP-101518"
+ value={staffFormData.awpoId || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, awpoId: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Posting Location *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. IMSD SMUN HQ"
+ value={staffFormData.headquarters || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, headquarters: e.target.value, assignedSection: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Mobile No. *</label>
+ <input
+ type="tel"
+ required
+ placeholder="e.g. 9876543210"
+ value={staffFormData.phone || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, phone: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Emergency Mobile No.</label>
+ <input
+ type="tel"
+ placeholder="e.g. 9416000000"
+ value={staffFormData.emergencyContact || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Residence / Address</label>
+ <input
+ type="text"
+ placeholder="e.g. Railway Colony, Patiala"
+ value={staffFormData.residence || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, residence: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+ </>
+ )}
+
+ {/* ========================================================================= */}
+ {/* CASE B: FOR MTS OUTSOURCE & OFFICE STAFF */}
+ {/* ========================================================================= */}
+ {(staffFormData.employmentType === 'MTS_OUTSOURCE' || staffFormData.employmentType === 'OFFICE_STAFF') && (
+ <>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Designation Dropdown *</label>
+ <select
+ value={staffFormData.post}
+ onChange={e => setStaffFormData(prev => ({ ...prev, post: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+ >
+ <option value="MTS">MTS</option>
+ <option value="Office Boy">Office Boy</option>
+ <option value="Mate">Mate</option>
+ <option value="Cleaner">Cleaner (Clear)</option>
+ </select>
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Employee / Outsource ID *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. AWPO-88120 or MTS-04"
+ value={staffFormData.awpoId || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, awpoId: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Posting Location *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. IMSD SMUN Unit / Gang 1+15"
+ value={staffFormData.headquarters || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, headquarters: e.target.value, assignedSection: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Mobile No. *</label>
+ <input
+ type="tel"
+ required
+ placeholder="e.g. 9876543210"
+ value={staffFormData.phone || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, phone: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Emergency Mobile No.</label>
+ <input
+ type="tel"
+ placeholder="e.g. 9416000000"
+ value={staffFormData.emergencyContact || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Residence</label>
+ <input
+ type="text"
+ placeholder="e.g. Shambhu Kalan, Rajpura"
+ value={staffFormData.residence || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, residence: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+ </>
+ )}
+
+ {/* ========================================================================= */}
+ {/* CASE C: FOR KEYMAN & PATROLMAN (DAY / NIGHT) */}
+ {/* ========================================================================= */}
+ {(staffFormData.employmentType === 'KEYMAN' || staffFormData.employmentType === 'PATROLMAN_DAY' || staffFormData.employmentType === 'PATROLMAN_NIGHT') && (
+ <>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">AWPO ID *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. AWPO-88102"
+ value={staffFormData.awpoId || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, awpoId: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Beat No. *</label>
+ <select
+ value={staffFormData.beatNo || ''}
+ onChange={e => {
+ const b = e.target.value;
+ const route = DEFAULT_BEAT_ROUTES[b];
+ setStaffFormData(prev => ({
+ ...prev,
+ beatNo: b,
+ advanceBeatCode: b,
+ beatFromTo: route ? `Km ${route.fromKm.toFixed(3)} – ${route.toKm.toFixed(3)}` : prev.beatFromTo
+ }));
+ }}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+ >
+ <option value="">-- Select Beat --</option>
+ {staffFormData.employmentType === 'KEYMAN' ? (
+ Array.from({ length: 10 }, (_, i) => `Beat 0${i + 1}`).map(b => (
+ <option key={b} value={b}>{b}</option>
+ ))
+ ) : staffFormData.employmentType === 'PATROLMAN_DAY' ? (
+ Array.from({ length: 12 }, (_, i) => `SPD-${String(i + 1).padStart(2, '0')}`).map(b => (
+ <option key={b} value={b}>{b} ({DEFAULT_BEAT_ROUTES[b]?.section || 'Day Patrol'})</option>
+ ))
+ ) : (
+ Array.from({ length: 12 }, (_, i) => `SPN-${String(i + 1).padStart(2, '0')}`).map(b => (
+ <option key={b} value={b}>{b} ({DEFAULT_BEAT_ROUTES[b]?.section || 'Night Patrol'})</option>
+ ))
+ )}
+ </select>
+ </div>
+
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Beat From-To *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. Km 1167.210 – 1170.435"
+ value={staffFormData.beatFromTo || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, beatFromTo: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ </div>
+
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Mobile No. *</label>
+ <input
+ type="tel"
+ required
+ placeholder="e.g. 9876543210"
+ value={staffFormData.phone || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, phone: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Residence</label>
+ <input
+ type="text"
+ placeholder="e.g. Sirhind / Ambala"
+ value={staffFormData.residence || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, residence: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+ </div>
+ </>
+ )}
+
+ {/* ========================================================================= */}
+ {/* CASE D: FOR GATEMAN & BR. WATCHMAN */}
+ {/* ========================================================================= */}
+ {(staffFormData.employmentType === 'GATEMAN' || staffFormData.employmentType === 'BR_WATCHMAN') && (
+ <>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">AWPO ID *</label>
+ <input
+ type="text"
+ required
+ placeholder="e.g. AWPO-88114"
+ value={staffFormData.awpoId || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, awpoId: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">
+ {staffFormData.employmentType === 'GATEMAN' ? 'Posting Location (Level Crossing) *' : 'Posting Location (Write KM or Bridge No) *'}
+ </label>
+ {staffFormData.employmentType === 'GATEMAN' ? (
+ <select
+ value={staffFormData.lcNo || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, lcNo: e.target.value, headquarters: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+ >
+ <option value="">-- Select Level Crossing Gate --</option>
+ <option value="LC-119 (Km 1171.950)">LC-119 (Km 1171.950 - Special Class)</option>
+ <option value="LC-120 (Km 1176.320)">LC-120 (Km 1176.320 - Class A)</option>
+ <option value="LC-121 (Km 1182.100)">LC-121 (Km 1182.100 - Class B)</option>
+ <option value="LC-122 (Km 1195.400)">LC-122 (Km 1195.400 - Class A)</option>
+ <option value="LC-123 (Km 1204.600)">LC-123 (Km 1204.600 - Class B)</option>
+ </select>
+ ) : (
+ <input
+ type="text"
+ required
+ placeholder="e.g. Bridge 239 (Km 1174.500) or Br. 248"
+ value={staffFormData.bridgeNoOrKm || staffFormData.headquarters || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, bridgeNoOrKm: e.target.value, headquarters: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ )}
+ </div>
+
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Mobile No. *</label>
+ <input
+ type="tel"
+ required
+ placeholder="e.g. 9876543210"
+ value={staffFormData.phone || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, phone: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+ />
+ </div>
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Residence</label>
+ <input
+ type="text"
+ placeholder="e.g. Khanna / Gobindgarh"
+ value={staffFormData.residence || ''}
+ onChange={e => setStaffFormData(prev => ({ ...prev, residence: e.target.value }))}
+ className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+ />
+ </div>
+ </div>
+ </>
+ )}
+
+ {/* Photo File Input */}
+ <div>
+ <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Photo (Optional upload or image URL)</label>
+ <input
+ type="file"
+ accept="image/*"
+ onChange={e => {
+ const file = e.target.files?.[0];
+ if (file) {
+ const reader = new FileReader();
+ reader.onload = ev => {
+ setStaffFormData((prev: any) => ({ ...prev, photoUrl: ev.target?.result as string }));
+ };
+ reader.readAsDataURL(file);
+ }
+ }}
+ className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+ />
+ </div>
+
+ <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+ <button
+ type="button"
+ onClick={() => setIsStaffFormOpen(false)}
+ className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+ >
+ Cancel
+ </button>
+ <button
+ type="submit"
+ className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition text-xs flex items-center gap-1.5"
+ >
+ <Check className="w-4 h-4" />
+ <span>{editingStaffId ? 'Update Staff Record' : 'Save & Register Staff'}</span>
+ </button>
+ </div>
+ </form>
  </div>
  </div>
  )}

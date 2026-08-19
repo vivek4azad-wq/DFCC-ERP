@@ -154,8 +154,8 @@ export const StoreInventoryManager: React.FC = () => {
       let finalItems = itemsList || [];
       let finalTxns = txnList || [];
 
-      // If no items or only old demo items, populate with authentic 196 IMSD Source Tally Master records & 638 transactions
-      const isDemoOnly = finalItems.length === 0 || (finalItems.length <= 10 && finalItems.every(i => i.id.startsWith('STR-00') || i.id === 'STR-49'));
+      // If no items or old demo items, populate with authentic 196 IMSD Source Tally Master records & 638 transactions
+      const isDemoOnly = finalItems.length === 0 || finalItems.length < 150 || finalItems.some(i => i.id.startsWith('STR-00') || i.id === 'STR-010' || i.itemCode === 'PWAY-ERC-MK3');
       if (isDemoOnly) {
         try {
           const tallyData = await decodeTallyData();

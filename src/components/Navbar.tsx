@@ -81,17 +81,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'store', label: 'Store', icon: '📦', count: null },
     { id: 'attendance', label: 'Attendence', icon: '📋', count: null },
     { id: 'defects', label: 'DFWO', icon: '📍', count: null },
-    { id: 'gpsmap', label: 'Map', icon: '🗺️', count: null },
     { id: 'linear', label: 'Linear', icon: '📐', count: null },
   ];
 
   const visibleTabs = React.useMemo(() => {
     if (currentAppRole === 'MTS' || role === 'STAFF') {
-      // 🔒 Strictly visible for MTS: KM Finder, P.way, Map, Staff, and own attendance
+      // 🔒 Strictly visible for MTS: KM Finder, P.way, Staff, and own attendance
       return [
         { id: 'kmfinder', label: 'KM Finder', icon: '🔍', count: null },
         { id: 'pway_work', label: 'P.way', icon: '🏗️', count: null },
-        { id: 'gpsmap', label: 'Map', icon: '🗺️', count: null },
         { id: 'staff', label: 'Staff', icon: '👥', count: null },
         { id: 'attendance', label: 'Attendence', icon: '📋', count: null },
       ];
@@ -102,7 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: 'staff', label: 'Staff', icon: '👥', count: null },
         { id: 'pway_work', label: 'P.way', icon: '🏗️', count: null },
         { id: 'kmfinder', label: 'KM Finder', icon: '🔍', count: null },
-        { id: 'gpsmap', label: 'Map', icon: '🗺️', count: null },
       ];
     }
     return allTabs;
@@ -160,23 +157,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Hand: Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* 🤖 AI Search & Query Chat Button (Admin / All Staff) */}
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenAIChat) {
-                  onOpenAIChat();
-                } else {
-                  window.dispatchEvent(new Event('raildiary_open_ai_chat'));
-                }
-              }}
-              className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold border border-cyan-400/40 shadow-md flex items-center gap-1.5 transition active:scale-95"
-              title="Admin AI Search & Firebase Log Assistant"
-            >
-              <Bot className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
-              <span className="hidden sm:inline">AI Search</span>
-            </button>
-
             {/* 🔔 Inspection Startup Popup Trigger */}
             <button
               type="button"
@@ -208,21 +188,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Search className="w-3.5 h-3.5 text-cyan-300" />
               <span className="hidden sm:inline">Search / Km</span>
-            </button>
-
-            {/* 🗺️ DFCCIL Map */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('gpsmap')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold border shadow-md flex items-center gap-1.5 transition active:scale-95 ${
-                activeTab === 'gpsmap'
-                  ? 'bg-cyan-500 text-slate-950 border-cyan-300 font-black'
-                  : 'bg-[#173a72] hover:bg-[#1f488a] text-white border-white/20'
-              }`}
-              title="DFCCIL Interactive GPS Track Map"
-            >
-              <Compass className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Map</span>
             </button>
 
             {/* ☀️/🌙 Theme Switcher */}
@@ -267,6 +232,47 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }`} />
                       <span>{currentAppRole} • {currentUser?.designation || 'APM / Civil'}</span>
                     </div>
+                  </div>
+
+                  {/* 🌟 Special Shifted Features: AI Search & GPS Map */}
+                  <div className="space-y-1 bg-blue-950/70 p-1.5 rounded-xl border border-blue-800/60">
+                    {/* 🤖 AI Search */}
+                    <button
+                      onClick={() => {
+                        setIsThreeDotMenuOpen(false);
+                        if (onOpenAIChat) {
+                          onOpenAIChat();
+                        } else {
+                          window.dispatchEvent(new Event('raildiary_open_ai_chat'));
+                        }
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold flex items-center justify-between shadow-sm transition active:scale-95"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-cyan-300 animate-pulse" />
+                        <span>AI Assistant &amp; Search</span>
+                      </div>
+                      <span className="text-[9px] font-mono bg-white/20 px-1.5 py-0.5 rounded text-cyan-200">GEMINI</span>
+                    </button>
+
+                    {/* 🗺️ DFCCIL GPS Map */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('gpsmap');
+                        setIsThreeDotMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between font-bold transition active:scale-95 ${
+                        activeTab === 'gpsmap'
+                          ? 'bg-cyan-500 text-slate-950 shadow-md'
+                          : 'hover:bg-blue-900/80 text-cyan-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Compass className="w-4 h-4 text-cyan-300" />
+                        <span>DFCCIL Track Map (GPS)</span>
+                      </div>
+                      <span className="text-[9px] font-mono opacity-80">MAP</span>
+                    </button>
                   </div>
 
                   {/* 1. Switch Role Options */}

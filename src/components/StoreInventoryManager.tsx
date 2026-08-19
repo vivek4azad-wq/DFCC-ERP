@@ -41,8 +41,11 @@ import {
   FileSpreadsheet,
   BookOpen,
   Info,
-  ChevronRight
+  ChevronRight,
+  QrCode
 } from 'lucide-react';
+import QRCode from 'qrcode';
+import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
 import type { StoreItemRecord, StoreTransactionRecord, OfficerStaffRecord } from '../types/index.ts';
 
 const DEFAULT_STORE_CATEGORIES = [
@@ -68,11 +71,14 @@ export const StoreInventoryManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('ALL');
 
-  // Modals
+  // Modals & QR State
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isTxnModalOpen, setIsTxnModalOpen] = useState(false);
   const [isCsvUploadModalOpen, setIsCsvUploadModalOpen] = useState(false);
   const [selectedItemForTally, setSelectedItemForTally] = useState<StoreItemRecord | null>(null);
+  const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [isPreviewingLiveScan, setIsPreviewingLiveScan] = useState(false);
 
   const [txnType, setTxnType] = useState<'INWARD' | 'OUTWARD' | 'TRANSFER'>('OUTWARD');
   const [selectedItemForTxn, setSelectedItemForTxn] = useState<StoreItemRecord | null>(null);
@@ -212,6 +218,29 @@ export const StoreInventoryManager: React.FC = () => {
   useEffect(() => {
     loadStoreData();
   }, []);
+
+  // Generate dynamic printable QR code for selected item
+  useEffect(() => {
+    if (!selectedItemForQR) {
+      setQrCodeDataUrl(null);
+      setIsPreviewingLiveScan(false);
+      return;
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://raildairy-dfcc.web.app';
+    const scanUrl = `${origin}/?store_item=${encodeURIComponent(selectedItemForQR.id)}`;
+
+    QRCode.toDataURL(scanUrl, {
+      errorCorrectionLevel: 'H',
+      margin: 1,
+      width: 260,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff'
+      }
+    })
+      .then(url => setQrCodeDataUrl(url))
+      .catch(err => console.error('Failed to generate Store QR Code:', err));
+  }, [selectedItemForQR]);
 
   const lowStockItems = useMemo(() => {
     return items.filter(i => i.currentStock <= i.minBufferThreshold);
@@ -970,6 +999,15 @@ export const StoreInventoryManager: React.FC = () => {
                       </td>
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setSelectedItemForQR(item)}
+                            className="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
+                            title="Generate & Print Dynamic QR Code for Bin Label"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>QR Label</span>
+                          </button>
+
                           <button
                             onClick={() => {
                               setSelectedItemForTxn(item);
@@ -1736,6 +1774,197 @@ export const StoreInventoryManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 4. DYNAMIC PRINTABLE QR MODAL & MOBILE SCAN PREVIEW */}
+      {/* ------------------------------------------------------------------------- */}
+      {selectedItemForQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          {/* Isolation Print Style */}
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-store-qr-tag, #printable-store-qr-tag * {
+                visibility: visible !important;
+              }
+              #printable-store-qr-tag {
+                position: fixed !important;
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 90mm !important;
+                max-width: 90mm !important;
+                padding: 12px !important;
+                margin: 0 !important;
+                border: 2px solid #0f2b5c !important;
+                border-radius: 12px !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                z-index: 999999 !important;
+              }
+            }
+          `}</style>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden text-slate-900 dark:text-white animate-scaleUp">
+            {/* Header */}
+            <div className="px-5 py-3.5 bg-[#0f2b5c] text-white flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-cyan-300" />
+                <span className="text-sm sm:text-base font-bold tracking-tight text-white">
+                  DFCCIL Store Dynamic QR Code
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedItemForQR(null)}
+                className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white transition active:scale-95"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4">
+              {isPreviewingLiveScan ? (
+                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden max-h-[65vh] overflow-y-auto">
+                  <StoreItemPublicQRView
+                    itemId={selectedItemForQR.id}
+                    onBackToApp={() => setIsPreviewingLiveScan(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Printable Shelf / Bin Tag */}
+                  <div
+                    id="printable-store-qr-tag"
+                    className="p-4 bg-white border-2 border-[#0f2b5c] rounded-2xl shadow-md text-slate-900 space-y-3"
+                  >
+                    {/* Tag Header */}
+                    <div className="flex items-center justify-between border-b-2 border-[#0f2b5c] pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-red-600 flex items-center justify-center text-white font-black text-xs">
+                          dfc
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-black text-[#0f2b5c] leading-tight uppercase">
+                            DFCCIL P-WAY DEPOT • IMSD SMUN
+                          </div>
+                          <div className="text-[9px] text-slate-500 font-bold">
+                            Central Store Inventory Bin Tag
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-mono font-bold bg-blue-50 text-blue-900 border border-blue-200 px-1.5 py-0.5 rounded">
+                        {selectedItemForQR.category}
+                      </span>
+                    </div>
+
+                    {/* Tag Content: Details + QR */}
+                    <div className="flex items-center gap-4">
+                      {/* Left QR */}
+                      <div className="shrink-0 flex flex-col items-center">
+                        <div className="p-1 bg-white border-2 border-slate-300 rounded-xl shadow-inner">
+                          {qrCodeDataUrl ? (
+                            <img
+                              src={qrCodeDataUrl}
+                              alt={selectedItemForQR.name}
+                              className="w-24 h-24 sm:w-28 sm:h-28 object-contain"
+                            />
+                          ) : (
+                            <div className="w-24 h-24 flex items-center justify-center text-[10px] text-slate-400">
+                              Loading QR...
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[8px] font-mono font-bold text-[#0f2b5c] mt-1 uppercase">
+                          SCAN FOR LIVE STOCK
+                        </span>
+                      </div>
+
+                      {/* Right Details */}
+                      <div className="flex-1 min-w-0 space-y-1.5 text-xs">
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">ITEM NAME</span>
+                          <span className="font-black text-slate-900 text-sm leading-tight block truncate">
+                            {selectedItemForQR.name}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1 text-[11px]">
+                          <div>
+                            <span className="text-[8px] font-bold text-slate-400 uppercase block">PL / CODE</span>
+                            <span className="font-bold font-mono text-[#0f2b5c]">
+                              {selectedItemForQR.priceListCode || selectedItemForQR.itemCode}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[8px] font-bold text-slate-400 uppercase block">TALLY NO.</span>
+                            <span className="font-bold font-mono text-purple-800">
+                              {selectedItemForQR.tallyCodeNo || '1'}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[8px] font-bold text-slate-400 uppercase block">AVAILABLE</span>
+                            <span className="font-black font-mono text-emerald-700">
+                              {selectedItemForQR.currentStock} {selectedItemForQR.unit}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[8px] font-bold text-slate-400 uppercase block">BIN LOCATION</span>
+                            <span className="font-semibold text-slate-700 truncate block">
+                              {selectedItemForQR.location || 'Depot'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[8px] text-slate-400 border-t border-slate-200 pt-1.5 text-center font-mono">
+                      Real-time Stock &amp; Movement Ledger System • Scan with any Camera
+                    </div>
+                  </div>
+
+                  {/* Action Controls */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsPreviewingLiveScan(true)}
+                      className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-purple-200 dark:border-purple-800"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Preview Live Scan Page</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md transition active:scale-95 flex items-center gap-1.5"
+                      >
+                        <Printer className="w-4 h-4" />
+                        <span>Print Sticker</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedItemForQR(null)}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

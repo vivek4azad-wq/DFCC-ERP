@@ -91,6 +91,7 @@ export const BridgeLinearDiagram: React.FC = () => {
   const [keymen, setKeymen] = useState<KeymanRecord[]>([]);
   const [patrolShifts, setPatrolShifts] = useState<PatrolShiftRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const diagramContainerRef = useRef<HTMLDivElement>(null);
 
   const [viewMode, setViewMode] = useState<'connected' | 'gradient_vertical'>('connected');
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -759,7 +760,7 @@ export const BridgeLinearDiagram: React.FC = () => {
             </span>
           </div>
 
-          <div className="v14-wrap" style={{ maxHeight: isFullScreen ? 'calc(100vh - 120px)' : '850px' }}>
+          <div ref={diagramContainerRef} className="v14-wrap" style={{ maxHeight: isFullScreen ? 'calc(100vh - 120px)' : '850px' }}>
             <div className="v14-canvas" style={{ height: `${canvasHeight}px` }}>
               <div className="v14-track-a" />
               <div className="v14-track-b" />
@@ -1034,6 +1035,75 @@ export const BridgeLinearDiagram: React.FC = () => {
           onClose={() => setSelectedStaffForModal(null)}
         />
       )}
+
+      {/* 🧭 Floating Mobile/Web Zoom & Navigation Control Widget (Bottom-Right) */}
+      <div className="fixed bottom-6 right-4 sm:right-6 z-40 flex flex-col items-center gap-1.5 p-2 bg-[#0f2b5c]/95 text-white rounded-2xl shadow-2xl border-2 border-cyan-400/50 backdrop-blur-md select-none animate-fadeIn">
+        {/* Zoom Level Indicator */}
+        <span className="text-[10px] font-mono font-black text-cyan-300 px-2 py-0.5 bg-black/40 rounded-lg">
+          {pxPerKm} px/KM
+        </span>
+
+        <div className="flex items-center gap-1">
+          {/* Zoom In Button */}
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-90 text-white font-black text-base flex items-center justify-center shadow transition"
+            title="Vertical Zoom In (+)"
+          >
+            +
+          </button>
+
+          {/* Zoom Out Button */}
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-90 text-white font-black text-base flex items-center justify-center shadow transition"
+            title="Vertical Zoom Out (−)"
+          >
+            −
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {/* Scroll to Top (Corridor Start) */}
+          <button
+            type="button"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (diagramContainerRef.current) diagramContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-300 text-sm flex items-center justify-center shadow transition"
+            title="Scroll to Top (Km 1167.210)"
+          >
+            ⬆
+          </button>
+
+          {/* Scroll to Bottom (Corridor End) */}
+          <button
+            type="button"
+            onClick={() => {
+              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              if (diagramContainerRef.current) diagramContainerRef.current.scrollTo({ top: diagramContainerRef.current.scrollHeight, behavior: 'smooth' });
+            }}
+            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-300 text-sm flex items-center justify-center shadow transition"
+            title="Scroll to Bottom (Km 1249.720)"
+          >
+            ⬇
+          </button>
+        </div>
+
+        {/* Reset Zoom */}
+        <button
+          type="button"
+          onClick={() => setPxPerKm(248)}
+          className="w-full px-2 py-1 rounded-lg bg-cyan-400/20 hover:bg-cyan-400/30 text-cyan-200 text-[10px] font-bold transition flex items-center justify-center gap-1 border border-cyan-400/30 active:scale-95"
+          title="Reset Zoom to 248 px/KM"
+        >
+          <RefreshCw className="w-2.5 h-2.5" />
+          <span>Reset</span>
+        </button>
+      </div>
     </div>
   );
 };

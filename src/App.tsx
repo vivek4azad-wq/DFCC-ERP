@@ -18,6 +18,7 @@ import { BridgeLinearDiagram } from './components/BridgeLinearDiagram.tsx';
 import { DefectManager } from './components/DefectManager.tsx';
 import { LoginDashboard } from './components/LoginDashboard.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
+import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import {
@@ -41,6 +42,15 @@ function MainAppShell() {
   const [activeTab, setActiveTab] = useState('analytics');
   const [prefillFromKm, setPrefillFromKm] = useState<string | null>(null);
   const [prefillToKm, setPrefillToKm] = useState<string | null>(null);
+
+  // Standalone QR Scan Store Item View
+  const [publicStoreItemId, setPublicStoreItemId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('store_item') || (params.get('view') === 'store_item' ? params.get('id') : null);
+    }
+    return null;
+  });
 
   // Modals & Popups
   const [isInspectionPopupOpen, setIsInspectionPopupOpen] = useState(true);
@@ -147,6 +157,23 @@ function MainAppShell() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // 1.5 IF PUBLIC STORE ITEM QR SCAN: RENDER INSTANT VERIFICATION VIEW
+  // -------------------------------------------------------------------------
+  if (publicStoreItemId) {
+    return (
+      <StoreItemPublicQRView
+        itemId={publicStoreItemId}
+        onBackToApp={() => {
+          setPublicStoreItemId(null);
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }}
+      />
     );
   }
 

@@ -60,6 +60,8 @@ export type CollectionName =
   | 'pway_inspections'
   | 'gang_work_types'
   | 'store_items'
+  | 'store_inventory'
+  | 'store_categories'
   | 'store_transactions';
 
 export const ALL_COLLECTIONS: CollectionName[] = [
@@ -85,6 +87,8 @@ export const ALL_COLLECTIONS: CollectionName[] = [
   'pway_inspections',
   'gang_work_types',
   'store_items',
+  'store_inventory',
+  'store_categories',
   'store_transactions'
 ];
 

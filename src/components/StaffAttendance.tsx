@@ -82,7 +82,7 @@ interface StaffRosterItem {
   id: string;
   name: string;
   designation: string;
-  category: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' | 'EX_SERVICEMAN';
+  category: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' | 'EX_SERVICEMAN' | 'KEYMAN' | 'PATROL' | 'GATEMAN' | 'WATCHMAN' | 'OUTSOURCE';
   categoryLabel: string;
   isPermanent: boolean;
   awpoId: string;
@@ -223,15 +223,29 @@ export const StaffAttendance: React.FC = () => {
         if (!seenIds.has(sid)) {
           seenIds.add(sid);
           const isPerm = o.employmentType === 'REGULAR' || o.employmentType === 'DEPUTATION' || o.staffCategory === 'PERMANENT' || o.role === 'SUPER_ADMIN';
-          const isOffice = !isPerm && /sweeper|office\s*boy|computer\s*operator|cleaner|gardener|pump|peon|driver|cook/i.test(o.post || '');
+          const postLower = (o.post || o.designation || '').toLowerCase();
+          const empType = (o.employmentType || '').toUpperCase();
+          const sectionLower = (o.assignedSection || o.headquarters || '').toLowerCase();
 
-          let cat: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' = 'OUTSOURCE_GANG';
+          let cat: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' | 'KEYMAN' | 'PATROL' | 'GATEMAN' | 'WATCHMAN' = 'OUTSOURCE_GANG';
           let catLabel = 'Outsource Staff (MTS outsource, Mate)';
 
           if (isPerm) {
             cat = 'PERMANENT';
             catLabel = 'Permanent Staff';
-          } else if (isOffice) {
+          } else if (empType === 'KEYMAN' || postLower.includes('keyman') || sectionLower.includes('keyman') || o.beatNoText || (o.id && String(o.id).startsWith('KM'))) {
+            cat = 'KEYMAN';
+            catLabel = 'Keyman (Ex-Serviceman)';
+          } else if (empType.includes('PATROL') || postLower.includes('patrol') || sectionLower.includes('patrol') || sectionLower.includes('spd') || sectionLower.includes('spn')) {
+            cat = 'PATROL';
+            catLabel = 'Patrolman (Day/Night Security)';
+          } else if (empType === 'GATEMAN' || postLower.includes('gateman') || postLower.includes('gate') || postLower.includes('lc') || sectionLower.includes('lc ') || sectionLower.includes('gate') || o.lcNo) {
+            cat = 'GATEMAN';
+            catLabel = 'Gateman (LC Gate Lodge)';
+          } else if (empType === 'BR_WATCHMAN' || postLower.includes('watchman') || postLower.includes('bridge') || sectionLower.includes('bridge') || o.bridgeNoOrKm) {
+            cat = 'WATCHMAN';
+            catLabel = 'Bridge Watchman (BR. 108)';
+          } else if (empType === 'OFFICE_STAFF' || /sweeper|office\s*boy|computer\s*operator|cleaner|gardener|pump|peon|driver|cook/i.test(postLower)) {
             cat = 'OFFICE_STAFF';
             catLabel = 'Office Staff (Sweeper, Office boy)';
           }
@@ -239,7 +253,7 @@ export const StaffAttendance: React.FC = () => {
           compiledStaff.push({
             id: sid,
             name: o.name,
-            designation: o.post || 'Staff',
+            designation: o.post || (cat === 'KEYMAN' ? 'Keyman' : cat === 'PATROL' ? 'Patrolman' : cat === 'GATEMAN' ? 'Gateman' : cat === 'WATCHMAN' ? 'Bridge Watchman' : 'Staff'),
             category: cat,
             categoryLabel: catLabel,
             isPermanent: isPerm,
@@ -263,8 +277,8 @@ export const StaffAttendance: React.FC = () => {
             id: sid,
             name: k.name,
             designation: `Keyman (${k.beatNoText || 'Beat'})`,
-            category: 'EX_SERVICEMAN',
-            categoryLabel: 'Ex-Serviceman (Keyman, Patrolman day/night, Gateman, Watchman)',
+            category: 'KEYMAN' as any,
+            categoryLabel: 'Keyman (Ex-Serviceman)',
             isPermanent: false,
             awpoId: k.awpoId || k.id || '-',
             phone: k.mobileNo || k.otherMobileNo || '-',
@@ -286,8 +300,8 @@ export const StaffAttendance: React.FC = () => {
               id: sid,
               name: p.patrolmanName,
               designation: p.shiftType === 'DAY' ? 'Day Patrolman' : 'Night Patrolman',
-              category: 'EX_SERVICEMAN',
-              categoryLabel: 'Ex-Serviceman (Keyman, Patrolman day/night, Gateman, Watchman)',
+              category: 'PATROL' as any,
+              categoryLabel: 'Patrolman (Day/Night Security)',
               isPermanent: false,
               awpoId: p.patrolmanStaffId || p.awpoId || '-',
               phone: p.patrolmanPhone || '-',
@@ -308,8 +322,8 @@ export const StaffAttendance: React.FC = () => {
               id: sid,
               name: gm.name,
               designation: `Gateman (LC ${lc.gateNo || lc.lc_no})`,
-              category: 'EX_SERVICEMAN',
-              categoryLabel: 'Ex-Serviceman (Keyman, Patrolman day/night, Gateman, Watchman)',
+              category: 'GATEMAN' as any,
+              categoryLabel: 'Gateman (LC Gate Lodge)',
               isPermanent: false,
               awpoId: gm.id || '-',
               phone: gm.mobile || '-',
@@ -329,8 +343,8 @@ export const StaffAttendance: React.FC = () => {
             id: sid,
             name: w.name,
             designation: w.post || 'Bridge Watchman',
-            category: 'EX_SERVICEMAN',
-            categoryLabel: 'Ex-Serviceman (Keyman, Patrolman day/night, Gateman, Watchman)',
+            category: 'WATCHMAN' as any,
+            categoryLabel: 'Bridge Watchman (BR. 108)',
             isPermanent: false,
             awpoId: w.awpoId || w.staffId || '-',
             phone: w.phone || '-',
@@ -608,8 +622,27 @@ export const StaffAttendance: React.FC = () => {
   const filteredDailyStaff = useMemo(() => {
     return allStaffList.filter(s => {
       // Category filter
-      if (selectedCategoryFilter !== 'ALL' && s.category !== selectedCategoryFilter) {
-        return false;
+      if (selectedCategoryFilter && selectedCategoryFilter !== 'ALL') {
+        const filterVal = selectedCategoryFilter.toUpperCase();
+        const sCat = (s.category || '').toUpperCase();
+        const des = (s.designation || '').toLowerCase();
+        const sec = (s.beatOrSection || '').toLowerCase();
+
+        if (filterVal === 'PERMANENT') {
+          if (sCat !== 'PERMANENT' && !s.isPermanent) return false;
+        } else if (filterVal === 'OUTSOURCE') {
+          if (sCat !== 'OUTSOURCE' && sCat !== 'OUTSOURCE_GANG' && sCat !== 'OFFICE_STAFF' && !des.includes('mts') && !des.includes('mate') && !des.includes('gang') && !des.includes('maintainer')) return false;
+        } else if (filterVal === 'KEYMAN') {
+          if (sCat !== 'KEYMAN' && !des.includes('keyman') && !sec.includes('keyman')) return false;
+        } else if (filterVal === 'PATROL') {
+          if (sCat !== 'PATROL' && !des.includes('patrol') && !sec.includes('spd') && !sec.includes('spn')) return false;
+        } else if (filterVal === 'GATEMAN') {
+          if (sCat !== 'GATEMAN' && !des.includes('gateman') && !des.includes('lc') && !sec.includes('gate') && !sec.includes('lc-') && !sec.includes('lc ')) return false;
+        } else if (filterVal === 'WATCHMAN') {
+          if (sCat !== 'WATCHMAN' && !des.includes('watchman') && !des.includes('bridge') && !sec.includes('bridge')) return false;
+        } else if (sCat !== filterVal) {
+          return false;
+        }
       }
       // Status filter
       if (selectedStatusFilter !== 'ALL') {
@@ -785,13 +818,9 @@ export const StaffAttendance: React.FC = () => {
     });
   }, [allStaffList, monthDates, attendanceRecords]);
 
-
   // Monthly grouped data by category
   const groupedMonthlyData = useMemo(() => {
-    const activeKeys = selectedMonthlyCategory === "ALL"
-      ? ["PERMANENT", "OFFICE_STAFF", "OUTSOURCE_GANG", "EX_SERVICEMAN"]
-      : [selectedMonthlyCategory];
-
+    const isAll = selectedMonthlyCategory === "ALL";
     const groups: {
       key: string;
       label: string;
@@ -808,26 +837,38 @@ export const StaffAttendance: React.FC = () => {
       };
     }[] = [];
 
-    activeKeys.forEach(catKey => {
-      const rows = monthlyStaffSummary.filter(r => r.staff.category === catKey);
-      if (rows.length > 0) {
-        const catConfig = MONTHLY_CATEGORY_GROUPS.find(g => g.key === catKey);
-        const subtotals = {
-          totalStaff: rows.length,
-          present: rows.reduce((a, b) => a + b.presentCount, 0),
-          absent: rows.reduce((a, b) => a + b.absentCount, 0),
-          rest: rows.reduce((a, b) => a + b.restCount, 0),
-          nh: rows.reduce((a, b) => a + b.nhCount, 0),
-          leaves: rows.reduce((a, b) => a + b.totalLeaveDays, 0),
-          payable: rows.reduce((a, b) => a + b.payableDays, 0)
-        };
-        groups.push({
-          key: catKey,
-          label: catConfig?.label || catKey,
-          icon: catConfig?.icon || "👥",
-          rows,
-          subtotals
-        });
+    const categoryDefinitions = [
+      { key: "PERMANENT", label: "1. Permanent Staff", icon: "🏛️", filter: (s: any) => s.category === 'PERMANENT' },
+      { key: "OFFICE_STAFF", label: "2. Office Staff (Sweeper, Office boy)", icon: "🏢", filter: (s: any) => s.category === 'OFFICE_STAFF' },
+      { key: "OUTSOURCE_GANG", label: "3. Outsource Staff (MTS outsource, Mate)", icon: "🛠️", filter: (s: any) => s.category === 'OUTSOURCE' || s.category === 'OUTSOURCE_GANG' },
+      { key: "KEYMAN", label: "4. Keymen (Track Maintenance)", icon: "🔑", filter: (s: any) => s.category === 'KEYMAN' || (s.designation || '').toLowerCase().includes('keyman') },
+      { key: "PATROL", label: "5. Patrolmen (Day / Night Security)", icon: "🛡️", filter: (s: any) => s.category === 'PATROL' || (s.designation || '').toLowerCase().includes('patrol') },
+      { key: "GATEMAN", label: "6. Gatemen (Level Crossings)", icon: "🚦", filter: (s: any) => s.category === 'GATEMAN' || (s.designation || '').toLowerCase().includes('gateman') },
+      { key: "WATCHMAN", label: "7. Bridge Watchmen (Special Surveillance)", icon: "🌉", filter: (s: any) => s.category === 'WATCHMAN' || (s.designation || '').toLowerCase().includes('watchman') },
+      { key: "EX_SERVICEMAN", label: "Ex-Servicemen Roster", icon: "🎖️", filter: (s: any) => ['KEYMAN', 'PATROL', 'GATEMAN', 'WATCHMAN', 'EX_SERVICEMAN'].includes(s.category) }
+    ];
+
+    categoryDefinitions.forEach(catDef => {
+      if (isAll || selectedMonthlyCategory === catDef.key) {
+        const rows = monthlyStaffSummary.filter(r => catDef.filter(r.staff));
+        if (rows.length > 0) {
+          const subtotals = {
+            totalStaff: rows.length,
+            present: rows.reduce((a, b) => a + b.presentCount, 0),
+            absent: rows.reduce((a, b) => a + b.absentCount, 0),
+            rest: rows.reduce((a, b) => a + b.restCount, 0),
+            nh: rows.reduce((a, b) => a + b.nhCount, 0),
+            leaves: rows.reduce((a, b) => a + b.totalLeaveDays, 0),
+            payable: rows.reduce((a, b) => a + b.payableDays, 0)
+          };
+          groups.push({
+            key: catDef.key,
+            label: catDef.label,
+            icon: catDef.icon,
+            rows,
+            subtotals
+          });
+        }
       }
     });
 

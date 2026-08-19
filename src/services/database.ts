@@ -353,19 +353,37 @@ export class LocalDatabaseService implements IDatabaseService {
       throw new Error(`Collection '${collection}' does not exist.`);
     }
 
+    let targetId = id;
     if (!colMap.has(id)) {
-      throw new Error(`Document with ID '${id}' not found in '${collection}'.`);
+      // Find by matching AWPO ID, employeeId, staffId, beatCode, or name
+      const cleanId = id.trim().toLowerCase();
+      for (const [key, doc] of colMap.entries()) {
+        const anyDoc = doc as any;
+        if (
+          (anyDoc.awpoId && String(anyDoc.awpoId).trim().toLowerCase() === cleanId) ||
+          (anyDoc.employeeId && String(anyDoc.employeeId).trim().toLowerCase() === cleanId) ||
+          (anyDoc.staffId && String(anyDoc.staffId).trim().toLowerCase() === cleanId) ||
+          (anyDoc.patrolmanStaffId && String(anyDoc.patrolmanStaffId).trim().toLowerCase() === cleanId) ||
+          (anyDoc.beatCode && String(anyDoc.beatCode).trim().toLowerCase() === cleanId) ||
+          (anyDoc.name && String(anyDoc.name).trim().toLowerCase() === cleanId)
+        ) {
+          targetId = key;
+          break;
+        }
+      }
     }
 
-    colMap.delete(id);
-    this.saveCollection(collection);
-    this.notifyChange();
+    if (colMap.has(targetId)) {
+      colMap.delete(targetId);
+      this.saveCollection(collection);
+      this.notifyChange();
 
-    // Sync deletion directly and synchronously to Cloud Firestore
-    try {
-      await deleteDocFromFirestore(collection, id);
-    } catch (e) {
-      console.warn('Firestore delete sync error:', e);
+      // Sync deletion directly and synchronously to Cloud Firestore
+      try {
+        await deleteDocFromFirestore(collection, targetId);
+      } catch (e) {
+        console.warn('Firestore delete sync error:', e);
+      }
     }
   }
 

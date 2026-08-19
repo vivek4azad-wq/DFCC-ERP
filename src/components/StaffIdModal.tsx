@@ -62,18 +62,10 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
   useEffect(() => {
     if (!staff || !isOpen) return;
 
-    // Build rich verifiable QR payload
-    const qrPayload = JSON.stringify({
-      app: 'DFCCIL-RailDiary-ID',
-      id: staff.awpoId || staff.staffId || staff.id,
-      name: staff.name,
-      nameHi: staff.nameHi || '',
-      designation: staff.post || staff.designation || 'Staff',
-      unit: 'IMSD-SMUN • Ambala Unit',
-      phone: staff.mobileNo || staff.phone || staff.patrolmanPhone || '',
-      section: staff.assignedSection || staff.sectionCode || 'SMUN-SBJN',
-      beat: staff.beatNoText || staff.beatCode || staff.beatNo || ''
-    });
+    // Build rich verifiable QR link for live mobile phone scanning
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://raildairy-dfcc.web.app';
+    const targetStaffId = String(staff.awpoId || staff.staffId || staff.id || '');
+    const qrPayload = `${origin}/?verify_staff=${encodeURIComponent(targetStaffId)}`;
 
     QRCode.toDataURL(qrPayload, {
       errorCorrectionLevel: 'H',

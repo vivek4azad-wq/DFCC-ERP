@@ -512,6 +512,7 @@ export const PWayWorkManager: React.FC = () => {
             <span>🚜 JCB Work (SUM: {totalJcbHoursSum.toFixed(1)} Hrs)</span>
           </button>
 
+          {/* Saved for later entry: Week-Wise Program & Inspections
           <button
             type="button"
             onClick={() => setMainView('weekly_program')}
@@ -537,6 +538,7 @@ export const PWayWorkManager: React.FC = () => {
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>🔍 Inspections</span>
           </button>
+          */}
 
           <button
             type="button"

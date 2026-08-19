@@ -58,7 +58,10 @@ export const PersonalQRModal: React.FC<PersonalQRModalProps> = ({
     if (!currentStaff || !isOpen) return;
 
     try {
-      const payloadString = generateStaffQRPayload(currentStaff);
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://raildairy-dfcc.web.app';
+      const targetId = currentStaff.awpoId || currentStaff.employeeId || currentStaff.id;
+      const payloadString = `${origin}/?verify_staff=${encodeURIComponent(targetId)}`;
+
       QRCode.toDataURL(
         payloadString,
         {

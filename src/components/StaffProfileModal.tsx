@@ -53,26 +53,10 @@ export const StaffProfileModal: React.FC<StaffProfileModalProps> = ({
 
   React.useEffect(() => {
     if (staff) {
-      // Generate QR Code with standard mobile route / staff identifier
-      const qrPayload = JSON.stringify({
-        app: "DFCCIL Rail Diary",
-        unit: "IMSD SMUN",
-        id: staff.id,
-        empId: staff.employeeId || staff.awpoId || staff.id,
-        awpoId: staff.awpoId,
-        name: staff.name,
-        post: staff.post,
-        desig: staff.designation,
-        cat: staff.staffCategory,
-        duty: staff.dutyType,
-        beat: staff.beatNo,
-        km: staff.beatFromTo,
-        phone: staff.phone,
-        pme: staff.pmeDate,
-        pair: staff.patrolPairId,
-        partner: staff.patrolPartnerName,
-        url: `raildiary://staff/${staff.id}`
-      });
+      // Generate QR Code with standard live mobile verification route
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://raildairy-dfcc.web.app';
+      const targetId = staff.employeeId || staff.awpoId || staff.id;
+      const qrPayload = `${origin}/?verify_staff=${encodeURIComponent(targetId)}`;
 
       QRCode.toDataURL(qrPayload, {
         width: 320,

@@ -46,15 +46,25 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
+import { SAP_MATERIALS, type SapMaterial } from '../data/sapMaterialMaster.ts';
 import { SapMaterialLookup } from './SapMaterialLookup.tsx';
 import { ImsdSourceTallyBook } from './ImsdSourceTallyBook.tsx';
+import { IMSD_TALLY_GZIP_BASE64 } from '../data/imsdTallyLedgerCompressed.ts';
 import type { StoreItemRecord, StoreTransactionRecord, OfficerStaffRecord } from '../types/index.ts';
+
+const decodeTallyData = async (): Promise<{ items: any[]; transactions: any[] }> => {
+  const compressed = Uint8Array.from(atob(IMSD_TALLY_GZIP_BASE64), char => char.charCodeAt(0));
+  const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+};
 
 const DEFAULT_STORE_CATEGORIES = [
   { id: 'T&P', label: 'T&P (Tools & Plant)' },
   { id: 'C&P', label: 'C&P (Consumables & Petroleum)' },
-  { id: 'Furniture', label: 'Furniture & Office Equipment' },
   { id: 'P.way material', label: 'P.way material (Fittings, Rails, Turnouts)' },
+  { id: 'Cash Imprest', label: 'Cash Imprest Material' },
+  { id: 'Uniform', label: 'Uniform & Safety Gear' },
+  { id: 'Furniture', label: 'Furniture & Office Equipment' },
   { id: 'P.way machines', label: 'P.way machines & Heavy Equipment' }
 ];
 
@@ -77,6 +87,12 @@ export const StoreInventoryManager: React.FC = () => {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isTxnModalOpen, setIsTxnModalOpen] = useState(false);
   const [isCsvUploadModalOpen, setIsCsvUploadModalOpen] = useState(false);
+  const [isSapLookupModalOpen, setIsSapLookupModalOpen] = useState(false);
+  const [sapSuggestions, setSapSuggestions] = useState<SapMaterial[]>([]);
+  const [isSapSuggestionOpen, setIsSapSuggestionOpen] = useState(false);
+  const [txnSapSuggestions, setTxnSapSuggestions] = useState<SapMaterial[]>([]);
+  const [isTxnSapSuggestionOpen, setIsTxnSapSuggestionOpen] = useState(false);
+
   const [selectedItemForTally, setSelectedItemForTally] = useState<StoreItemRecord | null>(null);
   const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
@@ -136,74 +152,77 @@ export const StoreInventoryManager: React.FC = () => {
       ]);
 
       let finalItems = itemsList || [];
-      // If no store items, initialize with standard initial railway seed items
-      if (finalItems.length === 0) {
-        finalItems = [
-          {
-            id: 'STR-49',
-            itemCode: '49',
-            priceListCode: '49',
-            tallyCodeNo: '1',
-            accountsFileNo: '3195',
-            name: 'Crockery Items',
-            category: 'T&P',
-            categoryLabel: 'T&P (Tools & Plant)',
-            specification: 'IMSD Office & Inspection Crockery Set',
-            unit: 'Nos',
-            currentStock: 6,
-            minBufferThreshold: 2,
-            location: 'IMSD SMUN HQ Central Store',
-            inwardTotal: 6,
-            outwardTotal: 0,
-            unitRate: 450,
-            lastReceivedDate: '2024-09-18',
-            supplier: 'CIODW Ami Bartan Bhandar'
-          },
-          {
-            id: 'STR-001',
-            itemCode: 'PWAY-ERC-MK3',
-            priceListCode: '01',
-            tallyCodeNo: '2',
-            accountsFileNo: '3190',
-            name: 'Elastic Rail Clip (ERC Mk-III)',
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'RDSO/T-3701, 60kg Rail',
-            unit: 'Nos',
-            currentStock: 12500,
-            minBufferThreshold: 2000,
-            location: 'Bay A1 - Fitting Yard',
-            inwardTotal: 15000,
-            outwardTotal: 2500,
-            unitRate: 115,
-            lastReceivedDate: '2024-09-15',
-            supplier: 'SAIL Bhilai Steel Plant'
-          },
-          {
-            id: 'STR-002',
-            itemCode: 'PWAY-GRSP-6MM',
-            priceListCode: '02',
-            tallyCodeNo: '3',
-            accountsFileNo: '3191',
-            name: 'Grooved Rubber Sole Plate (GRSP 6mm)',
-            category: 'P.way material',
-            categoryLabel: 'P.way material',
-            specification: 'IRS T-47, 60kg Sleeper',
-            unit: 'Nos',
-            currentStock: 8200,
-            minBufferThreshold: 1500,
-            location: 'Bay B1 - Pad Stacking Yard',
-            inwardTotal: 10000,
-            outwardTotal: 1800,
-            unitRate: 65,
-            lastReceivedDate: '2024-09-12',
-            supplier: 'Approved Rubber Components Vendor'
-          }
-        ];
+      let finalTxns = txnList || [];
+
+      // If no items or only old demo items, populate with authentic 196 IMSD Source Tally Master records & 638 transactions
+      const isDemoOnly = finalItems.length === 0 || (finalItems.length <= 10 && finalItems.every(i => i.id.startsWith('STR-00') || i.id === 'STR-49'));
+      if (isDemoOnly) {
+        try {
+          const tallyData = await decodeTallyData();
+          finalItems = tallyData.items.map((tItem: any, idx: number) => {
+            const code = tItem.sapMaterial || `IMSD-${tItem.ledgerPage}`;
+            const cat = tItem.source === 'C&P Material' ? 'C&P'
+              : tItem.source === 'T&P Material' ? 'T&P'
+              : tItem.source === 'P.Way Material' ? 'P.way material'
+              : tItem.source;
+
+            return {
+              id: `STR-IMSD-${idx + 1}`,
+              itemCode: code,
+              priceListCode: code,
+              tallyCodeNo: tItem.ledgerPage,
+              accountsFileNo: tItem.ledgerPage,
+              name: tItem.itemName,
+              category: cat,
+              categoryLabel: tItem.source,
+              specification: tItem.sapDescription ? `${tItem.sapDescription} (Page: ${tItem.ledgerPage})` : `Ledger Page: ${tItem.ledgerPage} • ${tItem.source}`,
+              unit: tItem.sapUom || 'Nos',
+              currentStock: tItem.closingBalance ?? 0,
+              minBufferThreshold: 5,
+              location: 'IMSD SMUN Central Store',
+              inwardTotal: tItem.totalReceipt || 0,
+              outwardTotal: tItem.totalIssue || 0,
+              unitRate: 100,
+              lastReceivedDate: '2024-09-18',
+              lastIssuedDate: '2024-09-20',
+              supplier: 'DFCCIL IMSD Depot',
+              remarks: `${tItem.source} (Page ${tItem.ledgerPage}) • SAP: ${tItem.sapMaterial || 'Pending'}`
+            };
+          });
+
+          finalTxns = tallyData.transactions.map((tTxn: any, idx: number): StoreTransactionRecord => {
+            const code = tTxn.sapMaterial || `IMSD-${tTxn.ledgerPage}`;
+            const isOutward = (tTxn.issue || 0) > 0 || (tTxn.transfer || 0) > 0;
+            const qty = (tTxn.receipt || 0) > 0 ? tTxn.receipt! : ((tTxn.issue || 0) > 0 ? tTxn.issue! : (tTxn.transfer || 0));
+
+            return {
+              id: `STXN-${idx + 1}`,
+              date: tTxn.date || '2024-01-01',
+              type: isOutward ? 'OUTWARD' : 'INWARD',
+              itemId: `STR-IMSD-${idx + 1}`,
+              itemCode: code,
+              itemName: tTxn.itemName,
+              quantity: qty,
+              unit: tTxn.sapUom || 'Nos',
+              referenceNo: tTxn.voucher || `VCH-${idx + 1}`,
+              issuedToOrReceivedFrom: tTxn.party || 'IMSD SMUN Section',
+              purposeOrSection: tTxn.purpose || 'Official Railway Maintenance',
+              authorizedBy: 'Store Keeper / APM',
+              receiptQty: tTxn.receipt || undefined,
+              transferQty: tTxn.transfer || undefined,
+              issueQty: tTxn.issue || undefined,
+              balanceQty: tTxn.balance ?? 0,
+              tallyPageNo: tTxn.ledgerPage,
+              createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString()
+            };
+          });
+        } catch (e) {
+          console.error('Error decoding tally data in loadStoreData:', e);
+        }
       }
 
       setItems(finalItems);
-      setTransactions(txnList || []);
+      setTransactions(finalTxns);
       setCustomCategories(catList || []);
       setStaffList(staff || []);
 
@@ -656,6 +675,14 @@ export const StoreInventoryManager: React.FC = () => {
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={() => setIsSapLookupModalOpen(true)}
+              className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md border border-cyan-400/40"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>SAP Master (4,827 Items)</span>
+            </button>
+
+            <button
               onClick={() => setIsCsvUploadModalOpen(true)}
               className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md border border-blue-400/40"
             >
@@ -816,7 +843,7 @@ export const StoreInventoryManager: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('source_tally')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${ 
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
               activeSubTab === 'source_tally'
                 ? 'bg-indigo-700 text-white shadow-md'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
@@ -928,34 +955,57 @@ export const StoreInventoryManager: React.FC = () => {
       </div>
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. MASTER INVENTORY TABLE */}
+      {/* 1. MASTER INVENTORY & LOW STOCK TABLE */}
       {/* ------------------------------------------------------------------------- */}
-      {activeSubTab === 'inventory' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-slate-200 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-slate-700">
-                  <th className="p-3.5">Code / Price List</th>
-                  <th className="p-3.5">Item Description (वस्तु का विवरण)</th>
-                  <th className="p-3.5">Category</th>
-                  <th className="p-3.5">Available Stock</th>
-                  <th className="p-3.5">Min Buffer</th>
-                  <th className="p-3.5">Est. Rate (₹)</th>
-                  <th className="p-3.5">Store Location</th>
-                  <th className="p-3.5 text-right">Quick Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
-                {filteredItems.map(item => {
-                  const isLow = item.currentStock <= item.minBufferThreshold;
-                  return (
-                    <tr
-                      key={item.id}
-                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${
-                        isLow ? 'bg-red-50/30 dark:bg-red-950/20' : ''
-                      }`}
-                    >
+      {(activeSubTab === 'inventory' || activeSubTab === 'low_stock') && (
+        <div className="space-y-3">
+          {activeSubTab === 'low_stock' && (
+            <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-fadeIn">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black text-red-900 dark:text-red-200 uppercase tracking-wide">
+                    Critical Buffer &amp; Low Stock Warning ({lowStockItems.length} Items)
+                  </h4>
+                  <p className="text-[11px] text-red-700 dark:text-red-300">
+                    The following items have available stock at or below their mandatory safety buffer threshold. Immediate inward requisition required.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveSubTab('inventory')}
+                className="px-3 py-1.5 bg-white dark:bg-slate-900 text-red-800 dark:text-red-300 border border-red-300 rounded-xl text-xs font-bold shrink-0 hover:bg-red-100 transition"
+              >
+                View All Items ({items.length})
+              </button>
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-slate-200 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-slate-700">
+                    <th className="p-3.5">Code / Price List</th>
+                    <th className="p-3.5">Item Description (वस्तु का विवरण)</th>
+                    <th className="p-3.5">Category</th>
+                    <th className="p-3.5">Available Stock</th>
+                    <th className="p-3.5">Min Buffer</th>
+                    <th className="p-3.5">Est. Rate (₹)</th>
+                    <th className="p-3.5">Store Location</th>
+                    <th className="p-3.5 text-right">Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+                  {(activeSubTab === 'low_stock' ? lowStockItems : filteredItems).map(item => {
+                    const isLow = item.currentStock <= item.minBufferThreshold;
+                    return (
+                      <tr
+                        key={item.id}
+                        className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${
+                          isLow ? 'bg-red-50/40 dark:bg-red-950/30' : ''
+                        }`}
+                      >
                       <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">
                         <div className="flex items-center gap-1.5">
                           <span>{item.priceListCode || item.itemCode}</span>
@@ -1066,7 +1116,13 @@ export const StoreInventoryManager: React.FC = () => {
             </table>
           </div>
         </div>
+      </div>
       )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 2. IMSD SOURCE TALLY MASTER (196 ITEMS & 638 TRANSACTIONS) */}
+      {/* ------------------------------------------------------------------------- */}
+      {activeSubTab === 'source_tally' && <ImsdSourceTallyBook />}
 
       {/* ------------------------------------------------------------------------- */}
       {/* 2. DEPARTMENTAL LEDGER AND TALLY BOOK (विभागीय खाता मिलान पुस्तक) */}
@@ -1468,16 +1524,80 @@ export const StoreInventoryManager: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Material Name (वस्तु का विवरण) *</label>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">Material Name (वस्तु का विवरण) *</label>
+                  <span className="text-[10px] text-blue-600 dark:text-cyan-400 font-bold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Live SAP Auto-fetch (4,827 Items)
+                  </span>
+                </div>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Crockery Items / Elastic Rail Clip"
+                  placeholder="Type item name (e.g. ERC MK3, Rubber Pad, Fuse, Cable)..."
                   value={newItemData.name || ''}
-                  onChange={e => setNewItemData({ ...newItemData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  onChange={e => {
+                    const val = e.target.value;
+                    setNewItemData({ ...newItemData, name: val });
+                    if (val.trim().length >= 2) {
+                      const clean = val.toLowerCase().trim();
+                      const tokens = clean.split(' ').filter(Boolean);
+                      const matches = SAP_MATERIALS.filter(m => {
+                        const hay = `${m.code} ${m.description} ${m.uom} ${m.plantDescription}`.toLowerCase();
+                        return tokens.every(t => hay.includes(t)) || m.code.includes(clean);
+                      }).slice(0, 8);
+                      setSapSuggestions(matches);
+                      setIsSapSuggestionOpen(matches.length > 0);
+                    } else {
+                      setIsSapSuggestionOpen(false);
+                    }
+                  }}
+                  onFocus={() => {
+                    if ((newItemData.name || '').trim().length >= 2 && sapSuggestions.length > 0) {
+                      setIsSapSuggestionOpen(true);
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500"
                 />
+
+                {/* SAP Live Suggestions Popover */}
+                {isSapSuggestionOpen && sapSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-2xl shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-56 overflow-y-auto animate-fadeIn">
+                    <div className="bg-blue-50 dark:bg-blue-950/80 px-3 py-1.5 flex items-center justify-between text-[10px] font-black text-blue-800 dark:text-cyan-300">
+                      <span className="flex items-center gap-1"><Search className="w-3 h-3" /> Live SAP Master Matches ({sapSuggestions.length})</span>
+                      <button type="button" onClick={() => setIsSapSuggestionOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+                    </div>
+                    {sapSuggestions.map(mat => (
+                      <button
+                        key={`${mat.code}-${mat.plant}`}
+                        type="button"
+                        onClick={() => {
+                          setNewItemData(prev => ({
+                            ...prev,
+                            name: mat.description.replace(/^"|"$/g, '').trim(),
+                            itemCode: mat.code,
+                            priceListCode: mat.code,
+                            unit: mat.uom || prev.unit || 'Nos',
+                            specification: `${mat.plantDescription || 'DFCCIL Standard'} (Group: ${mat.mainGroup}/${mat.subGroup})`
+                          }));
+                          setIsSapSuggestionOpen(false);
+                        }}
+                        className="w-full p-2.5 text-left hover:bg-blue-50 dark:hover:bg-slate-800 transition flex items-start justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{mat.description}</div>
+                          <div className="text-[10px] text-slate-500">{mat.plantDescription || mat.plant} • Grp: {mat.mainGroup}/{mat.subGroup}</div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 font-mono font-black text-[11px] text-blue-700 dark:text-cyan-300">
+                            {mat.code}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">{mat.uom || 'Nos'}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1608,23 +1728,76 @@ export const StoreInventoryManager: React.FC = () => {
                 {isOnTheFlyMaterialMode ? (
                   <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-800 space-y-2.5">
                     <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Item Name *</label>
+                      <div className="relative">
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                          Item Name (Live SAP Search) *
+                        </label>
                         <input
                           type="text"
                           required
-                          placeholder="e.g. Crockery Items / Liners"
+                          placeholder="e.g. ERC MK3 / Liners"
                           value={onTheFlyMaterial.name}
-                          onChange={e => setOnTheFlyMaterial({ ...onTheFlyMaterial, name: e.target.value })}
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"
+                          onChange={e => {
+                            const val = e.target.value;
+                            setOnTheFlyMaterial({ ...onTheFlyMaterial, name: val });
+                            if (val.trim().length >= 2) {
+                              const clean = val.toLowerCase().trim();
+                              const tokens = clean.split(' ').filter(Boolean);
+                              const matches = SAP_MATERIALS.filter(m => {
+                                const hay = `${m.code} ${m.description} ${m.uom} ${m.plantDescription}`.toLowerCase();
+                                return tokens.every(t => hay.includes(t)) || m.code.includes(clean);
+                              }).slice(0, 6);
+                              setTxnSapSuggestions(matches);
+                              setIsTxnSapSuggestionOpen(matches.length > 0);
+                            } else {
+                              setIsTxnSapSuggestionOpen(false);
+                            }
+                          }}
+                          onFocus={() => {
+                            if ((onTheFlyMaterial.name || '').trim().length >= 2 && txnSapSuggestions.length > 0) {
+                              setIsTxnSapSuggestionOpen(true);
+                            }
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500"
                         />
+
+                        {/* Txn SAP Live Suggestions Popover */}
+                        {isTxnSapSuggestionOpen && txnSapSuggestions.length > 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-2xl shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-48 overflow-y-auto animate-fadeIn">
+                            {txnSapSuggestions.map(mat => (
+                              <button
+                                key={`${mat.code}-${mat.plant}`}
+                                type="button"
+                                onClick={() => {
+                                  setOnTheFlyMaterial(prev => ({
+                                    ...prev,
+                                    name: mat.description.replace(/^"|"$/g, '').trim(),
+                                    itemCode: mat.code,
+                                    priceListCode: mat.code,
+                                    unit: mat.uom || 'Nos'
+                                  }));
+                                  setIsTxnSapSuggestionOpen(false);
+                                }}
+                                className="w-full p-2 text-left hover:bg-blue-50 dark:hover:bg-slate-800 transition flex items-start justify-between gap-1.5"
+                              >
+                                <div className="min-w-0">
+                                  <div className="font-bold text-[11px] text-slate-900 dark:text-white truncate">{mat.description}</div>
+                                  <div className="text-[9px] text-slate-500">{mat.plantDescription || mat.plant}</div>
+                                </div>
+                                <span className="px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 font-mono font-bold text-[10px] text-blue-700 dark:text-cyan-300">
+                                  {mat.code}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Code / Price List *</label>
                         <input
                           type="text"
                           required
-                          placeholder="e.g. 49"
+                          placeholder="e.g. 49 or SAP Code"
                           value={onTheFlyMaterial.itemCode}
                           onChange={e => setOnTheFlyMaterial({ ...onTheFlyMaterial, itemCode: e.target.value, priceListCode: e.target.value })}
                           className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs"
@@ -1994,6 +2167,63 @@ export const StoreInventoryManager: React.FC = () => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 8. SAP MATERIAL MASTER CATALOG LOOKUP MODAL (4,827 ITEMS) */}
+      {/* ------------------------------------------------------------------------- */}
+      {isSapLookupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-2xl shadow-2xl p-6 space-y-4 animate-scaleUp max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Search className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Official DFCCIL SAP Material Master (4,827 Items)
+                </h3>
+              </div>
+              <button onClick={() => setIsSapLookupModalOpen(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Search by SAP Material Code, Item Name, or Plant to auto-fill its official Item Code, Description, UOM, and Specification into your store inventory.
+            </p>
+
+            <SapMaterialLookup
+              onSelect={(material) => {
+                const desc = material.description.toLowerCase();
+                const isPway = desc.includes('rail') || desc.includes('clip') || desc.includes('liner') || desc.includes('plate') || desc.includes('pad') || desc.includes('turnout') || desc.includes('sleeper');
+                setNewItemData({
+                  category: isPway ? 'P.way material' : 'T&P',
+                  name: material.description.replace(/^"|"$/g, '').trim(),
+                  itemCode: material.code,
+                  priceListCode: material.code,
+                  unit: material.uom || 'Nos',
+                  specification: `${material.plantDescription || 'DFCCIL Standard'} (Group: ${material.mainGroup}/${material.subGroup})`,
+                  currentStock: 0,
+                  minBufferThreshold: 10,
+                  location: 'IMSD SMUN Store',
+                  tallyCodeNo: '1',
+                  accountsFileNo: '3195'
+                });
+                setIsSapLookupModalOpen(false);
+                setIsAddItemModalOpen(true);
+              }}
+            />
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsSapLookupModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

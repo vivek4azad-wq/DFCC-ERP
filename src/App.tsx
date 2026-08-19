@@ -19,6 +19,7 @@ import { DefectManager } from './components/DefectManager.tsx';
 import { LoginDashboard } from './components/LoginDashboard.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
 import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
+import { StaffPublicQRView } from './components/StaffPublicQRView.tsx';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import {
@@ -55,8 +56,17 @@ function MainAppShell() {
     return null;
   });
 
-  // Modals & Popups
-  const [isInspectionPopupOpen, setIsInspectionPopupOpen] = useState(true);
+  // Standalone QR Scan Staff ID Card View
+  const [publicStaffId, setPublicStaffId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('verify_staff') || params.get('staff_id') || params.get('qr_staff') || (params.get('view') === 'staff' ? params.get('id') : null);
+    }
+    return null;
+  });
+
+  // Modals & Popups (Saved for later entry: inspection popup default false)
+  const [isInspectionPopupOpen, setIsInspectionPopupOpen] = useState(false);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
 
   // Navigation filter states for cross-screen deep-linking
@@ -134,8 +144,8 @@ function MainAppShell() {
       if (!res.success) {
         setLoginError(res.message || 'Authentication failed. Please check your credentials.');
       } else {
-        // Trigger inspection alert on fresh successful login
-        setIsInspectionPopupOpen(true);
+        // Saved for later entry: inspection popup on login
+        // setIsInspectionPopupOpen(true);
       }
     } catch (err: any) {
       setLoginError(err.message || 'Login failed. Please try again.');
@@ -172,6 +182,23 @@ function MainAppShell() {
         itemId={publicStoreItemId}
         onBackToApp={() => {
           setPublicStoreItemId(null);
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }}
+      />
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // 1.6 IF PUBLIC STAFF ID QR SCAN: RENDER INSTANT VERIFICATION VIEW
+  // -------------------------------------------------------------------------
+  if (publicStaffId) {
+    return (
+      <StaffPublicQRView
+        staffId={publicStaffId}
+        onBackToApp={() => {
+          setPublicStaffId(null);
           if (typeof window !== 'undefined') {
             window.history.replaceState({}, document.title, window.location.pathname);
           }
@@ -443,11 +470,11 @@ function MainAppShell() {
         </main>
       </div>
 
-      {/* 🔍 Startup & On-Demand Scheduled Inspection Popup Alert (Strictly for APM & Officer) */}
+      {/* 🚨 Low Stock & Zero Inventory Alert Popup */}
       <ScheduledInspectionPopup
-        isOpen={isInspectionPopupOpen && isInspectionEligible}
+        isOpen={isInspectionPopupOpen}
         onClose={() => setIsInspectionPopupOpen(false)}
-        onNavigateToInspections={() => setActiveTab('pway_work')}
+        onNavigateToInspections={() => setActiveTab('store')}
       />
 
       {/* 🤖 Admin AI Search & Firebase Log Assistant Modal */}

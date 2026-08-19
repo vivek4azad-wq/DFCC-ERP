@@ -47,6 +47,7 @@ import {
 import QRCode from 'qrcode';
 import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
 import { SapMaterialLookup } from './SapMaterialLookup.tsx';
+import { ImsdSourceTallyBook } from './ImsdSourceTallyBook.tsx';
 import type { StoreItemRecord, StoreTransactionRecord, OfficerStaffRecord } from '../types/index.ts';
 
 const DEFAULT_STORE_CATEGORIES = [
@@ -62,7 +63,7 @@ export const StoreInventoryManager: React.FC = () => {
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const isStoreKeeper = role === 'STORE_KEEPER' || role === 'SUPER_ADMIN';
 
-  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'inward' | 'outward' | 'low_stock'>('inventory');
+  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock'>('inventory');
   const [items, setItems] = useState<StoreItemRecord[]>([]);
   const [transactions, setTransactions] = useState<StoreTransactionRecord[]>([]);
   const [staffList, setStaffList] = useState<OfficerStaffRecord[]>([]);
@@ -814,6 +815,18 @@ export const StoreInventoryManager: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveSubTab('source_tally')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${ 
+              activeSubTab === 'source_tally'
+                ? 'bg-indigo-700 text-white shadow-md'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>IMSD Source Tally Master (196)</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('low_stock')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
               activeSubTab === 'low_stock'
@@ -1058,6 +1071,8 @@ export const StoreInventoryManager: React.FC = () => {
       {/* ------------------------------------------------------------------------- */}
       {/* 2. DEPARTMENTAL LEDGER AND TALLY BOOK (विभागीय खाता मिलान पुस्तक) */}
       {/* ------------------------------------------------------------------------- */}
+      {activeSubTab === 'source_tally' && <ImsdSourceTallyBook />}
+
       {activeSubTab === 'tally_book' && selectedItemForTally && (
         <div className="bg-white dark:bg-slate-900 border-2 border-purple-300 dark:border-purple-800 rounded-3xl shadow-xl overflow-hidden animate-fadeIn">
           {/* Official Indian Railways / DFCCIL Tally Book Header */}

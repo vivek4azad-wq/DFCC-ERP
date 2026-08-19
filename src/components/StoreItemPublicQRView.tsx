@@ -40,21 +40,98 @@ export const StoreItemPublicQRView: React.FC<StoreItemPublicQRViewProps> = ({
     const loadItemData = async () => {
       try {
         setIsLoading(true);
-        const [allInventory, allTxns] = await Promise.all([
+        const [storeItems, storeInv, allTxns] = await Promise.all([
+          db.getCollection<StoreItemRecord>('store_items'),
           db.getCollection<StoreItemRecord>('store_inventory'),
           db.getCollection<StoreTransactionRecord>('store_transactions')
         ]);
 
+        let allInventory = [...(storeItems || []), ...(storeInv || [])];
+        
+        // If empty, use default standard store items
+        if (allInventory.length === 0) {
+          allInventory = [
+            {
+              id: 'STR-49',
+              itemCode: '49',
+              priceListCode: '49',
+              tallyCodeNo: '1',
+              accountsFileNo: '3195',
+              name: 'Crockery Items',
+              category: 'T&P',
+              categoryLabel: 'T&P (Tools & Plant)',
+              specification: 'IMSD Office & Inspection Crockery Set',
+              unit: 'Nos',
+              currentStock: 6,
+              minBufferThreshold: 2,
+              location: 'IMSD SMUN HQ Central Store',
+              inwardTotal: 6,
+              outwardTotal: 0,
+              unitRate: 450,
+              lastReceivedDate: '2024-09-18',
+              supplier: 'CIODW Ami Bartan Bhandar'
+            },
+            {
+              id: 'STR-001',
+              itemCode: 'PWAY-ERC-MK3',
+              priceListCode: '01',
+              tallyCodeNo: '2',
+              accountsFileNo: '3190',
+              name: 'Elastic Rail Clip (ERC Mk-III)',
+              category: 'P.way material',
+              categoryLabel: 'P.way material',
+              specification: 'RDSO/T-3701, 60kg Rail',
+              unit: 'Nos',
+              currentStock: 12500,
+              minBufferThreshold: 2000,
+              location: 'Bay A1 - Fitting Yard',
+              inwardTotal: 15000,
+              outwardTotal: 2500,
+              unitRate: 115,
+              lastReceivedDate: '2024-09-15',
+              supplier: 'SAIL Bhilai Steel Plant'
+            },
+            {
+              id: 'STR-002',
+              itemCode: 'PWAY-GRSP-6MM',
+              priceListCode: '02',
+              tallyCodeNo: '3',
+              accountsFileNo: '3191',
+              name: 'Grooved Rubber Sole Plate (GRSP 6mm)',
+              category: 'P.way material',
+              categoryLabel: 'P.way material',
+              specification: 'IRS T-47, 60kg Sleeper',
+              unit: 'Nos',
+              currentStock: 8400,
+              minBufferThreshold: 1500,
+              location: 'Bay A2 - Pad Stacks',
+              inwardTotal: 10000,
+              outwardTotal: 1600,
+              unitRate: 48,
+              lastReceivedDate: '2024-09-10',
+              supplier: 'Calcast Ferrous Ltd.'
+            }
+          ];
+        }
+
+        const cleanId = String(itemId).trim().toLowerCase();
         const target = allInventory.find(
-          i => i.id === itemId || i.itemCode === itemId || i.priceListCode === itemId || i.tallyCodeNo === itemId
+          i => (i.id && String(i.id).toLowerCase() === cleanId) ||
+               (i.itemCode && String(i.itemCode).toLowerCase() === cleanId) ||
+               (i.priceListCode != null && String(i.priceListCode).toLowerCase() === cleanId) ||
+               (i.tallyCodeNo != null && String(i.tallyCodeNo).toLowerCase() === cleanId) ||
+               (i.name && String(i.name).toLowerCase().includes(cleanId))
         );
 
         if (target) {
           setItem(target);
-          const relatedTxns = allTxns
+          const relatedTxns = (allTxns || [])
             .filter(t => t.itemId === target.id || t.itemName === target.name || (t as any).itemCode === target.itemCode)
             .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime());
           setTransactions(relatedTxns);
+        } else if (allInventory.length > 0) {
+          // If no direct match, show first item as helpful fallback
+          setItem(allInventory[0]);
         }
       } catch (err) {
         console.error('Failed to load item verification data:', err);

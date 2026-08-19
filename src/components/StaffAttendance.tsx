@@ -1264,21 +1264,17 @@ export const StaffAttendance: React.FC = () => {
             </div>
           </div>
 
-          {/* Daily Attendance Table */}
+          {/* Daily Attendance Table with Horizontal Slider */}
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto w-full max-w-full scrollbar-thin scrollbar-thumb-slate-300">
               <table className="w-full text-left text-xs text-slate-800">
                 <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
                   <tr>
-                    <th className="p-3">#</th>
-                    <th className="p-3">Staff Member</th>
-                    <th className="p-3">Designation</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">AWPO / ID</th>
-                    <th className="p-3">Beat / Section</th>
-                    <th className="p-3 min-w-[340px]">Mark Status</th>
-                    <th className="p-3">Remarks / Reason</th>
-                    <th className="p-3 text-right">Quick Contact</th>
+                    <th className="p-3 w-12 text-center">#</th>
+                    <th className="p-3 min-w-[240px]">Staff Member (Name, ID, Designation)</th>
+                    <th className="p-3 min-w-[320px]">Mark Status</th>
+                    <th className="p-3 min-w-[140px]">Remarks</th>
+                    <th className="p-3 text-right min-w-[120px]">Quick Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -1289,43 +1285,39 @@ export const StaffAttendance: React.FC = () => {
 
                     return (
                       <tr key={staff.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 text-slate-400 font-mono">{idx + 1}</td>
-                        <td className="p-3">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedStaffForModal({
-                              name: staff.name,
-                              awpoId: staff.awpoId,
-                              mobileNo: staff.phone,
-                              post: staff.designation,
-                              fatherName: staff.fatherName,
-                              residence: staff.residence,
-                              district: staff.district,
-                              category: staff.categoryLabel as any,
-                              photoUrl: staff.photoUrl
-                            })}
-                            className="font-bold text-slate-900 hover:text-[#123b72] hover:underline text-left inline-flex items-center gap-1.5"
-                          >
-                            <span>{staff.name}</span>
-                          </button>
-                        </td>
-                        <td className="p-3 font-semibold text-slate-700">{staff.designation}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            staff.category === 'PERMANENT'
-                              ? 'bg-blue-50 text-blue-800 border-blue-200'
-                              : staff.category === 'OFFICE_STAFF'
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : staff.category === 'OUTSOURCE_GANG'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : 'bg-cyan-50 text-cyan-800 border-cyan-200'
-                          }`}>
-                            {staff.categoryLabel}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono text-slate-600">{staff.awpoId}</td>
-                        <td className="p-3 text-slate-600 text-[11px] truncate max-w-[180px]">{staff.beatOrSection}</td>
+                        <td className="p-3 text-slate-400 font-mono text-center">{idx + 1}</td>
                         
+                        {/* Streamlined Combined Staff Info (Name, AWPO/Emp ID, Designation) */}
+                        <td className="p-3">
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedStaffForModal({
+                                name: staff.name,
+                                awpoId: staff.awpoId,
+                                mobileNo: staff.phone,
+                                post: staff.designation,
+                                fatherName: staff.fatherName,
+                                residence: staff.residence,
+                                district: staff.district,
+                                category: staff.categoryLabel as any,
+                                photoUrl: staff.photoUrl
+                              })}
+                              className="font-black text-sm text-slate-900 hover:text-blue-700 hover:underline text-left inline-flex items-center gap-1.5"
+                            >
+                              <span>{staff.name}</span>
+                            </button>
+                            <div className="flex items-center gap-2 flex-wrap text-xs">
+                              <span className="font-mono text-[10px] bg-blue-50 text-[#0f2b5c] font-black px-1.5 py-0.5 rounded border border-blue-200">
+                                {staff.awpoId}
+                              </span>
+                              <span className="text-slate-600 font-bold text-xs">
+                                {staff.designation}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
                         {/* Interactive Status Selector customized per category */}
                         <td className="p-3">
                           <div className="flex flex-wrap items-center gap-1">
@@ -1336,7 +1328,7 @@ export const StaffAttendance: React.FC = () => {
                                   key={opt.status}
                                   type="button"
                                   onClick={() => handleMarkStaffStatus(staff, opt.status)}
-                                  className={`px-2 py-1 rounded text-[10px] font-mono transition border ${
+                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-mono transition border ${
                                     isSelected
                                       ? opt.activeClass
                                       : `${opt.colorClass} border-transparent`
@@ -1356,9 +1348,10 @@ export const StaffAttendance: React.FC = () => {
                             defaultValue={remarks}
                             onBlur={e => handleMarkStaffStatus(staff, status, e.target.value)}
                             placeholder="Remarks..."
-                            className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-800 w-full max-w-[130px] focus:bg-white focus:outline-none focus:border-blue-500"
+                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 w-full focus:bg-white focus:outline-none focus:border-blue-500"
                           />
                         </td>
+                        
                         <td className="p-3 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
                             <button

@@ -228,27 +228,157 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
 
  const isSuperAdmin = role === 'SUPER_ADMIN';
 
- const loadAllData = async () => {
- try {
- setIsLoading(true);
- const [stf, kmn, ptl, bwm, lcs] = await Promise.all([
- db.getCollection<OfficerStaffRecord>('officers_staff'),
- db.getCollection<KeymanRecord>('keymen'),
- db.getCollection<PatrolShiftRecord>('patrol_shifts'),
- db.getCollection<BridgeWatchmanRecord>('bridge_watchmen'),
- db.getCollection<any>('level_crossings')
- ]);
- setStaffList(stf);
- setKeymenList(kmn);
- setPatrolList(ptl);
- setBridgeWatchmen(bwm);
- setLevelCrossings(lcs);
- } catch (err) {
- console.error('Failed to load staff records:', err);
- } finally {
- setIsLoading(false);
- }
- };
+  function deduplicateStaffList<T>(items: T[]): T[] {
+    const seen = new Set<string>();
+    const result: T[] = [];
+    for (const item of items) {
+      const anyItem = item as any;
+      const cleanName = (anyItem.name || '').trim().toLowerCase();
+      const cleanId = (anyItem.id || anyItem.awpoId || anyItem.employeeId || '').trim().toLowerCase();
+      const key = cleanName ? cleanName : cleanId;
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        result.push(item);
+      } else if (!key && anyItem.id && !seen.has(anyItem.id)) {
+        seen.add(anyItem.id);
+        result.push(item);
+      }
+    }
+    return result;
+  }
+
+  const loadAllData = async () => {
+    try {
+      setIsLoading(true);
+      const [stf, kmn, ptl, bwm, lcs] = await Promise.all([
+        db.getCollection<OfficerStaffRecord>('officers_staff'),
+        db.getCollection<KeymanRecord>('keymen'),
+        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
+        db.getCollection<BridgeWatchmanRecord>('bridge_watchmen'),
+        db.getCollection<any>('level_crossings')
+      ]);
+      setStaffList(deduplicateStaffList(stf || []));
+      setKeymenList(deduplicateStaffList(kmn || []));
+      setPatrolList(deduplicateStaffList(ptl || []));
+      setBridgeWatchmen(deduplicateStaffList(bwm || []));
+      setLevelCrossings(lcs || []);
+    } catch (err) {
+      console.error('Failed to load staff records:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 🧹 Automated Duplicate Cleaner across all collections
+  const handleCleanupDuplicates = async () => {
+    try {
+      setIsLoading(true);
+      const [stf, kmn, ptl, bwm] = await Promise.all([
+        db.getCollection<OfficerStaffRecord>('officers_staff'),
+        db.getCollection<KeymanRecord>('keymen'),
+        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
+        db.getCollection<BridgeWatchmanRecord>('bridge_watchmen')
+      ]);
+
+      let removedCount = 0;
+
+      // 1. Deduplicate officers_staff
+      const seenStaff = new Set<string>();
+      for (const s of (stf || [])) {
+        const key = (s.name || '').trim().toLowerCase();
+        if (key && seenStaff.has(key)) {
+          await db.deleteDocument('officers_staff', s.id);
+          removedCount++;
+        } else if (key) {
+          seenStaff.add(key);
+        }
+      }
+
+      // 2. Deduplicate keymen
+      const seenKeymen = new Set<string>();
+      for (const k of (kmn || [])) {
+        const key = (k.name || '').trim().toLowerCase();
+        if (key && seenKeymen.has(key)) {
+          await db.deleteDocument('keymen', k.id);
+          removedCount++;
+        } else if (key) {
+          seenKeymen.add(key);
+        }
+      }
+
+      // 3. Deduplicate patrol shifts
+      const seenPatrols = new Set<string>();
+      for (const p of (ptl || [])) {
+        const key = (p.beatCode || '') + '_' + (p.patrolmanName || '').trim().toLowerCase();
+        if (p.patrolmanName && !p.patrolmanName.includes('Vacant') && seenPatrols.has(key)) {
+          await db.deleteDocument('patrol_shifts', p.id);
+          removedCount++;
+        } else if (p.patrolmanName) {
+          seenPatrols.add(key);
+        }
+      }
+
+      // 4. Deduplicate bridge watchmen
+      const seenWatchmen = new Set<string>();
+      for (const w of (bwm || [])) {
+        const key = (w.name || '').trim().toLowerCase();
+        if (key && seenWatchmen.has(key)) {
+          await db.deleteDocument('bridge_watchmen', w.id);
+          removedCount++;
+        } else if (key) {
+          seenWatchmen.add(key);
+        }
+      }
+
+      await loadAllData();
+      alert(`✅ Staff Clean-up Complete: ${removedCount} duplicate record(s) removed successfully!`);
+    } catch (e) {
+      console.error('Deduplication cleanup failed:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✏️ Universal Staff Edit Trigger for every section
+  const handleOpenEditStaff = (staff: any, defaultType?: string) => {
+    setEditingStaffId(staff.id || staff.staffId || staff.awpoId || staff.employeeId || staff.name);
+    
+    let inferredType = defaultType || staff.employmentType || 'REGULAR';
+    if (!defaultType && !staff.employmentType) {
+      if (staff.staffCategory === 'PERMANENT' || staff.role === 'SUPER_ADMIN') inferredType = 'REGULAR';
+      else if (staff.staffCategory === 'OUTSOURCE') inferredType = 'MTS_OUTSOURCE';
+      else if (staff.beatNoText || (staff.id && String(staff.id).startsWith('KM'))) inferredType = 'KEYMAN';
+      else if (staff.shiftType === 'DAY' || (staff.beatCode && String(staff.beatCode).startsWith('SPD'))) inferredType = 'PATROLMAN_DAY';
+      else if (staff.shiftType === 'NIGHT' || (staff.beatCode && String(staff.beatCode).startsWith('SPN'))) inferredType = 'PATROLMAN_NIGHT';
+      else if (staff.gateNo || staff.lc_no || (staff.id && String(staff.id).startsWith('GTM'))) inferredType = 'GATEMAN';
+      else if (staff.post?.includes('Watchman') || (staff.id && String(staff.id).startsWith('wm_'))) inferredType = 'BR_WATCHMAN';
+    }
+
+    setStaffFormData({
+      name: staff.name || staff.patrolmanName || '',
+      nameHi: staff.nameHi || '',
+      fatherName: staff.fatherName || staff.father_name || '',
+      post: staff.post || staff.designation || (inferredType === 'REGULAR' ? 'Executive' : (inferredType === 'MTS_OUTSOURCE' ? 'MTS' : (inferredType === 'KEYMAN' ? 'Keyman' : (inferredType === 'PATROLMAN_DAY' ? 'Day Patrolman' : (inferredType === 'PATROLMAN_NIGHT' ? 'Night Patrolman' : (inferredType === 'GATEMAN' ? 'Gateman' : 'Bridge Watchman')))))),
+      role: staff.role || 'STAFF',
+      employmentType: inferredType as any,
+      email: staff.email || '',
+      phone: staff.phone || staff.mobileNo || staff.mobile || staff.patrolmanPhone || '',
+      emergencyContact: staff.emergencyContact || staff.otherMobileNo || staff.altMobile || '',
+      headquarters: staff.headquarters || staff.residence || 'IMSD SMUN HQ',
+      residence: staff.residence || staff.headquarters || '',
+      assignedSection: staff.assignedSection || staff.sectionCode || staff.section || 'KRJN-SMUN',
+      awpoId: staff.awpoId || staff.employeeId || staff.staffId || staff.patrolmanStaffId || '',
+      beatNo: staff.beatNoText || staff.beatCode || (staff.beatNo ? `Beat ${staff.beatNo}` : ''),
+      advanceBeatCode: staff.beatCode || '',
+      beatFromTo: staff.beatFromTo || (staff.fromKm != null && staff.toKm != null ? `Km ${Number(staff.fromKm).toFixed(3)} – ${Number(staff.toKm).toFixed(3)}` : ''),
+      lcNo: staff.lcNo || (staff.gateNo ? `LC-${staff.gateNo}` : ''),
+      bridgeNoOrKm: staff.bridgeNoOrKm || (staff.km ? `Km ${staff.km}` : ''),
+      photoUrl: staff.photoUrl || '',
+      lap: staff.leaveBalance?.lap || 30,
+      cl: staff.leaveBalance?.cl || 8
+    });
+    setIsStaffFormOpen(true);
+  };
 
  useEffect(() => {
  loadAllData();
@@ -3956,144 +4086,6 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  className="w-full py-3 bg-[#123b72] hover:bg-[#1a4b8c] text-white font-bold rounded-xl shadow-lg transition"
  >
  Confirm &amp; Fill Vacant Beat
- </button>
- </form>
- </div>
- </div>
- )}
-
- {/* 👥 Add/Edit Staff Modal with Advance Beat Allotment Selector */}
- {isStaffFormOpen && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
- <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
- <div className="flex items-center justify-between border-b border-slate-200 pb-3">
- <div className="flex items-center gap-2">
- <Users className="w-5 h-5 text-blue-600" />
- <span className="text-sm font-bold text-slate-900">
- {editingStaffId ? 'Edit Staff Record' : 'Register New Staff Member'}
- </span>
- </div>
- <button
- onClick={() => setIsStaffFormOpen(false)}
- className="text-slate-400 hover:text-slate-600 p-1"
- >
- <X className="w-5 h-5" />
- </button>
- </div>
-
- <form onSubmit={handleSaveStaff} className="space-y-3.5 text-xs">
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">Name (English):</label>
- <input
- type="text"
- required
- value={staffFormData.name}
- onChange={e => setStaffFormData(prev => ({ ...prev, name: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- />
- </div>
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">Name (Hindi):</label>
- <input
- type="text"
- value={staffFormData.nameHi}
- onChange={e => setStaffFormData(prev => ({ ...prev, nameHi: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- />
- </div>
- </div>
-
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">Employment Type:</label>
- <select
- value={staffFormData.employmentType}
- onChange={e => setStaffFormData(prev => ({ ...prev, employmentType: e.target.value as any }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- >
- <option value="REGULAR">Permanent (Regular)</option>
- <option value="OUTSOURCED">Outsourced</option>
- <option value="DEPUTATION">Deputation</option>
- </select>
- </div>
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">
- {staffFormData.employmentType === 'REGULAR' ? 'Employee ID:' : 'AWPO ID:'}
- </label>
- <input
- type="text"
- placeholder={staffFormData.employmentType === 'REGULAR' ? 'EMP-101518' : 'AWPO-88102'}
- value={staffFormData.awpoId || ''}
- onChange={e => setStaffFormData(prev => ({ ...prev, awpoId: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-mono"
- />
- </div>
- </div>
-
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">Designation / Role:</label>
- <input
- type="text"
- required
- placeholder="e.g. Computer Operator, Track Maintainer, APM"
- value={staffFormData.post}
- onChange={e => setStaffFormData(prev => ({ ...prev, post: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- />
- </div>
-
- {/* Advance Beat Allotment Option */}
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">
- ⚡ Allot Beat in Advance (Optional):
- </label>
- <select
- value={staffFormData.advanceBeatCode}
- onChange={e => setStaffFormData(prev => ({ ...prev, advanceBeatCode: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- >
- <option value="">-- No Beat (General Staff) --</option>
- <optgroup label="Day Beats (SPD-01 to SPD-12)">
- {Array.from({ length: 12 }, (_, i) => `SPD-${String(i + 1).padStart(2, '0')}`).map(b => (
- <option key={b} value={b}>{b} ({DEFAULT_BEAT_ROUTES[b]?.section || 'Day Beat'})</option>
- ))}
- </optgroup>
- <optgroup label="Night Beats (SPN-01 to SPN-12)">
- {Array.from({ length: 12 }, (_, i) => `SPN-${String(i + 1).padStart(2, '0')}`).map(b => (
- <option key={b} value={b}>{b} ({DEFAULT_BEAT_ROUTES[b]?.section || 'Night Beat'})</option>
- ))}
- </optgroup>
- </select>
- </div>
-
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">Mobile Number:</label>
- <input
- type="tel"
- required
- value={staffFormData.phone}
- onChange={e => setStaffFormData(prev => ({ ...prev, phone: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-mono"
- />
- </div>
- <div>
- <label className="block text-slate-600 mb-1 font-semibold">Headquarters:</label>
- <input
- type="text"
- value={staffFormData.headquarters}
- onChange={e => setStaffFormData(prev => ({ ...prev, headquarters: e.target.value }))}
- className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900"
- />
- </div>
- </div>
-
- <button
- type="submit"
- className="w-full py-3 bg-[#123b72] hover:bg-[#1a4b8c] text-white font-bold rounded-xl shadow-lg transition"
- >
- {editingStaffId ? 'Update Staff Record' : 'Save & Register Staff'}
  </button>
  </form>
  </div>

@@ -815,98 +815,98 @@ export const StoreInventoryManager: React.FC = () => {
       </div>
 
       {/* Sub-Navigation Tab Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar">
+      <div className="space-y-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center gap-2 w-full">
           <button
             onClick={() => setActiveSubTab('inventory')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
               activeSubTab === 'inventory'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
             }`}
           >
-            <Package className="w-3.5 h-3.5" />
+            <Package className="w-4 h-4" />
             <span>Master Inventory ({items.length})</span>
           </button>
 
           <button
-            onClick={() => setActiveSubTab('tally_book')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
-              activeSubTab === 'tally_book'
-                ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>विभागीय खाता पुस्तक (Tally Book)</span>
-          </button>
-
-          <button
             onClick={() => setActiveSubTab('source_tally')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
               activeSubTab === 'source_tally'
-                ? 'bg-indigo-700 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                ? 'bg-indigo-700 text-white shadow-md ring-2 ring-indigo-400'
+                : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5" />
+            <BookOpen className="w-4 h-4 text-indigo-500" />
             <span>IMSD Source Tally Master (196)</span>
           </button>
 
           <button
-            onClick={() => setActiveSubTab('low_stock')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
-              activeSubTab === 'low_stock'
-                ? 'bg-red-600 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+            onClick={() => setActiveSubTab('tally_book')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
+              activeSubTab === 'tally_book'
+                ? 'bg-purple-700 text-white shadow-md ring-2 ring-purple-400'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
             }`}
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+            <BookOpen className="w-4 h-4 text-purple-500" />
+            <span>विभागीय खाता पुस्तक (Tally Book)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('low_stock')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
+              activeSubTab === 'low_stock'
+                ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400'
+                : 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4 text-red-500" />
             <span>Low Stock Alert ({lowStockItems.length})</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('inward')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
               activeSubTab === 'inward'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
             }`}
           >
-            <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400" />
+            <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
             <span>Inward Register</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('outward')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
               activeSubTab === 'outward'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-400'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
             }`}
           >
-            <ArrowUpRight className="w-3.5 h-3.5 text-amber-400" />
+            <ArrowUpRight className="w-4 h-4 text-amber-500" />
             <span>Outward Issue Register</span>
           </button>
         </div>
 
-        {/* Search & Category Filter */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        {/* Search & Category Filter (Row 2) */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full pt-1">
+          <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search by Code (e.g. 49), Name, Spec..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             />
           </div>
 
           <select
             value={selectedCategoryFilter}
             onChange={e => setSelectedCategoryFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none"
+            className="w-full sm:w-auto px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none"
           >
             <option value="ALL">All Categories</option>
             {allCategories.map(cat => (

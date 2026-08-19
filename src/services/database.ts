@@ -24,7 +24,7 @@ import type {
 } from '../types/index.ts';
 
 const STORAGE_PREFIX = 'raildiary_db_';
-const INITIALIZED_KEY = 'raildiary_db_initialized_v21';
+const INITIALIZED_KEY = 'raildiary_db_initialized_v25';
 
 export class DatabaseSecurityError extends Error {
   constructor(message: string, public role?: UserRole, public action?: string) {
@@ -82,7 +82,15 @@ export class LocalDatabaseService implements IDatabaseService {
             const raw = localStorage.getItem(`${STORAGE_PREFIX}${col}`);
             if (raw) {
               try {
-                const list: any[] = JSON.parse(raw);
+                let list: any[] = JSON.parse(raw);
+                if (col === 'store_items' && (!list || list.length < 150 || list.some(i => i.id === 'STR-001' || i.id === 'STR-010'))) {
+                  list = (SEED_DATA as any).store_items || [];
+                  localStorage.setItem(`${STORAGE_PREFIX}store_items`, JSON.stringify(list));
+                }
+                if (col === 'store_transactions' && (!list || list.length < 100 || list.some(i => i.id === 'TXN-001'))) {
+                  list = (SEED_DATA as any).store_transactions || [];
+                  localStorage.setItem(`${STORAGE_PREFIX}store_transactions`, JSON.stringify(list));
+                }
                 const map = new Map<string, any>();
                 list.forEach(item => map.set(item.id, item));
                 this.memoryStore.set(col, map);

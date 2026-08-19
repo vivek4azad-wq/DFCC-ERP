@@ -129,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   // Strictly enforce role-based menu items
   const navItems = useMemo(() => {
     if (currentAppRole === 'MTS' || role === 'STAFF') {
-      // 🔒 Strictly visible for MTS: KM Finder, P.Way, Map, Staff, and own attendance
+      // 🔒 Strictly visible for MTS: KM Finder, P.Way, Staff, and own attendance (No inspection tab)
       return [
         {
           id: 'kmfinder',
@@ -144,13 +144,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           shortLabel: 'P.Way',
           icon: HardHat,
           badge: 'Field'
-        },
-        {
-          id: 'gpsmap',
-          label: 'DFCCIL Track Map',
-          shortLabel: 'Map',
-          icon: Compass,
-          badge: 'GPS'
         },
         {
           id: 'staff',
@@ -170,6 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     }
 
     if (currentAppRole === 'StoreKeeper' || role === 'STORE_KEEPER') {
+      // 🔒 Strictly visible for Store Keeper: Store Inventory, KM Finder, and Staff Directory (No inspection tab)
       return [
         {
           id: 'store',
@@ -179,20 +173,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           badge: 'Stock'
         },
         {
-          id: 'staff',
-          label: 'Staff Directory',
-          shortLabel: 'Staff',
-          icon: Users,
-          badge: '82'
-        },
-        {
-          id: 'pway_work',
-          label: 'P-Way Material Requisitions',
-          shortLabel: 'P-Way',
-          icon: HardHat,
-          badge: 'Gang'
-        },
-        {
           id: 'kmfinder',
           label: 'Km Quick Finder',
           shortLabel: 'Km Finder',
@@ -200,11 +180,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           badge: 'Finder'
         },
         {
-          id: 'gpsmap',
-          label: 'DFCCIL Map',
-          shortLabel: 'Map',
-          icon: Compass,
-          badge: 'GPS'
+          id: 'staff',
+          label: 'Staff Directory',
+          shortLabel: 'Staff',
+          icon: Users,
+          badge: '82'
         }
       ];
     }

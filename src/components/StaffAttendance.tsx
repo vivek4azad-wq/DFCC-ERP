@@ -136,8 +136,9 @@ const OUTSOURCE_STATUS_OPTIONS: {
 ];
 
 export const StaffAttendance: React.FC = () => {
-  const { currentUser, role } = useAuth();
-  const isSuperAdmin = role === 'SUPER_ADMIN';
+  const { currentUser, role, currentAppRole } = useAuth();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
+  const isOfficerUser = role === 'OFFICER' || currentAppRole === 'Executive';
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -208,6 +209,16 @@ export const StaffAttendance: React.FC = () => {
 
       // 1. Officers & Permanent/Office/Outsource Staff
       officers.forEach(o => {
+        // 🔒 Privacy Constraint: If logged in as Officer, do NOT show APM (Shri Vivek Kumar Azad)'s attendance!
+        const isApmRecord = (o.name && (o.name.toLowerCase().includes('vivek') || o.name.toLowerCase().includes('azad'))) ||
+                            o.role === 'SUPER_ADMIN' ||
+                            o.id === 'EMP-101518' ||
+                            (o.post && /apm|assistant\s*project\s*manager/i.test(o.post));
+
+        if (isOfficerUser && isApmRecord) {
+          return; // Skip APM record so Officer cannot see APM's attendance
+        }
+
         const sid = o.id || `off_${o.awpoId || o.name}`;
         if (!seenIds.has(sid)) {
           seenIds.add(sid);

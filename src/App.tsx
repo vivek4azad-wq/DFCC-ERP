@@ -38,10 +38,13 @@ import {
 } from 'lucide-react';
 
 function MainAppShell() {
-  const { currentUser, role, isAuthenticated, isLoading, login, switchRole } = useAuth();
+  const { currentUser, role, currentAppRole, isAuthenticated, isLoading, login, switchRole } = useAuth();
   const [activeTab, setActiveTab] = useState('analytics');
   const [prefillFromKm, setPrefillFromKm] = useState<string | null>(null);
   const [prefillToKm, setPrefillToKm] = useState<string | null>(null);
+
+  // Inspection Eligibility (Strictly APM & Officer)
+  const isInspectionEligible = role === 'SUPER_ADMIN' || role === 'OFFICER' || currentAppRole === 'APM' || currentAppRole === 'Executive';
 
   // Standalone QR Scan Store Item View
   const [publicStoreItemId, setPublicStoreItemId] = useState<string | null>(() => {
@@ -440,9 +443,9 @@ function MainAppShell() {
         </main>
       </div>
 
-      {/* 🔍 Startup & On-Demand Scheduled Inspection Popup Alert */}
+      {/* 🔍 Startup & On-Demand Scheduled Inspection Popup Alert (Strictly for APM & Officer) */}
       <ScheduledInspectionPopup
-        isOpen={isInspectionPopupOpen}
+        isOpen={isInspectionPopupOpen && isInspectionEligible}
         onClose={() => setIsInspectionPopupOpen(false)}
         onNavigateToInspections={() => setActiveTab('pway_work')}
       />

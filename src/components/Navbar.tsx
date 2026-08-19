@@ -95,11 +95,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       ];
     }
     if (currentAppRole === 'StoreKeeper' || role === 'STORE_KEEPER') {
+      // 🔒 Strictly visible for Store Keeper: Store Inventory, KM Finder, and Staff Directory
       return [
         { id: 'store', label: 'Store', icon: '📦', count: null },
-        { id: 'staff', label: 'Staff', icon: '👥', count: null },
-        { id: 'pway_work', label: 'P.way', icon: '🏗️', count: null },
         { id: 'kmfinder', label: 'KM Finder', icon: '🔍', count: null },
+        { id: 'staff', label: 'Staff', icon: '👥', count: null },
       ];
     }
     return allTabs;
@@ -126,6 +126,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       setIsThreeDotMenuOpen(false);
     }
   };
+
+  const isInspectionAllowed = currentAppRole === 'APM' || currentAppRole === 'Executive' || role === 'SUPER_ADMIN' || role === 'OFFICER';
 
   return (
     <>
@@ -157,21 +159,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Hand: Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* 🔔 Inspection Startup Popup Trigger */}
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenInspectionsAlert) {
-                  onOpenInspectionsAlert();
-                } else {
-                  window.dispatchEvent(new Event('raildiary_open_inspections_popup'));
-                }
-              }}
-              className="p-2 bg-[#173a72] hover:bg-[#1f488a] active:scale-95 text-amber-300 rounded-xl border border-amber-400/30 shadow-md transition flex items-center justify-center"
-              title="Scheduled Inspections Alert (P&C, Curves, SEJ)"
-            >
-              <ShieldAlert className="w-4 h-4 text-amber-300" />
-            </button>
+            {/* 🔔 Inspection Startup Popup Trigger (Visible ONLY for Officer & APM Admin) */}
+            {isInspectionAllowed && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenInspectionsAlert) {
+                    onOpenInspectionsAlert();
+                  } else {
+                    window.dispatchEvent(new Event('raildiary_open_inspections_popup'));
+                  }
+                }}
+                className="p-2 bg-[#173a72] hover:bg-[#1f488a] active:scale-95 text-amber-300 rounded-xl border border-amber-400/30 shadow-md transition flex items-center justify-center"
+                title="Scheduled Inspections Alert (P&C, Curves, SEJ)"
+              >
+                <ShieldAlert className="w-4 h-4 text-amber-300" />
+              </button>
+            )}
 
             {/* 🔍 Asset Search & Km Quick Finder */}
             <button

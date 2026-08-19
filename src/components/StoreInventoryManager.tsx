@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
+import { SapMaterialLookup } from './SapMaterialLookup.tsx';
 import type { StoreItemRecord, StoreTransactionRecord, OfficerStaffRecord } from '../types/index.ts';
 
 const DEFAULT_STORE_CATEGORIES = [
@@ -1384,6 +1385,20 @@ export const StoreInventoryManager: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateItem} className="space-y-3.5 text-xs">
+              <SapMaterialLookup
+                initialQuery={String(newItemData.itemCode || newItemData.name || '')}
+                onSelect={material => {
+                  setNewItemData({
+                    ...newItemData,
+                    itemCode: material.code,
+                    priceListCode: material.code,
+                    name: material.description,
+                    unit: material.uom || newItemData.unit || 'Nos',
+                    specification: `SAP ${material.code} • ${material.mainGroup}/${material.subGroup} • ${material.plantDescription || material.plant}`
+                  });
+                }}
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Item Code / Price List *</label>

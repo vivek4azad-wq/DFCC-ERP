@@ -242,174 +242,31 @@ export const StaffAttendance: React.FC = () => {
   const loadMasterData = async () => {
     setIsLoading(true);
     try {
-      const [stf, kmn, ptl, bwm, lcs, attendances, holidays] = await Promise.all([
-        db.getCollection<OfficerStaffRecord>('officers_staff'),
-        db.getCollection<KeymanRecord>('keymen'),
-        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
-        db.getCollection<BridgeWatchmanRecord>('bridge_watchmen'),
-        db.getCollection<any>('level_crossings'),
+      const [attendances, holidays] = await Promise.all([
         db.getCollection<DailyAttendanceRecord>('staff_attendance'),
         db.getCollection<HolidayDeclarationRecord>('attendance_holidays')
       ]);
 
-      const compiledStaff: StaffRosterItem[] = [];
-
-      // 1. Permanent Officers & Staff (11-12)
-      const regularList = (stf || []).filter(
-        s => s.employmentType === 'REGULAR' || s.employmentType === 'DEPUTATION' || s.role === 'SUPER_ADMIN' || s.role === 'OFFICER' || s.staffCategory === 'PERMANENT'
-      );
-
-      regularList.forEach(s => {
-        const isApm = (s.name && (s.name.toLowerCase().includes('vivek') || s.name.toLowerCase().includes('azad'))) || s.role === 'SUPER_ADMIN' || s.id === 'OFF-101518' || s.id === 'EMP-101518';
-        if (isOfficerUser && isApm) return; // Privacy check for normal officer login
-
-        compiledStaff.push({
+      const compiledStaff: StaffRosterItem[] = CANONICAL_SMUN_84_STAFF
+        .filter(s => {
+          if (isOfficerUser && s.id === 'OFF-101518') return false; // Privacy check for normal officer login
+          return true;
+        })
+        .map(s => ({
           id: s.id,
           name: s.name,
           fatherName: s.fatherName,
-          designation: s.post || s.role || s.designation || 'Executive',
-          category: 'PERMANENT',
-          categoryLabel: 'Permanent Staff',
-          isPermanent: true,
-          awpoId: s.awpoId || s.employeeId || s.id || '-',
-          phone: s.phone || '-',
-          beatOrSection: s.assignedSection || s.headquarters || 'IMSD SMUN',
-          photoUrl: s.photoUrl,
+          designation: s.designation,
+          category: s.category as any,
+          categoryLabel: s.categoryLabel,
+          isPermanent: s.isPermanent,
+          awpoId: s.awpoId,
+          phone: s.phone,
+          beatOrSection: s.beatOrSection,
           residence: s.residence,
-          district: s.district
-        });
-      });
-
-      // 2. Outsource MTS (1: Pinki Sharma)
-      const outsourceList = (stf || []).filter(s => {
-        const isPerm = s.employmentType === 'REGULAR' || s.employmentType === 'DEPUTATION' || s.role === 'SUPER_ADMIN' || s.role === 'OFFICER' || s.staffCategory === 'PERMANENT';
-        if (isPerm) return false;
-        const postLower = (s.post || s.designation || '').toLowerCase();
-        const empType = (s.employmentType || '').toUpperCase();
-        const sectionLower = (s.assignedSection || s.headquarters || '').toLowerCase();
-        const isExServiceman = empType === 'KEYMAN' || empType.includes('PATROL') || empType === 'GATEMAN' || empType === 'BR_WATCHMAN' ||
-          postLower.includes('keyman') || postLower.includes('patrol') || postLower.includes('gateman') || postLower.includes('gate') || postLower.includes('watchman') ||
-          sectionLower.includes('spd') || sectionLower.includes('spn') || sectionLower.includes('beat no') || s.lcNo || s.bridgeNoOrKm ||
-          (s.id && String(s.id).startsWith('KM-')) || (s.id && String(s.id).startsWith('gm_')) || (s.id && String(s.id).startsWith('wm_'));
-        if (isExServiceman) return false;
-        if (!s.name || /^outsource/i.test(s.name.trim())) return false;
-        return true;
-      });
-
-      outsourceList.forEach(s => {
-        compiledStaff.push({
-          id: s.id,
-          name: s.name,
-          fatherName: s.fatherName,
-          designation: s.post || s.designation || 'MTS / DFCCIL Representative',
-          category: 'OUTSOURCE_GANG',
-          categoryLabel: 'Outsource MTS (Pinki Sharma)',
-          isPermanent: false,
-          awpoId: s.awpoId || s.employeeId || s.id || '-',
-          phone: s.phone || '-',
-          beatOrSection: s.assignedSection || s.headquarters || 'IMSD SMUN',
-          photoUrl: s.photoUrl,
-          residence: s.residence,
-          district: s.district
-        });
-      });
-
-      // 3. Keymen (18)
-      (kmn || []).forEach(k => {
-        if (!k.name || k.name.includes('Vacant')) return;
-        compiledStaff.push({
-          id: k.id,
-          name: k.name,
-          fatherName: k.fatherName,
-          designation: `Keyman (${k.beatNoText || (k.beatNo ? `Beat ${k.beatNo}` : 'Beat')})`,
-          category: 'KEYMAN' as any,
-          categoryLabel: 'Keyman (Ex-Serviceman)',
-          isPermanent: false,
-          awpoId: k.awpoId || k.id || '-',
-          phone: k.mobileNo || k.otherMobileNo || '-',
-          beatOrSection: `${k.beatNoText || (k.beatNo ? `Beat ${k.beatNo}` : 'Keyman Beat')} (${k.kmRange || `Km ${Number(k.fromKm || 0).toFixed(3)}-${Number(k.toKm || 0).toFixed(3)}`})`,
-          residence: k.residence,
-          district: k.district
-        });
-      });
-
-      // 4. Patrolmen (30)
-      (ptl || []).forEach(p => {
-        if (!p.patrolmanName || p.patrolmanName.includes('Vacant') || p.isFilled === false) return;
-        const bCode = (p.beatCode || '').toUpperCase().trim();
-        if (bCode.startsWith('TEST') || bCode.startsWith('TEMP')) return;
-
-        const isDay = p.shiftType === 'DAY' || bCode.includes('SPD') || (p.route || '').toLowerCase().includes('day');
-        compiledStaff.push({
-          id: p.id,
-          name: p.patrolmanName,
-          designation: `${isDay ? 'Day' : 'Night'} Patrol (${p.beatCode || 'Beat'})`,
-          category: (isDay ? 'PATROL_DAY' : 'PATROL_NIGHT') as any,
-          categoryLabel: isDay ? 'Day Patrolman (दिन की पेट्रोलिंग)' : 'Night Patrolman (रात की पेट्रोलिंग)',
-          isPermanent: false,
-          awpoId: p.patrolmanStaffId || p.awpoId || `AWPO-${49200 + compiledStaff.length}`,
-          phone: p.patrolmanPhone || '-',
-          beatOrSection: p.route || `${p.beatCode || 'Beat'} (Km ${Number(p.fromKm || 0).toFixed(3)}-${Number(p.toKm || 0).toFixed(3)})`,
-          residence: p.remarks || undefined
-        });
-      });
-
-      // 5. Gatemen (19)
-      (lcs || []).forEach((lc: any) => {
-        const gList = Array.isArray(lc.gatemen) ? lc.gatemen : [];
-        gList.forEach((g: any, gIdx: number) => {
-          if (!g.name || g.name.includes('Vacant')) return;
-          compiledStaff.push({
-            id: `GTM-${lc.gateNo || lc.lc_no}-${g.id || gIdx}`,
-            name: g.name,
-            fatherName: g.fatherName,
-            designation: `Gateman (LC ${lc.gateNo || lc.lc_no})`,
-            category: 'GATEMAN' as any,
-            categoryLabel: 'Gateman (LC Gate Lodge)',
-            isPermanent: false,
-            awpoId: g.id || `AWPO-${46530 + compiledStaff.length}`,
-            phone: g.mobile || '-',
-            beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Km ${Number(lc.km || lc.chainage || 0).toFixed(3)})`,
-            residence: g.residence
-          });
-        });
-
-        if (lc.rgDetails || lc.rg) {
-          const rgStr = lc.rgDetails || lc.rg || '';
-          const cleanName = rgStr.replace(/\(.*?\)/g, '').replace(/Sh\.\s*/g, '').trim();
-          if (cleanName && !cleanName.includes('Vacant')) {
-            compiledStaff.push({
-              id: `GTM-RG-${lc.gateNo || lc.lc_no}`,
-              name: cleanName,
-              designation: `Relief Gateman (LC ${lc.gateNo || lc.lc_no})`,
-              category: 'GATEMAN' as any,
-              categoryLabel: 'Gateman (LC Gate Lodge)',
-              isPermanent: false,
-              awpoId: `AWPO-${46540 + compiledStaff.length}`,
-              phone: '9478553153',
-              beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Relief)`,
-              residence: 'IMSD SMUN Base'
-            });
-          }
-        }
-      });
-
-      // 6. Bridge Watchmen (3)
-      (bwm || []).forEach(w => {
-        if (!w.name || w.name.includes('Vacant')) return;
-        compiledStaff.push({
-          id: w.id,
-          name: w.name,
-          designation: `Watchman (${w.bridgeNo || 'BR. 108'})`,
-          category: 'WATCHMAN' as any,
-          categoryLabel: 'Bridge Watchman (BR. 108)',
-          isPermanent: false,
-          awpoId: w.awpoId || w.staffId || '-',
-          phone: w.phone || '-',
-          beatOrSection: `Bridge ${w.bridgeNo || '108'} (ROR Rajpura Detour)`,
-          residence: w.location
-        });
-      });
+          district: s.district,
+          photoUrl: s.photoUrl
+        }));
 
       setAllStaffList(compiledStaff);
       setAttendanceRecords(attendances || []);

@@ -206,33 +206,199 @@ export const StaffAttendance: React.FC = () => {
   const loadMasterData = async () => {
     setIsLoading(true);
     try {
-      const [attendances, holidays] = await Promise.all([
+      const [officers, keymen, patrols, lcs, watchmen, attendances, holidays] = await Promise.all([
+        db.getCollection<OfficerStaffRecord>('officers_staff'),
+        db.getCollection<KeymanRecord>('keymen'),
+        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
+        db.getCollection<LevelCrossingRecord>('level_crossings'),
+        db.getCollection<BridgeWatchmanRecord>('bridge_watchmen'),
         db.getCollection<DailyAttendanceRecord>('staff_attendance'),
         db.getCollection<HolidayDeclarationRecord>('attendance_holidays')
       ]);
 
-      // 🔒 CANONICAL 84 ROSTER: Guaranteed 100% exact 84 personnel (12 Perm + 1 MTS + 18 Keymen + 31 Patrolmen + 19 Gatemen + 3 Watchmen)
-      let compiledStaff: StaffRosterItem[] = CANONICAL_SMUN_84_STAFF.map(s => ({
-        id: s.id,
-        name: s.name,
-        nameHi: s.nameHi,
-        fatherName: s.fatherName,
-        designation: s.designation,
-        category: s.category as any,
-        categoryLabel: s.categoryLabel,
-        isPermanent: s.isPermanent,
-        awpoId: s.awpoId,
-        phone: s.phone,
-        beatOrSection: s.beatOrSection,
-        residence: s.residence,
-        district: s.district,
-        photoUrl: s.photoUrl
-      }));
+      const compiledStaff: StaffRosterItem[] = [];
+      const seenStaffKeys = new Set<string>();
 
-      // 🔒 Privacy Constraint: If logged in as Officer (not Super Admin), do NOT show APM (Shri Vivek Kumar Azad)'s attendance!
-      if (isOfficerUser) {
-        compiledStaff = compiledStaff.filter(s => s.id !== 'EMP-101518' && !s.name.toLowerCase().includes('vivek'));
-      }
+      const getNormalizedKey = (name: string, awpoOrPhone?: string) => {
+        const cleanName = (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanId = (awpoOrPhone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return `${cleanName}_${cleanId}`;
+      };
+
+      // 1. Permanent Officers (Real names from officers_staff: Vivek Kumar Azad, Arjun Kumar, Gaya Prashad, Harpal Singh, Dayal Singh, Swarn Singh, Tarsem Singh, Gautam Kumar, Ranjeet Kumar, Sudhir Kumar, Suraj Verma, Sanni Kumar Sharma)
+      officers.forEach(o => {
+        const isApmRecord = (o.name && (o.name.toLowerCase().includes('vivek') || o.name.toLowerCase().includes('azad'))) ||
+                            o.role === 'SUPER_ADMIN' ||
+                            o.id === 'EMP-101518' ||
+                            (o.post && /apm|assistant\s*project\s*manager/i.test(o.post));
+
+        if (isOfficerUser && isApmRecord) {
+          return;
+        }
+
+        if (!o.name || /^outsource/i.test(o.name.trim()) || o.name.trim().toLowerCase() === 'outsource') {
+          return;
+        }
+
+        const isPerm = o.employmentType === 'REGULAR' || o.employmentType === 'DEPUTATION' || o.staffCategory === 'PERMANENT' || o.role === 'SUPER_ADMIN' || o.role === 'OFFICER';
+        const isMts = (o.name && o.name.toLowerCase().includes('pinki')) || (o.post && /mts|multi\s*tasking/i.test(o.post)) || o.employmentType === 'OUTSOURCE';
+
+        if (!isPerm && !isMts) return;
+
+        const postLower = (o.post || o.designation || '').toLowerCase();
+        if (/keyman|patrol|gateman|watchman/i.test(postLower)) return;
+
+        const sid = o.id || `off_${o.awpoId || o.name}`;
+        const sKey = getNormalizedKey(o.name, o.awpoId || o.phone || o.id);
+        if (!seenStaffKeys.has(sKey)) {
+          seenStaffKeys.add(sKey);
+          const cat = isPerm ? 'PERMANENT' : 'OUTSOURCE_GANG';
+          const catLabel = isPerm ? 'Permanent Staff' : 'Outsource MTS (Pinki Sharma)';
+
+          compiledStaff.push({
+            id: sid,
+            name: o.name,
+            fatherName: o.fatherName,
+            designation: o.post || (isPerm ? 'Executive' : 'MTS'),
+            category: cat,
+            categoryLabel: catLabel,
+            isPermanent: isPerm,
+            awpoId: o.awpoId || o.employeeId || o.id || '-',
+            phone: o.phone || '-',
+            beatOrSection: o.assignedSection || o.headquarters || 'IMSD SMUN',
+            photoUrl: o.photoUrl,
+            residence: o.residence,
+            district: o.district
+          });
+        }
+      });
+
+      // 2. Keymen (Real names from keymen collection: Sanjeev Kumar, Kuldeep Singh, Bhupal Singh, Gurdeep Singh, Gurwinder Singh, Harvinder Singh, Avtar Singh, Jaswinder Singh, Jagjeet Singh, Lakhvir Singh, Gurpreet Singh, Kuljeet singh, Nirbhay Singh, Bikar Singh, Sukhwinder Singh, Harwinder Singh, Balwinder Singh)
+      keymen.forEach(k => {
+        if (!k.name || k.name.includes('Vacant')) return;
+        const sid = `km_${k.id || k.awpoId || k.name}`;
+        const sKey = getNormalizedKey(k.name, k.awpoId || k.mobileNo || k.id);
+        if (!seenStaffKeys.has(sKey)) {
+          seenStaffKeys.add(sKey);
+          compiledStaff.push({
+            id: sid,
+            name: k.name,
+            designation: `Keyman (${k.beatNoText || (k.beatNo ? `Beat ${k.beatNo}` : 'Beat')})`,
+            category: 'KEYMAN' as any,
+            categoryLabel: 'Keyman (Ex-Serviceman)',
+            isPermanent: false,
+            awpoId: k.awpoId || k.id || '-',
+            phone: k.mobileNo || k.otherMobileNo || '-',
+            beatOrSection: `${k.beatNoText || (k.beatNo ? `Beat ${k.beatNo}` : 'Keyman Beat')} (${k.kmRange || `Km ${Number(k.fromKm || 0).toFixed(3)}-${Number(k.toKm || 0).toFixed(3)}`})`,
+            fatherName: k.fatherName,
+            residence: k.residence,
+            district: k.district
+          });
+        }
+      });
+
+      // 3. Patrolmen (Real names from patrol_shifts collection)
+      patrols.forEach(p => {
+        if (!p.patrolmanName || p.patrolmanName.includes('Vacant') || p.isFilled === false) return;
+        const bCode = (p.beatCode || '').toUpperCase().trim();
+        if (bCode.startsWith('TEST') || bCode.startsWith('TEMP')) return;
+
+        const isDay = p.shiftType === 'DAY' || bCode.includes('SPD') || (p.route || '').toLowerCase().includes('day');
+        
+        // Support multiple names separated by slash (e.g. "Dharminder Singh / Balkar Singh")
+        const names = p.patrolmanName.split('/').map(n => n.trim()).filter(Boolean);
+        names.forEach((pName, pIdx) => {
+          if (pName.includes('Vacant')) return;
+          const sid = `pat_${p.id || p.beatCode}_${pIdx}`;
+          const sKey = getNormalizedKey(pName, p.patrolmanPhone || p.beatCode || '');
+          if (!seenStaffKeys.has(sKey)) {
+            seenStaffKeys.add(sKey);
+            compiledStaff.push({
+              id: sid,
+              name: pName,
+              designation: isDay ? 'Day Patrolman' : 'Night Patrolman',
+              category: (isDay ? 'PATROL_DAY' : 'PATROL_NIGHT') as any,
+              categoryLabel: isDay ? 'Day Patrolman (दिन की पेट्रोलिंग)' : 'Night Patrolman (रात की पेट्रोलिंग)',
+              isPermanent: false,
+              awpoId: p.patrolmanStaffId || p.awpoId || `AWPO-${49200 + compiledStaff.length}`,
+              phone: p.patrolmanPhone || '-',
+              beatOrSection: `${p.beatCode || 'Beat'} (${p.route || `Km ${Number(p.fromKm || 0).toFixed(3)}-${Number(p.toKm || 0).toFixed(3)}`})`,
+              residence: p.remarks || undefined
+            });
+          }
+        });
+      });
+
+      // 4. Gatemen (Real names from level_crossings)
+      lcs.forEach(lc => {
+        (lc.gatemen || []).forEach((gm: any, gmIdx: number) => {
+          if (!gm.name || gm.name.includes('Vacant')) return;
+          const sid = `gm_${lc.gateNo || lc.lc_no}_${gm.id || gmIdx}`;
+          const sKey = getNormalizedKey(gm.name, gm.mobile || gm.id);
+          if (!seenStaffKeys.has(sKey)) {
+            seenStaffKeys.add(sKey);
+            compiledStaff.push({
+              id: sid,
+              name: gm.name,
+              designation: `Gateman (LC ${lc.gateNo || lc.lc_no})`,
+              category: 'GATEMAN' as any,
+              categoryLabel: 'Gateman (LC Gate Lodge)',
+              isPermanent: false,
+              awpoId: gm.id || `AWPO-${46530 + compiledStaff.length}`,
+              phone: gm.mobile || '-',
+              beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Km ${Number(lc.km || lc.chainage || 0).toFixed(3)})`,
+              residence: gm.residence
+            });
+          }
+        });
+
+        // Relief Gatemen
+        const rgStr = lc.rgDetails || lc.rg || '';
+        if (rgStr) {
+          const cleanName = rgStr.replace('Sh.', '').split('(')[0].trim();
+          if (cleanName && !cleanName.includes('Vacant')) {
+            const sid = `gm_rg_${lc.gateNo || lc.lc_no}`;
+            const sKey = getNormalizedKey(cleanName);
+            if (!seenStaffKeys.has(sKey)) {
+              seenStaffKeys.add(sKey);
+              compiledStaff.push({
+                id: sid,
+                name: cleanName,
+                designation: `Relief Gateman (LC ${lc.gateNo || lc.lc_no})`,
+                category: 'GATEMAN' as any,
+                categoryLabel: 'Gateman (LC Gate Lodge)',
+                isPermanent: false,
+                awpoId: `AWPO-${46540 + compiledStaff.length}`,
+                phone: '9478553153',
+                beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Relief)`,
+                residence: 'IMSD SMUN Base'
+              });
+            }
+          }
+        }
+      });
+
+      // 5. Bridge Watchmen (Real names from bridge_watchmen: Satnam Singh, Surinder Singh, Jasvir Singh)
+      watchmen.forEach(w => {
+        if (!w.name || w.name.includes('Vacant')) return;
+        const sid = `wm_${w.staffId || w.id || w.name}`;
+        const sKey = getNormalizedKey(w.name, w.awpoId || w.staffId || w.phone);
+        if (!seenStaffKeys.has(sKey)) {
+          seenStaffKeys.add(sKey);
+          compiledStaff.push({
+            id: sid,
+            name: w.name,
+            designation: w.post || 'Bridge Watchman',
+            category: 'WATCHMAN' as any,
+            categoryLabel: 'Bridge Watchman (BR. 108)',
+            isPermanent: false,
+            awpoId: w.awpoId || w.staffId || '-',
+            phone: w.phone || '-',
+            beatOrSection: `Bridge ${w.bridgeNo || '108'} (ROR Rajpura Detour)`,
+            residence: w.location
+          });
+        }
+      });
 
       setAllStaffList(compiledStaff);
       setAttendanceRecords(attendances || []);

@@ -483,61 +483,79 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  };
  }, []);
 
- const gatemenList = useMemo(() => {
- const list: any[] = [];
- levelCrossings.forEach((lc) => {
- const gList = Array.isArray(lc.gatemen) ? lc.gatemen : [];
- const shifts = ['Shift 1 (08:00 - 16:00)', 'Shift 2 (16:00 - 24:00)', 'Shift 3 (00:00 - 08:00)'];
- gList.forEach((g: any, gIdx: number) => {
- list.push({
- id: `GTM-${lc.gateNo || lc.lc_no}-${g.id || gIdx}`,
- name: g.name,
- fatherName: g.fatherName || '-',
- awpoId: g.id || `AWPO-${46530 + gIdx}`,
- gateNo: lc.gateNo || lc.lc_no,
- gateKm: Number(lc.km || lc.chainage),
- section: lc.sectionCode || lc.section,
- classification: lc.classification || lc.class,
- tuv: lc.tuv,
- shift: shifts[gIdx % 3],
- mobile: g.mobile || '9478553153',
- isRelief: false,
- rgDetails: lc.rgDetails || lc.rg,
- residence: g.residence || 'Gate Lodge',
- photoUrl: g.photoUrl,
- qrCodeId: `RD-GTM-${lc.gateNo}-${g.id || gIdx}`,
- raw: g
- });
- });
- // Relief Gateman
- if (lc.rgDetails || lc.rg) {
- const rgStr = lc.rgDetails || lc.rg || '';
- const idMatch = rgStr.match(/\(?ID-?(\d+)/i) || rgStr.match(/(\d{5})/);
- const mobMatch = rgStr.match(/(\d{10})/);
- const cleanName = rgStr.replace(/\(.*?\)/g, '').replace(/Sh\.\s*/g, '').trim();
- list.push({
- id: `GTM-RG-${lc.gateNo || lc.lc_no}`,
- name: cleanName || 'Relief Gateman',
- fatherName: '-',
- awpoId: idMatch ? idMatch[1] : '48579',
- gateNo: lc.gateNo || lc.lc_no,
- gateKm: Number(lc.km || lc.chainage),
- section: lc.sectionCode || lc.section,
- classification: lc.classification || lc.class,
- tuv: lc.tuv,
- shift: 'Relief (RG Rotational)',
- mobile: mobMatch ? mobMatch[1] : '9478553153',
- isRelief: true,
- rgDetails: rgStr,
- residence: 'IMSD SMUN Base',
- qrCodeId: `RD-RG-${lc.gateNo}`,
- raw: { name: cleanName, mobile: mobMatch ? mobMatch[1] : '9478553153', post: 'Relief Gateman' }
- });
- }
- });
- return list;
- }, [levelCrossings]);
+  const gatemenList = useMemo(() => {
+    const list: any[] = [];
+    const seenGates = new Set<string>();
+    const seenNames = new Set<string>();
 
+    levelCrossings.forEach((lc) => {
+      const rawGateNo = String(lc.gateNo || lc.lc_no || '').trim();
+      const cleanGateKey = rawGateNo.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      if (!cleanGateKey) return;
+      if (seenGates.has(cleanGateKey)) return; // Prevent duplicate gate entry
+      seenGates.add(cleanGateKey);
+
+      const gList = Array.isArray(lc.gatemen) ? lc.gatemen : [];
+      const shifts = ['Shift 1 (08:00 - 16:00)', 'Shift 2 (16:00 - 24:00)', 'Shift 3 (00:00 - 08:00)'];
+      gList.forEach((g: any, gIdx: number) => {
+        if (!g.name || g.name.toLowerCase().includes('vacant')) return;
+        const cleanNameKey = g.name.replace(/Sh\.\s*/i, '').trim().toLowerCase();
+        if (cleanNameKey && seenNames.has(cleanNameKey)) return; // Prevent duplicate person
+        if (cleanNameKey) seenNames.add(cleanNameKey);
+
+        list.push({
+          id: `GTM-${rawGateNo}-${g.id || gIdx}`,
+          name: g.name,
+          fatherName: g.fatherName || '-',
+          awpoId: g.id || `AWPO-${46530 + gIdx}`,
+          gateNo: rawGateNo,
+          gateKm: Number(lc.km || lc.chainage),
+          section: lc.sectionCode || lc.section,
+          classification: lc.classification || lc.class,
+          tuv: lc.tuv,
+          shift: shifts[gIdx % 3],
+          mobile: g.mobile || '9478553153',
+          isRelief: false,
+          rgDetails: lc.rgDetails || lc.rg,
+          residence: g.residence || 'Gate Lodge',
+          photoUrl: g.photoUrl,
+          qrCodeId: `RD-GTM-${rawGateNo}-${g.id || gIdx}`,
+          raw: g
+        });
+      });
+
+      // Relief Gateman
+      if (lc.rgDetails || lc.rg) {
+        const rgStr = lc.rgDetails || lc.rg || '';
+        const idMatch = rgStr.match(/\(?ID-?(\d+)/i) || rgStr.match(/(\d{5})/);
+        const mobMatch = rgStr.match(/(\d{10})/);
+        const cleanName = rgStr.replace(/\(.*?\)/g, '').replace(/Sh\.\s*/g, '').trim();
+        const cleanNameKey = cleanName.toLowerCase();
+        if (cleanNameKey && !cleanNameKey.includes('vacant') && !seenNames.has(cleanNameKey)) {
+          seenNames.add(cleanNameKey);
+          list.push({
+            id: `GTM-RG-${rawGateNo}`,
+            name: `Sh. ${cleanName}`,
+            fatherName: '-',
+            awpoId: idMatch ? idMatch[1] : `4857${list.length + 1}`,
+            gateNo: rawGateNo,
+            gateKm: Number(lc.km || lc.chainage),
+            section: lc.sectionCode || lc.section,
+            classification: lc.classification || lc.class,
+            tuv: lc.tuv,
+            shift: 'Relief (RG Rotational)',
+            mobile: mobMatch ? mobMatch[1] : '9478553153',
+            isRelief: true,
+            rgDetails: rgStr,
+            residence: 'IMSD SMUN Base',
+            qrCodeId: `RD-RG-${rawGateNo}`,
+            raw: { name: cleanName, mobile: mobMatch ? mobMatch[1] : '9478553153', post: 'Relief Gateman' }
+          });
+        }
+      }
+    });
+    return list;
+  }, [levelCrossings]);
  const filteredGatemen = useMemo(() => {
  if (!searchQuery.trim()) return gatemenList;
  const q = searchQuery.toLowerCase().trim();

@@ -786,8 +786,8 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
 
         <div className="v14-wrap" style={{ maxHeight: '600px' }}>
           <div className="v14-canvas" style={{ height: `${canvasHeight}px` }}>
-            <div className="v14-track-a" style={{ left: '440px' }} />
-            <div className="v14-track-b" style={{ left: '452px' }} />
+            <div className="v14-track-a" style={{ left: '540px' }} />
+            <div className="v14-track-b" style={{ left: '554px' }} />
 
             {(() => {
               const lines = [];
@@ -824,7 +824,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
               <div
                 style={{
                   position: 'absolute',
-                  left: '420px',
+                  left: '460px',
                   top: '-12px',
                   background: '#dc2626',
                   color: '#ffffff',
@@ -857,9 +857,32 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
 
                 const topAsset = Math.max(2, yy - 18);
                 const sideClass = isLeft ? 'left' : 'right';
-                const leftPos = isLeft
-                  ? key.endsWith('1') ? '540px' : '490px'
-                  : key.endsWith('1') ? '760px' : '710px';
+
+                let leftPos = '585px';
+                let connLeft = '554px';
+                let connWidth = '31px';
+
+                if (isLeft) {
+                  if (key.endsWith('1')) {
+                    leftPos = '30px';
+                    connLeft = '250px';
+                    connWidth = '290px';
+                  } else {
+                    leftPos = '280px';
+                    connLeft = '500px';
+                    connWidth = '40px';
+                  }
+                } else {
+                  if (key.endsWith('1')) {
+                    leftPos = '835px';
+                    connLeft = '554px';
+                    connWidth = '281px';
+                  } else {
+                    leftPos = '585px';
+                    connLeft = '554px';
+                    connWidth = '31px';
+                  }
+                }
 
                 return (
                   <React.Fragment key={asset.id}>
@@ -872,16 +895,23 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                       onClick={() => handleLinearAssetClick(asset)}
                       title={`${asset.label}\n${asset.subLabel}\nKm ${asset.km.toFixed(3)} (Click for details)`}
                     >
-                      <strong>{asset.label}</strong>
-                      <span className="text-[10px] text-slate-600 dark:text-slate-300 block leading-tight truncate">{asset.subLabel}</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <strong className="truncate">{asset.label}</strong>
+                        <span className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase ${
+                          isLeft ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
+                        }`}>
+                          {isLeft ? 'UP' : 'DN'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-300 block leading-tight truncate mt-0.5">{asset.subLabel}</span>
                     </div>
 
                     <div
                       className="v14-connector"
                       style={{
                         top: `${yy}px`,
-                        left: isLeft ? '440px' : '452px',
-                        width: isLeft ? (key.endsWith('1') ? '100px' : '50px') : (key.endsWith('1') ? '308px' : '258px')
+                        left: connLeft,
+                        width: connWidth
                       }}
                     />
                   </React.Fragment>

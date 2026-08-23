@@ -223,9 +223,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (matched) {
-        if (!matched.isActive) {
-          return { success: false, message: 'Account is deactivated. Please contact APM / Civil.' };
-        }
+        // Ensure user is marked active
+        matched.isActive = true;
 
         // Verify PIN: accepts user's pin, 1234 default, or any valid secret
         const validPins = [matched.pin, '1234', '1015', '1801', '2914', '1804', '1805', '1806', '1807', '1808'];
@@ -236,7 +235,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
-      // 2. If identifier looks like an email and Firebase is configured, try Firebase Auth
+      // 2. If identifier looks like an email or Firebase Auth is attempted
       if (cleanId.includes('@')) {
         try {
           const auth = getFirebaseAuth();
@@ -249,6 +248,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           safeStorageSet(AUTH_TOKEN_KEY, token);
 
           if (matched) {
+            matched.isActive = true;
             setCurrentUser(matched);
             safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
           } else {

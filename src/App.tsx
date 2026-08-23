@@ -952,7 +952,7 @@ function MainAppShell() {
       case 'keyplans':
         return (
           <div className="space-y-4">
-            <StationKeyPlanModal isOpen={true} onClose={() => setActiveTab('analytics')} />
+            <StationKeyPlanModal isOpen={true} isInline={true} onClose={() => setActiveTab('analytics')} />
           </div>
         );
       case 'categories':

@@ -82,7 +82,7 @@ body {
 
 .v14-canvas {
   position: relative;
-  min-width: 1060px;
+  min-width: 1220px;
   background: #ffffff;
 }
 
@@ -122,13 +122,13 @@ body {
 
 .v14-station-name {
   position: absolute;
-  left: 415px;
+  left: 440px;
   transform: translateY(-100%);
   font-size: 12px;
   font-weight: 900;
   color: #991b1b;
   background: #ffffff;
-  padding: 3px 8px;
+  padding: 3px 10px;
   border: 1.5px solid #f87171;
   border-radius: 8px;
   z-index: 8;
@@ -144,13 +144,13 @@ body {
   z-index: 4;
   border-radius: 4px;
 }
-.v14-track-a { left: 516px; }
-.v14-track-b { left: 528px; }
+.v14-track-a { left: 540px; }
+.v14-track-b { left: 554px; }
 
 .v14-dtour {
   position: absolute;
-  left: 460px;
-  width: 130px;
+  left: 480px;
+  width: 140px;
   background: rgba(254, 226, 226, 0.55);
   border-left: 4px solid #ef4444;
   border-right: 4px solid #ef4444;
@@ -159,7 +159,7 @@ body {
 
 .v14-dtour-label {
   position: absolute;
-  left: 596px;
+  left: 624px;
   font-size: 10px;
   font-weight: 900;
   color: #b91c1c;
@@ -172,8 +172,8 @@ body {
 
 .v14-high-embankment {
   position: absolute;
-  left: 450px;
-  width: 150px;
+  left: 470px;
+  width: 160px;
   background: repeating-linear-gradient(
     45deg,
     rgba(217, 119, 6, 0.12),
@@ -189,7 +189,7 @@ body {
 
 .v14-embankment-label {
   position: absolute;
-  left: 310px;
+  left: 330px;
   font-size: 10px;
   font-weight: 900;
   color: #92400e;
@@ -216,9 +216,9 @@ body {
 
 .v14-asset {
   position: absolute;
-  width: 210px;
-  min-height: 42px;
-  padding: 6px 9px;
+  width: 220px;
+  min-height: 44px;
+  padding: 6px 10px;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #ffffff;
@@ -241,9 +241,6 @@ body {
   font-size: 11px;
   color: #0f172a;
 }
-
-.v14-asset.left { left: 600px; }
-.v14-asset.right { left: 830px; }
 
 .v14-asset.bridge.mjb {
   border: 2px solid #dc2626;

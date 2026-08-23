@@ -128,12 +128,14 @@ interface StationKeyPlanModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultStationCode?: string;
+  isInline?: boolean;
 }
 
 export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
   isOpen,
   onClose,
-  defaultStationCode
+  defaultStationCode,
+  isInline = false
 }) => {
   const [selectedStationCode, setSelectedStationCode] = useState<string>(defaultStationCode || 'SMUN');
   const [keyPlans, setKeyPlans] = useState<Record<string, StationKeyPlanRecord>>({});
@@ -344,63 +346,62 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
-      <div className="bg-slate-900 border-2 border-cyan-500/40 rounded-3xl w-full max-w-6xl max-h-[94vh] shadow-2xl flex flex-col overflow-hidden text-white animate-scaleUp">
-        
-        {/* Header Bar */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-[#0a1e40] via-[#0f2b5c] to-[#123b72]">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-cyan-500/20 text-cyan-300 rounded-2xl border border-cyan-400/40 shadow-inner">
-              <Train className="w-6 h-6 text-cyan-300" />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-                <span>DFCCIL Station Key-Plans &amp; Track Blueprints</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-400 text-slate-950 uppercase">
-                  Layout Master
-                </span>
-              </h3>
-              <p className="text-xs text-cyan-200/80 font-medium">
-                IMSD SMUN Unit (Km 1170.435 – 1249.720) • Yard Blueprints, Topologies &amp; Approved Drawings
-              </p>
-            </div>
+  const containerContent = (
+    <div className={`bg-slate-900 border-2 border-cyan-500/40 rounded-3xl w-full ${isInline ? 'min-h-[750px]' : 'max-w-6xl max-h-[94vh]'} shadow-2xl flex flex-col overflow-hidden text-white animate-scaleUp`}>
+      {/* Header Bar */}
+      <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-[#0a1e40] via-[#0f2b5c] to-[#123b72]">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-cyan-500/20 text-cyan-300 rounded-2xl border border-cyan-400/40 shadow-inner">
+            <Train className="w-6 h-6 text-cyan-300" />
           </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
+              <span>DFCCIL Station Key-Plans &amp; Track Blueprints</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-400 text-slate-950 uppercase">
+                Layout Master
+              </span>
+            </h3>
+            <p className="text-xs text-cyan-200/80 font-medium">
+              IMSD SMUN Unit (Km 1170.435 – 1249.720) • Yard Blueprints, Topologies &amp; Approved Drawings
+            </p>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            {/* View Mode Switcher */}
-            <div className="bg-slate-950/80 p-1 rounded-xl border border-slate-700 flex items-center gap-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setViewMode('XRAY')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                  viewMode === 'XRAY' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>X-Ray Schematic</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('DOC')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                  viewMode === 'DOC' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Key-Plan Document {activeDocUrl ? '✅' : ''}</span>
-              </button>
-            </div>
-
+        <div className="flex items-center gap-2">
+          {/* View Mode Switcher */}
+          <div className="bg-slate-950/80 p-1 rounded-xl border border-slate-700 flex items-center gap-1 text-xs">
             <button
               type="button"
-              onClick={() => window.print()}
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl transition"
-              title="Print Current Station Layout"
+              onClick={() => setViewMode('XRAY')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                viewMode === 'XRAY' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'text-slate-300 hover:text-white'
+              }`}
             >
-              <Printer className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5" />
+              <span>X-Ray Schematic</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('DOC')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                viewMode === 'DOC' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Key-Plan Document {activeDocUrl ? '✅' : ''}</span>
+            </button>
+          </div>
 
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl transition"
+            title="Print Current Station Layout"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+
+          {!isInline && (
             <button
               type="button"
               onClick={onClose}
@@ -408,8 +409,9 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
             >
               <X className="w-5 h-5" />
             </button>
-          </div>
+          )}
         </div>
+      </div>
 
         {/* Station Navigation Pills Bar */}
         <div className="px-4 py-3 bg-slate-950/90 border-b border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
@@ -765,7 +767,7 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
                   </div>
 
                   {/* Viewer Display */}
-                  <div className="w-full h-[560px] rounded-2xl overflow-auto border border-slate-800 bg-slate-950 shadow-inner flex items-center justify-center p-2 relative">
+                  <div className="w-full min-h-[480px] max-h-[620px] rounded-2xl overflow-auto border border-slate-800 bg-slate-950 shadow-inner flex flex-col items-center justify-center p-3 relative">
                     {isImageDoc ? (
                       <div
                         className="transition-transform duration-200 origin-center max-w-full max-h-full flex items-center justify-center"
@@ -778,11 +780,32 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
                         />
                       </div>
                     ) : (
-                      <iframe
-                        src={activeDocUrl}
-                        title={`${currentStation.name} Key Plan PDF`}
-                        className="w-full h-full border-none rounded-xl"
-                      />
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 space-y-4">
+                        <iframe
+                          src={activeDocUrl}
+                          title={`${currentStation.name} Key Plan PDF`}
+                          className="w-full h-[480px] border-none rounded-xl hidden sm:block shadow-md bg-slate-900"
+                        />
+                        <div className="w-full text-center space-y-3 p-6 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl max-w-md mx-auto">
+                          <FileText className="w-12 h-12 text-cyan-400 mx-auto animate-bounce" />
+                          <div className="text-base font-extrabold text-white">
+                            {currentStation.name} ({currentStation.code}) Key-Plan PDF
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            Approved DFCCIL Engineering Drawing & Yard Plan:
+                          </p>
+                          <a
+                            href={activeDocUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            download={`${currentStation.code}_Key_Plan.pdf`}
+                            className="inline-flex items-center justify-center gap-2 w-full py-3 px-5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span>Open / Download PDF ({currentPlan?.fileSizeKb || currentPlan?.pdfFileSizeKb || 420} KB)</span>
+                          </a>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -817,15 +840,26 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
           <span className="text-slate-400 font-mono">
             DFCCIL WDFC • IMSD SMUN P-Way Division • 6 Jurisdiction Stations
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold"
-          >
-            Close Viewer
-          </button>
+          {!isInline && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold"
+            >
+              Close Viewer
+            </button>
+          )}
         </div>
       </div>
+  );
+
+  if (isInline) {
+    return <div className="w-full max-w-6xl mx-auto py-2 animate-fadeIn">{containerContent}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
+      {containerContent}
     </div>
   );
 };

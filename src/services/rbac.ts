@@ -53,51 +53,42 @@ export class RBACService {
       return false;
     }
 
-    // 4. OFFICER (Executive / Arjun) Permissions:
+    // 4. OFFICER (Executive Arjun Kumar & Outsource MTS / Rep Pinki Sharma) Permissions:
     // - P.Way Maintenance & Track Defects: Allowed to CREATE and UPDATE
+    // - Attendance & Leave Tagging: Allowed to CREATE and UPDATE
     // - Assets (Bridges, Points, Curves, LWR, SEJ): Read-Only
     // - DELETE: Blocked (requires Super Admin APM approval)
     if (role === 'OFFICER') {
       if (action === 'READ') return true;
       if (action === 'GENERATE_QR') return true;
 
-      // Executive / Arjun can edit/create Track Defects & P-Way Maintenance modules
       if (action === 'CREATE' || action === 'UPDATE') {
         const allowedMutationResources = [
           'track_defects',
           'pway_daily_progress',
           'pway_monthly_program',
-          'pway_inspections'
+          'pway_inspections',
+          'staff_attendance',
+          'attendance_holidays'
         ];
         return allowedMutationResources.includes(resource);
       }
 
-      // Deletion is strictly blocked for Executive - must go through APM approval
+      // Deletion is strictly blocked for Executive / Officer - must go through APM approval
       return false;
     }
 
-    // 5. STAFF (MTS) Permissions: Gang Working Data Entry Only, Read-Only for Assets
+    // 5. STAFF (All 5 MTS: Gautam, Ranjeet, Sudhir, Suraj, Sanni) Permissions:
+    // - Strictly CAN ONLY CREATE and UPDATE Track Maintenance / Gang Work ('pway_daily_progress')
+    // - Read-Only for Assets, Staff Directory, and Inspection logs
+    // - Cannot edit assets, directory, or delete any records
     if (role === 'STAFF') {
       if (action === 'READ') {
-        const allowedReadResources = [
-          'bridges',
-          'level_crossings',
-          'points_crossings',
-          'curves',
-          'track_defects',
-          'officers_staff',
-          'keymen',
-          'patrol_shifts',
-          'jurisdiction',
-          'pway_daily_progress',
-          'pway_monthly_program',
-          'pway_inspections'
-        ];
-        return allowedReadResources.includes(resource);
+        return true;
       }
 
-      // MTS can CREATE and UPDATE daily gang progress for current day
-      if ((action === 'CREATE' || action === 'UPDATE') && resource === 'pway_daily_progress') {
+      // MTS can ONLY CREATE and UPDATE daily gang work progress
+      if ((action === 'CREATE' || action === 'UPDATE') && (resource === 'pway_daily_progress' || resource === 'track_gang_work')) {
         return true;
       }
 
@@ -105,7 +96,7 @@ export class RBACService {
         return true;
       }
 
-      // Staff cannot perform any mutations on assets or delete anything
+      // Staff cannot perform any mutations on assets or attendance or delete anything
       return false;
     }
 

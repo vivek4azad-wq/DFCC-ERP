@@ -133,14 +133,11 @@ export class LocalDatabaseService implements IDatabaseService {
       for (const col of Object.keys(SEED_DATA) as CollectionName[]) {
         const remoteDocs = await fetchCollectionFromFirestore(col);
         if (remoteDocs && remoteDocs.length > 0) {
-          let colMap = this.memoryStore.get(col);
-          if (!colMap) {
-            colMap = new Map();
-            this.memoryStore.set(col, colMap);
-          }
+          const freshMap = new Map<string, any>();
           remoteDocs.forEach(doc => {
-            colMap?.set(doc.id, doc);
+            freshMap.set(doc.id, doc);
           });
+          this.memoryStore.set(col, freshMap);
           this.saveCollection(col);
           anyUpdated = true;
         }

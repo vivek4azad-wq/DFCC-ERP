@@ -141,6 +141,42 @@ const OUTSOURCE_STATUS_OPTIONS: {
   { status: 'A', label: 'Absent (Unauthorized)', short: 'A', colorClass: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 border-red-200 dark:border-red-800', activeClass: 'bg-red-600 text-white ring-2 ring-red-400 font-bold' },
 ];
 
+const normalizeName = (name?: string): string => {
+  if (!name) return '';
+  return (name || '').replace(/^(shri|mr|sh\.)\s+/i, '').trim().toLowerCase();
+};
+
+const normalizePhone = (phone?: string): string => {
+  if (!phone) return '';
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+};
+
+function deduplicateStaffList<T>(items: T[]): T[] {
+  const seenKeys = new Set<string>();
+  const seenPhones = new Set<string>();
+  const result: T[] = [];
+
+  for (const item of items) {
+    const anyItem = item as any;
+    const cleanName = normalizeName(anyItem.name || anyItem.patrolmanName);
+    const cleanPhone = normalizePhone(anyItem.phone || anyItem.mobileNo || anyItem.mobile || anyItem.patrolmanPhone);
+    const cleanId = (anyItem.id || anyItem.awpoId || anyItem.employeeId || anyItem.staffId || '').trim().toLowerCase();
+
+    if (cleanPhone && cleanPhone.length >= 10 && seenPhones.has(cleanPhone)) {
+      continue;
+    }
+    if (cleanName && seenKeys.has(cleanName)) {
+      continue;
+    }
+    if (cleanPhone && cleanPhone.length >= 10) seenPhones.add(cleanPhone);
+    if (cleanName) seenKeys.add(cleanName);
+    result.push(item);
+  }
+  return result;
+}
+
 export const StaffAttendance: React.FC = () => {
   const { currentUser, role, currentAppRole } = useAuth();
   const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
@@ -206,32 +242,220 @@ export const StaffAttendance: React.FC = () => {
   const loadMasterData = async () => {
     setIsLoading(true);
     try {
-      const [attendances, holidays] = await Promise.all([
+      const [stf, kmn, ptl, bwm, lcs, attendances, holidays] = await Promise.all([
+        db.getCollection<OfficerStaffRecord>('officers_staff'),
+        db.getCollection<KeymanRecord>('keymen'),
+        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
+        db.getCollection<BridgeWatchmanRecord>('bridge_watchmen'),
+        db.getCollection<any>('level_crossings'),
         db.getCollection<DailyAttendanceRecord>('staff_attendance'),
         db.getCollection<HolidayDeclarationRecord>('attendance_holidays')
       ]);
 
-      // 🔒 CANONICAL 84 ROSTER: Guaranteed 100% exact 84 personnel (12 Perm + 1 MTS + 18 Keymen + 31 Patrolmen + 19 Gatemen + 3 Watchmen)
-      let compiledStaff: StaffRosterItem[] = CANONICAL_SMUN_84_STAFF.map(s => ({
-        id: s.id,
-        name: s.name,
-        fatherName: s.fatherName,
-        designation: s.designation,
-        category: s.category as any,
-        categoryLabel: s.categoryLabel,
-        isPermanent: s.isPermanent,
-        awpoId: s.awpoId,
-        phone: s.phone,
-        beatOrSection: s.beatOrSection,
-        residence: s.residence,
-        district: s.district,
-        photoUrl: s.photoUrl
-      }));
+      // Deduplicate loaded collections identically to Staff Directory
+      const deduplicatedOfficers = deduplicateStaffList(stf || []);
+      const deduplicatedKeymen = deduplicateStaffList(kmn || []);
+      const deduplicatedPatrols = deduplicateStaffList(ptl || []);
+      const deduplicatedWatchmen = deduplicateStaffList(bwm || []);
 
-      // 🔒 Privacy Constraint: If logged in as Officer (not Super Admin), do NOT show APM (Shri Vivek Kumar Azad)'s attendance!
-      if (isOfficerUser) {
-        compiledStaff = compiledStaff.filter(s => s.id !== 'OFF-101518' && s.id !== 'EMP-101518' && !s.name.toLowerCase().includes('vivek'));
-      }
+      const compiledStaff: StaffRosterItem[] = [];
+      const seenStaffKeys = new Set<string>();
+
+      // 1. Regular / Permanent Staff (11-12)
+      const regularList = deduplicatedOfficers.filter(
+        s => s.employmentType === 'REGULAR' || s.employmentType === 'DEPUTATION' || s.role === 'SUPER_ADMIN' || s.role === 'OFFICER' || s.staffCategory === 'PERMANENT'
+      );
+
+      regularList.forEach(s => {
+        const isApm = (s.name && (s.name.toLowerCase().includes('vivek') || s.name.toLowerCase().includes('azad'))) || s.role === 'SUPER_ADMIN' || s.id === 'OFF-101518' || s.id === 'EMP-101518';
+        if (isOfficerUser && isApm) return; // Privacy check for normal officer login
+
+        const sid = s.id || `off_${s.awpoId || s.name}`;
+        const key = normalizeName(s.name);
+        if (!seenStaffKeys.has(key)) {
+          seenStaffKeys.add(key);
+          compiledStaff.push({
+            id: sid,
+            name: s.name,
+            fatherName: s.fatherName,
+            designation: s.post || s.designation || 'Executive',
+            category: 'PERMANENT',
+            categoryLabel: 'Permanent Staff',
+            isPermanent: true,
+            awpoId: s.awpoId || s.employeeId || s.id || '-',
+            phone: s.phone || '-',
+            beatOrSection: s.assignedSection || s.headquarters || 'IMSD SMUN',
+            photoUrl: s.photoUrl,
+            residence: s.residence,
+            district: s.district
+          });
+        }
+      });
+
+      // 2. Outsource MTS (Strictly 1: Pinki Sharma)
+      const outsourceList = deduplicatedOfficers.filter(s => {
+        const isPerm = s.employmentType === 'REGULAR' || s.employmentType === 'DEPUTATION' || s.role === 'SUPER_ADMIN' || s.role === 'OFFICER' || s.staffCategory === 'PERMANENT';
+        if (isPerm) return false;
+        const postLower = (s.post || s.designation || '').toLowerCase();
+        const empType = (s.employmentType || '').toUpperCase();
+        const sectionLower = (s.assignedSection || s.headquarters || '').toLowerCase();
+        const isExServiceman = empType === 'KEYMAN' || empType.includes('PATROL') || empType === 'GATEMAN' || empType === 'BR_WATCHMAN' ||
+          postLower.includes('keyman') || postLower.includes('patrol') || postLower.includes('gateman') || postLower.includes('gate') || postLower.includes('watchman') ||
+          sectionLower.includes('spd') || sectionLower.includes('spn') || sectionLower.includes('beat no') || s.lcNo || s.bridgeNoOrKm ||
+          (s.id && String(s.id).startsWith('KM-')) || (s.id && String(s.id).startsWith('gm_')) || (s.id && String(s.id).startsWith('wm_'));
+        if (isExServiceman) return false;
+        if (!s.name || /^outsource/i.test(s.name.trim())) return false;
+        return true;
+      });
+
+      outsourceList.forEach(s => {
+        const sid = s.id || `out_${s.awpoId || s.name}`;
+        const key = normalizeName(s.name);
+        if (!seenStaffKeys.has(key)) {
+          seenStaffKeys.add(key);
+          compiledStaff.push({
+            id: sid,
+            name: s.name,
+            fatherName: s.fatherName,
+            designation: s.post || s.designation || 'MTS / DFCCIL Representative',
+            category: 'OUTSOURCE_GANG',
+            categoryLabel: 'Outsource MTS (Pinki Sharma)',
+            isPermanent: false,
+            awpoId: s.awpoId || s.employeeId || s.id || '-',
+            phone: s.phone || '-',
+            beatOrSection: s.assignedSection || s.headquarters || 'IMSD SMUN',
+            photoUrl: s.photoUrl,
+            residence: s.residence,
+            district: s.district
+          });
+        }
+      });
+
+      // 3. Keymen (18)
+      deduplicatedKeymen.forEach(k => {
+        if (!k.name || k.name.includes('Vacant')) return;
+        const sid = `km_${k.id || k.awpoId || k.name}`;
+        const key = normalizeName(k.name);
+        if (!seenStaffKeys.has(key)) {
+          seenStaffKeys.add(key);
+          compiledStaff.push({
+            id: sid,
+            name: k.name,
+            fatherName: k.fatherName,
+            designation: `Keyman (${k.beatNoText || (k.beatNo ? `Beat ${k.beatNo}` : 'Beat')})`,
+            category: 'KEYMAN' as any,
+            categoryLabel: 'Keyman (Ex-Serviceman)',
+            isPermanent: false,
+            awpoId: k.awpoId || k.id || '-',
+            phone: k.mobileNo || k.otherMobileNo || '-',
+            beatOrSection: `${k.beatNoText || (k.beatNo ? `Beat ${k.beatNo}` : 'Keyman Beat')} (${k.kmRange || `Km ${Number(k.fromKm || 0).toFixed(3)}-${Number(k.toKm || 0).toFixed(3)}`})`,
+            residence: k.residence,
+            district: k.district
+          });
+        }
+      });
+
+      // 4. Gatemen (19)
+      (lcs || []).forEach((lc: any) => {
+        const gList = Array.isArray(lc.gatemen) ? lc.gatemen : [];
+        gList.forEach((g: any, gIdx: number) => {
+          if (!g.name || g.name.includes('Vacant')) return;
+          const sid = `GTM-${lc.gateNo || lc.lc_no}-${g.id || gIdx}`;
+          const key = normalizeName(g.name);
+          if (!seenStaffKeys.has(key)) {
+            seenStaffKeys.add(key);
+            compiledStaff.push({
+              id: sid,
+              name: g.name,
+              fatherName: g.fatherName,
+              designation: `Gateman (LC ${lc.gateNo || lc.lc_no})`,
+              category: 'GATEMAN' as any,
+              categoryLabel: 'Gateman (LC Gate Lodge)',
+              isPermanent: false,
+              awpoId: g.id || `AWPO-${46530 + compiledStaff.length}`,
+              phone: g.mobile || '-',
+              beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Km ${Number(lc.km || lc.chainage || 0).toFixed(3)})`,
+              residence: g.residence
+            });
+          }
+        });
+
+        if (lc.rgDetails || lc.rg) {
+          const rgStr = lc.rgDetails || lc.rg || '';
+          const cleanName = rgStr.replace(/\(.*?\)/g, '').replace(/Sh\.\s*/g, '').trim();
+          if (cleanName && !cleanName.includes('Vacant')) {
+            const sid = `GTM-RG-${lc.gateNo || lc.lc_no}`;
+            const key = normalizeName(cleanName);
+            if (!seenStaffKeys.has(key)) {
+              seenStaffKeys.add(key);
+              compiledStaff.push({
+                id: sid,
+                name: cleanName,
+                designation: `Relief Gateman (LC ${lc.gateNo || lc.lc_no})`,
+                category: 'GATEMAN' as any,
+                categoryLabel: 'Gateman (LC Gate Lodge)',
+                isPermanent: false,
+                awpoId: `AWPO-${46540 + compiledStaff.length}`,
+                phone: '9478553153',
+                beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Relief)`,
+                residence: 'IMSD SMUN Base'
+              });
+            }
+          }
+        }
+      });
+
+      // 5. Patrolmen (30-31)
+      deduplicatedPatrols.forEach(p => {
+        if (!p.patrolmanName || p.patrolmanName.includes('Vacant') || p.isFilled === false) return;
+        const bCode = (p.beatCode || '').toUpperCase().trim();
+        if (bCode.startsWith('TEST') || bCode.startsWith('TEMP')) return;
+
+        const isDay = p.shiftType === 'DAY' || bCode.includes('SPD') || (p.route || '').toLowerCase().includes('day');
+        const names = p.patrolmanName.split('/').map((n: string) => n.trim()).filter(Boolean);
+        names.forEach((pName: string, pIdx: number) => {
+          if (pName.includes('Vacant')) return;
+          const sid = `pat_${p.id || p.beatCode}_${pIdx}`;
+          const key = normalizeName(pName);
+          if (!seenStaffKeys.has(key)) {
+            seenStaffKeys.add(key);
+            compiledStaff.push({
+              id: sid,
+              name: pName,
+              designation: isDay ? 'Day Patrolman' : 'Night Patrolman',
+              category: (isDay ? 'PATROL_DAY' : 'PATROL_NIGHT') as any,
+              categoryLabel: isDay ? 'Day Patrolman (दिन की पेट्रोलिंग)' : 'Night Patrolman (रात की पेट्रोलिंग)',
+              isPermanent: false,
+              awpoId: p.patrolmanStaffId || p.awpoId || `AWPO-${49200 + compiledStaff.length}`,
+              phone: p.patrolmanPhone || '-',
+              beatOrSection: `${p.beatCode || 'Beat'} (${p.route || `Km ${Number(p.fromKm || 0).toFixed(3)}-${Number(p.toKm || 0).toFixed(3)}`})`,
+              residence: p.remarks || undefined
+            });
+          }
+        });
+      });
+
+      // 6. Bridge Watchmen (3)
+      deduplicatedWatchmen.forEach(w => {
+        if (!w.name || w.name.includes('Vacant')) return;
+        const sid = `wm_${w.staffId || w.id || w.name}`;
+        const key = normalizeName(w.name);
+        if (!seenStaffKeys.has(key)) {
+          seenStaffKeys.add(key);
+          compiledStaff.push({
+            id: sid,
+            name: w.name,
+            designation: w.post || 'Bridge Watchman',
+            category: 'WATCHMAN' as any,
+            categoryLabel: 'Bridge Watchman (BR. 108)',
+            isPermanent: false,
+            awpoId: w.awpoId || w.staffId || '-',
+            phone: w.phone || '-',
+            beatOrSection: `Bridge ${w.bridgeNo || '108'} (ROR Rajpura Detour)`,
+            residence: w.location
+          });
+        }
+      });
 
       setAllStaffList(compiledStaff);
       setAttendanceRecords(attendances || []);
@@ -521,8 +745,9 @@ export const StaffAttendance: React.FC = () => {
 
         if (filterVal === 'PERMANENT') {
           if (sCat !== 'PERMANENT' && !s.isPermanent) return false;
-        } else if (filterVal === 'OUTSOURCE') {
-          if (sCat !== 'OUTSOURCE' && sCat !== 'OUTSOURCE_GANG' && sCat !== 'OFFICE_STAFF' && !des.includes('mts') && !des.includes('mate') && !des.includes('gang') && !des.includes('maintainer')) return false;
+        } else if (filterVal === 'OUTSOURCE' || filterVal === 'OUTSOURCE_GANG') {
+          if (s.isPermanent || sCat === 'PERMANENT') return false;
+          if (sCat !== 'OUTSOURCE' && sCat !== 'OUTSOURCE_GANG' && sCat !== 'OFFICE_STAFF') return false;
         } else if (filterVal === 'KEYMAN') {
           if (sCat !== 'KEYMAN' && !des.includes('keyman') && !sec.includes('keyman')) return false;
         } else if (filterVal === 'PATROL_DAY') {

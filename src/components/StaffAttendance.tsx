@@ -1,10 +1,14 @@
-
+import { CANONICAL_SMUN_84_STAFF, type CanonicalStaffMember } from "../data/canonicalStaffRoster.ts";
 const MONTHLY_CATEGORY_GROUPS = [
-  { key: "ALL", label: "All Categories (Consolidated)", icon: "📊" },
   { key: "PERMANENT", label: "1. Permanent Staff", icon: "🏛️" },
-  { key: "OFFICE_STAFF", label: "2. Office Staff (Sweeper, Office boy)", icon: "🏢" },
-  { key: "OUTSOURCE_GANG", label: "3. Outsource Staff (MTS outsource, Mate)", icon: "🛠️" },
-  { key: "EX_SERVICEMAN", label: "4. Ex-Serviceman (Keyman, Patrolman day/night, Gateman, Watchman)", icon: "🎖️" }
+  { key: "KEYMAN", label: "2. Keymen Beats (17)", icon: "🔑" },
+  { key: "PATROL_DAY", label: "3. Day Patrolmen (दिन की पेट्रोलिंग)", icon: "☀️" },
+  { key: "PATROL_NIGHT", label: "4. Night Patrolmen (रात की पेट्रोलिंग)", icon: "🌙" },
+  { key: "GATEMAN", label: "5. Gatemen (19 Posts)", icon: "🚦" },
+  { key: "WATCHMAN", label: "6. Bridge Watchmen (3)", icon: "🌉" },
+  { key: "OUTSOURCE_GANG", label: "7. Outsource MTS (आउटसोर्स एमटीएस)", icon: "🛠️" },
+  { key: "OFFICE_STAFF", label: "8. Office Staff (Sweeper/Boy)", icon: "🏢" },
+  { key: "ALL", label: "All Categories (Consolidated)", icon: "📊" }
 ];
 /**
  * Staff Daily Attendance & Monthly Absentee Statement ERP
@@ -41,6 +45,8 @@ import {
   Phone,
   MessageSquare,
   X,
+  FileText,
+  Shield,
 } from 'lucide-react';
 import { StaffIdModal, type UnifiedStaffModalData } from './StaffIdModal.tsx';
 import type {
@@ -82,7 +88,7 @@ interface StaffRosterItem {
   id: string;
   name: string;
   designation: string;
-  category: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' | 'EX_SERVICEMAN' | 'KEYMAN' | 'PATROL' | 'GATEMAN' | 'WATCHMAN' | 'OUTSOURCE';
+  category: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' | 'EX_SERVICEMAN' | 'KEYMAN' | 'PATROL' | 'PATROL_DAY' | 'PATROL_NIGHT' | 'GATEMAN' | 'WATCHMAN' | 'OUTSOURCE';
   categoryLabel: string;
   isPermanent: boolean;
   awpoId: string;
@@ -102,19 +108,19 @@ const PERMANENT_STATUS_OPTIONS: {
   colorClass: string;
   activeClass: string;
 }[] = [
-  { status: 'P', label: 'Present', short: 'P', colorClass: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200', activeClass: 'bg-emerald-600 text-white ring-2 ring-emerald-400 font-bold' },
-  { status: 'REST', label: 'Rest / Sunday', short: 'REST', colorClass: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200', activeClass: 'bg-blue-600 text-white ring-2 ring-blue-400 font-bold' },
-  { status: 'LAP', label: 'Leave on Average Pay (LAP)', short: 'LAP', colorClass: 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border-cyan-200', activeClass: 'bg-cyan-700 text-white ring-2 ring-cyan-400 font-bold' },
-  { status: 'LHAP', label: 'Leave on Half Average Pay (LHAP)', short: 'LHAP', colorClass: 'bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-200', activeClass: 'bg-teal-700 text-white ring-2 ring-teal-400 font-bold' },
-  { status: 'CL', label: 'Casual Leave (CL)', short: 'CL', colorClass: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200', activeClass: 'bg-amber-600 text-white ring-2 ring-amber-400 font-bold' },
-  { status: 'RH', label: 'Restricted Holiday (RH)', short: 'RH', colorClass: 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200', activeClass: 'bg-orange-600 text-white ring-2 ring-orange-400 font-bold' },
-  { status: 'PL', label: 'Paternity / Maternity Leave (PL)', short: 'PL', colorClass: 'bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200', activeClass: 'bg-pink-600 text-white ring-2 ring-pink-400 font-bold' },
-  { status: 'OFF', label: 'Scheduled Off', short: 'OFF', colorClass: 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300', activeClass: 'bg-slate-700 text-white ring-2 ring-slate-400 font-bold' },
-  { status: 'NH', label: 'National Holiday (NH)', short: 'NH', colorClass: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200', activeClass: 'bg-purple-600 text-white ring-2 ring-purple-400 font-bold' },
-  { status: 'CR', label: 'Compensatory Rest (CR)', short: 'CR', colorClass: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200', activeClass: 'bg-indigo-600 text-white ring-2 ring-indigo-400 font-bold' },
-  { status: 'MED', label: 'Medical / Sick Leave (MED)', short: 'MED', colorClass: 'bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200', activeClass: 'bg-rose-600 text-white ring-2 ring-rose-400 font-bold' },
-  { status: 'OD', label: 'On Duty / Tour (OD)', short: 'OD', colorClass: 'bg-violet-50 text-violet-700 hover:bg-violet-100 border-violet-200', activeClass: 'bg-violet-600 text-white ring-2 ring-violet-400 font-bold' },
-  { status: 'A', label: 'Absent (Unauthorized)', short: 'A', colorClass: 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200', activeClass: 'bg-red-600 text-white ring-2 ring-red-400 font-bold' },
+  { status: 'P', label: 'Present', short: 'P', colorClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-200 dark:border-emerald-800', activeClass: 'bg-emerald-600 text-white ring-2 ring-emerald-400 font-bold' },
+  { status: 'REST', label: 'Rest / Sunday', short: 'REST', colorClass: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border-blue-200 dark:border-blue-800', activeClass: 'bg-blue-600 text-white ring-2 ring-blue-400 font-bold' },
+  { status: 'LAP', label: 'Leave on Average Pay (LAP)', short: 'LAP', colorClass: 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 border-cyan-200 dark:border-cyan-800', activeClass: 'bg-cyan-700 text-white ring-2 ring-cyan-400 font-bold' },
+  { status: 'LHAP', label: 'Leave on Half Average Pay (LHAP)', short: 'LHAP', colorClass: 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 border-teal-200 dark:border-teal-800', activeClass: 'bg-teal-700 text-white ring-2 ring-teal-400 font-bold' },
+  { status: 'CL', label: 'Casual Leave (CL)', short: 'CL', colorClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-200 dark:border-amber-800', activeClass: 'bg-amber-600 text-white ring-2 ring-amber-400 font-bold' },
+  { status: 'RH', label: 'Restricted Holiday (RH)', short: 'RH', colorClass: 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/60 border-orange-200 dark:border-orange-800', activeClass: 'bg-orange-600 text-white ring-2 ring-orange-400 font-bold' },
+  { status: 'PL', label: 'Paternity / Maternity Leave (PL)', short: 'PL', colorClass: 'bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/60 border-pink-200 dark:border-pink-800', activeClass: 'bg-pink-600 text-white ring-2 ring-pink-400 font-bold' },
+  { status: 'OFF', label: 'Scheduled Off', short: 'OFF', colorClass: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700', activeClass: 'bg-slate-700 dark:bg-slate-600 text-white ring-2 ring-slate-400 font-bold' },
+  { status: 'NH', label: 'National Holiday (NH)', short: 'NH', colorClass: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 border-purple-200 dark:border-purple-800', activeClass: 'bg-purple-600 text-white ring-2 ring-purple-400 font-bold' },
+  { status: 'CR', label: 'Compensatory Rest (CR)', short: 'CR', colorClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200 dark:border-indigo-800', activeClass: 'bg-indigo-600 text-white ring-2 ring-indigo-400 font-bold' },
+  { status: 'MED', label: 'Medical / Sick Leave (MED)', short: 'MED', colorClass: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border-rose-200 dark:border-rose-800', activeClass: 'bg-rose-600 text-white ring-2 ring-rose-400 font-bold' },
+  { status: 'OD', label: 'On Duty / Tour (OD)', short: 'OD', colorClass: 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/60 border-violet-200 dark:border-violet-800', activeClass: 'bg-violet-600 text-white ring-2 ring-violet-400 font-bold' },
+  { status: 'A', label: 'Absent (Unauthorized)', short: 'A', colorClass: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 border-red-200 dark:border-red-800', activeClass: 'bg-red-600 text-white ring-2 ring-red-400 font-bold' },
 ];
 
 // Outsource Status Options Definition
@@ -125,20 +131,21 @@ const OUTSOURCE_STATUS_OPTIONS: {
   colorClass: string;
   activeClass: string;
 }[] = [
-  { status: 'P', label: 'Present', short: 'P', colorClass: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200', activeClass: 'bg-emerald-600 text-white ring-2 ring-emerald-400 font-bold' },
-  { status: 'L', label: 'Leave', short: 'L', colorClass: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200', activeClass: 'bg-amber-600 text-white ring-2 ring-amber-400 font-bold' },
-  { status: 'REST', label: 'Weekly Rest', short: 'REST', colorClass: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200', activeClass: 'bg-blue-600 text-white ring-2 ring-blue-400 font-bold' },
-  { status: 'OFF', label: 'Shift Off', short: 'OFF', colorClass: 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300', activeClass: 'bg-slate-700 text-white ring-2 ring-slate-400 font-bold' },
-  { status: 'CR', label: 'Compensatory Rest (CR)', short: 'CR', colorClass: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200', activeClass: 'bg-indigo-600 text-white ring-2 ring-indigo-400 font-bold' },
-  { status: 'NH', label: 'National Holiday (NH)', short: 'NH', colorClass: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200', activeClass: 'bg-purple-600 text-white ring-2 ring-purple-400 font-bold' },
-  { status: 'OD', label: 'On Duty (OD)', short: 'OD', colorClass: 'bg-violet-50 text-violet-700 hover:bg-violet-100 border-violet-200', activeClass: 'bg-violet-600 text-white ring-2 ring-violet-400 font-bold' },
-  { status: 'A', label: 'Absent (Unauthorized)', short: 'A', colorClass: 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200', activeClass: 'bg-red-600 text-white ring-2 ring-red-400 font-bold' },
+  { status: 'P', label: 'Present', short: 'P', colorClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-200 dark:border-emerald-800', activeClass: 'bg-emerald-600 text-white ring-2 ring-emerald-400 font-bold' },
+  { status: 'L', label: 'Leave', short: 'L', colorClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-200 dark:border-amber-800', activeClass: 'bg-amber-600 text-white ring-2 ring-amber-400 font-bold' },
+  { status: 'REST', label: 'Weekly Rest', short: 'REST', colorClass: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border-blue-200 dark:border-blue-800', activeClass: 'bg-blue-600 text-white ring-2 ring-blue-400 font-bold' },
+  { status: 'OFF', label: 'Shift Off', short: 'OFF', colorClass: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700', activeClass: 'bg-slate-700 dark:bg-slate-600 text-white ring-2 ring-slate-400 font-bold' },
+  { status: 'CR', label: 'Compensatory Rest (CR)', short: 'CR', colorClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200 dark:border-indigo-800', activeClass: 'bg-indigo-600 text-white ring-2 ring-indigo-400 font-bold' },
+  { status: 'NH', label: 'National Holiday (NH)', short: 'NH', colorClass: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 border-purple-200 dark:border-purple-800', activeClass: 'bg-purple-600 text-white ring-2 ring-purple-400 font-bold' },
+  { status: 'OD', label: 'On Duty (OD)', short: 'OD', colorClass: 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/60 border-violet-200 dark:border-violet-800', activeClass: 'bg-violet-600 text-white ring-2 ring-violet-400 font-bold' },
+  { status: 'A', label: 'Absent (Unauthorized)', short: 'A', colorClass: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 border-red-200 dark:border-red-800', activeClass: 'bg-red-600 text-white ring-2 ring-red-400 font-bold' },
 ];
 
 export const StaffAttendance: React.FC = () => {
   const { currentUser, role, currentAppRole } = useAuth();
   const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
   const isOfficerUser = role === 'OFFICER' || currentAppRole === 'Executive';
+  const isGuest = role === 'GUEST' || !currentUser;
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -164,7 +171,7 @@ export const StaffAttendance: React.FC = () => {
   // Month-end statement month/year
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth()); // 0-11
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedMonthlyCategory, setSelectedMonthlyCategory] = useState<string>("ALL");
+  const [selectedMonthlyCategory, setSelectedMonthlyCategory] = useState<string>("PERMANENT");
 
   // Collections
   const [allStaffList, setAllStaffList] = useState<StaffRosterItem[]>([]);
@@ -175,11 +182,16 @@ export const StaffAttendance: React.FC = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('ALL');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('PERMANENT');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
 
   // Staff ID Modal
   const [selectedStaffForModal, setSelectedStaffForModal] = useState<UnifiedStaffModalData | null>(null);
+
+  // Leave Report Modal & Staff Search
+  const [isLeaveReportModalOpen, setIsLeaveReportModalOpen] = useState(false);
+  const [leaveSearchStaffQuery, setLeaveSearchStaffQuery] = useState('');
+  const [selectedLeaveStaffId, setSelectedLeaveStaffId] = useState<string>('');
 
   // Add Holiday Modal
   const [isAddHolidayModalOpen, setIsAddHolidayModalOpen] = useState(false);
@@ -194,169 +206,37 @@ export const StaffAttendance: React.FC = () => {
   const loadMasterData = async () => {
     setIsLoading(true);
     try {
-      const [officers, keymen, patrols, lcs, watchmen, attendances, holidays] = await Promise.all([
-        db.getCollection<OfficerStaffRecord>('officers_staff'),
-        db.getCollection<KeymanRecord>('keymen'),
-        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
-        db.getCollection<LevelCrossingRecord>('level_crossings'),
-        db.getCollection<BridgeWatchmanRecord>('bridge_watchmen'),
+      const [attendances, holidays] = await Promise.all([
         db.getCollection<DailyAttendanceRecord>('staff_attendance'),
         db.getCollection<HolidayDeclarationRecord>('attendance_holidays')
       ]);
 
-      const compiledStaff: StaffRosterItem[] = [];
-      const seenIds = new Set<string>();
+      // 🔒 CANONICAL 84 ROSTER: Guaranteed 100% exact 84 personnel (12 Perm + 1 MTS + 18 Keymen + 31 Patrolmen + 19 Gatemen + 3 Watchmen)
+      let compiledStaff: StaffRosterItem[] = CANONICAL_SMUN_84_STAFF.map(s => ({
+        id: s.id,
+        name: s.name,
+        nameHi: s.nameHi,
+        fatherName: s.fatherName,
+        designation: s.designation,
+        category: s.category as any,
+        categoryLabel: s.categoryLabel,
+        isPermanent: s.isPermanent,
+        awpoId: s.awpoId,
+        phone: s.phone,
+        beatOrSection: s.beatOrSection,
+        residence: s.residence,
+        district: s.district,
+        photoUrl: s.photoUrl
+      }));
 
-      // 1. Officers & Permanent/Office/Outsource Staff
-      officers.forEach(o => {
-        // 🔒 Privacy Constraint: If logged in as Officer, do NOT show APM (Shri Vivek Kumar Azad)'s attendance!
-        const isApmRecord = (o.name && (o.name.toLowerCase().includes('vivek') || o.name.toLowerCase().includes('azad'))) ||
-                            o.role === 'SUPER_ADMIN' ||
-                            o.id === 'EMP-101518' ||
-                            (o.post && /apm|assistant\s*project\s*manager/i.test(o.post));
-
-        if (isOfficerUser && isApmRecord) {
-          return; // Skip APM record so Officer cannot see APM's attendance
-        }
-
-        const sid = o.id || `off_${o.awpoId || o.name}`;
-        if (!seenIds.has(sid)) {
-          seenIds.add(sid);
-          const isPerm = o.employmentType === 'REGULAR' || o.employmentType === 'DEPUTATION' || o.staffCategory === 'PERMANENT' || o.role === 'SUPER_ADMIN';
-          const postLower = (o.post || o.designation || '').toLowerCase();
-          const empType = (o.employmentType || '').toUpperCase();
-          const sectionLower = (o.assignedSection || o.headquarters || '').toLowerCase();
-
-          let cat: 'PERMANENT' | 'OFFICE_STAFF' | 'OUTSOURCE_GANG' | 'KEYMAN' | 'PATROL' | 'GATEMAN' | 'WATCHMAN' = 'OUTSOURCE_GANG';
-          let catLabel = 'Outsource Staff (MTS outsource, Mate)';
-
-          if (isPerm) {
-            cat = 'PERMANENT';
-            catLabel = 'Permanent Staff';
-          } else if (empType === 'KEYMAN' || postLower.includes('keyman') || sectionLower.includes('keyman') || o.beatNoText || (o.id && String(o.id).startsWith('KM'))) {
-            cat = 'KEYMAN';
-            catLabel = 'Keyman (Ex-Serviceman)';
-          } else if (empType.includes('PATROL') || postLower.includes('patrol') || sectionLower.includes('patrol') || sectionLower.includes('spd') || sectionLower.includes('spn')) {
-            cat = 'PATROL';
-            catLabel = 'Patrolman (Day/Night Security)';
-          } else if (empType === 'GATEMAN' || postLower.includes('gateman') || postLower.includes('gate') || postLower.includes('lc') || sectionLower.includes('lc ') || sectionLower.includes('gate') || o.lcNo) {
-            cat = 'GATEMAN';
-            catLabel = 'Gateman (LC Gate Lodge)';
-          } else if (empType === 'BR_WATCHMAN' || postLower.includes('watchman') || postLower.includes('bridge') || sectionLower.includes('bridge') || o.bridgeNoOrKm) {
-            cat = 'WATCHMAN';
-            catLabel = 'Bridge Watchman (BR. 108)';
-          } else if (empType === 'OFFICE_STAFF' || /sweeper|office\s*boy|computer\s*operator|cleaner|gardener|pump|peon|driver|cook/i.test(postLower)) {
-            cat = 'OFFICE_STAFF';
-            catLabel = 'Office Staff (Sweeper, Office boy)';
-          }
-
-          compiledStaff.push({
-            id: sid,
-            name: o.name,
-            designation: o.post || (cat === 'KEYMAN' ? 'Keyman' : cat === 'PATROL' ? 'Patrolman' : cat === 'GATEMAN' ? 'Gateman' : cat === 'WATCHMAN' ? 'Bridge Watchman' : 'Staff'),
-            category: cat,
-            categoryLabel: catLabel,
-            isPermanent: isPerm,
-            awpoId: o.awpoId || o.employeeId || o.id || '-',
-            phone: o.phone || '-',
-            beatOrSection: o.assignedSection || o.headquarters || 'IMSD SMUN',
-            photoUrl: o.photoUrl,
-            fatherName: o.fatherName,
-            residence: o.residence,
-            district: o.district
-          });
-        }
-      });
-
-      // 2. Keymen (Ex-Servicemen)
-      keymen.forEach(k => {
-        const sid = `km_${k.id || k.awpoId || k.name}`;
-        if (!seenIds.has(sid)) {
-          seenIds.add(sid);
-          compiledStaff.push({
-            id: sid,
-            name: k.name,
-            designation: `Keyman (${k.beatNoText || 'Beat'})`,
-            category: 'KEYMAN' as any,
-            categoryLabel: 'Keyman (Ex-Serviceman)',
-            isPermanent: false,
-            awpoId: k.awpoId || k.id || '-',
-            phone: k.mobileNo || k.otherMobileNo || '-',
-            beatOrSection: `${k.beatNoText || 'Keyman Beat'} (${k.kmRange || `Km ${k.fromKm.toFixed(3)}-${k.toKm.toFixed(3)}`})`,
-            fatherName: k.fatherName,
-            residence: k.residence,
-            district: k.district
-          });
-        }
-      });
-
-      // 3. Patrolmen (Ex-Servicemen)
-      patrols.forEach(p => {
-        if (p.patrolmanName && !p.patrolmanName.includes('Vacant')) {
-          const sid = `pat_${p.patrolmanStaffId || p.beatCode || p.patrolmanName}`;
-          if (!seenIds.has(sid)) {
-            seenIds.add(sid);
-            compiledStaff.push({
-              id: sid,
-              name: p.patrolmanName,
-              designation: p.shiftType === 'DAY' ? 'Day Patrolman' : 'Night Patrolman',
-              category: 'PATROL' as any,
-              categoryLabel: 'Patrolman (Day/Night Security)',
-              isPermanent: false,
-              awpoId: p.patrolmanStaffId || p.awpoId || '-',
-              phone: p.patrolmanPhone || '-',
-              beatOrSection: `${p.beatCode} (${p.route || `Km ${p.fromKm.toFixed(3)}-${p.toKm.toFixed(3)}`})`,
-              residence: p.remarks
-            });
-          }
-        }
-      });
-
-      // 4. Gatemen (Ex-Servicemen)
-      lcs.forEach(lc => {
-        (lc.gatemen || []).forEach((gm: any) => {
-          const sid = `gm_${gm.id || gm.name}`;
-          if (!seenIds.has(sid)) {
-            seenIds.add(sid);
-            compiledStaff.push({
-              id: sid,
-              name: gm.name,
-              designation: `Gateman (LC ${lc.gateNo || lc.lc_no})`,
-              category: 'GATEMAN' as any,
-              categoryLabel: 'Gateman (LC Gate Lodge)',
-              isPermanent: false,
-              awpoId: gm.id || '-',
-              phone: gm.mobile || '-',
-              beatOrSection: `LC Gate ${lc.gateNo || lc.lc_no} (Km ${Number(lc.km || lc.chainage || 0).toFixed(3)})`,
-              residence: gm.residence
-            });
-          }
-        });
-      });
-
-      // 5. Watchmen (Ex-Servicemen)
-      watchmen.forEach(w => {
-        const sid = `wm_${w.staffId || w.id || w.name}`;
-        if (!seenIds.has(sid)) {
-          seenIds.add(sid);
-          compiledStaff.push({
-            id: sid,
-            name: w.name,
-            designation: w.post || 'Bridge Watchman',
-            category: 'WATCHMAN' as any,
-            categoryLabel: 'Bridge Watchman (BR. 108)',
-            isPermanent: false,
-            awpoId: w.awpoId || w.staffId || '-',
-            phone: w.phone || '-',
-            beatOrSection: `Bridge ${w.bridgeNo || '108'} (ROR Rajpura Detour)`,
-            residence: w.location
-          });
-        }
-      });
+      // 🔒 Privacy Constraint: If logged in as Officer (not Super Admin), do NOT show APM (Shri Vivek Kumar Azad)'s attendance!
+      if (isOfficerUser) {
+        compiledStaff = compiledStaff.filter(s => s.id !== 'EMP-101518' && !s.name.toLowerCase().includes('vivek'));
+      }
 
       setAllStaffList(compiledStaff);
-      setAttendanceRecords(attendances);
-      setHolidayRecords(holidays);
+      setAttendanceRecords(attendances || []);
+      setHolidayRecords(holidays || []);
     } catch (err) {
       console.error('Failed to load attendance master data:', err);
     } finally {
@@ -457,6 +337,10 @@ export const StaffAttendance: React.FC = () => {
 
   // Mark status for single staff
   const handleMarkStaffStatus = async (staff: StaffRosterItem, status: AttendanceStatus, remarks?: string) => {
+    if (isGuest) {
+      alert('🔒 Guest View Only: Guest users have read-only access and cannot mark attendance. Only authorized Officers or Super Admin can record attendance.');
+      return;
+    }
     if (isDateLockedForNonAdmin) {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
@@ -491,6 +375,10 @@ export const StaffAttendance: React.FC = () => {
 
   // Bulk mark all staff for the day
   const handleBulkMark = async (status: AttendanceStatus, defaultRemarks?: string) => {
+    if (isGuest) {
+      alert('🔒 Guest View Only: Guest users have read-only access and cannot mark attendance.');
+      return;
+    }
     if (isDateLockedForNonAdmin) {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
@@ -528,6 +416,10 @@ export const StaffAttendance: React.FC = () => {
 
   // Declare Day Type (Toggle between Working Day, Sunday/Rest, and NH)
   const handleDeclareDayType = async (type: 'NORMAL' | 'SUNDAY' | 'NH', customTitle?: string) => {
+    if (isGuest) {
+      alert('🔒 Guest View Only: Guest users have read-only access and cannot declare day types.');
+      return;
+    }
     if (isDateLockedForNonAdmin) {
       alert('🔒 Attendance Lock: 4 din se purani attendance entry me badlav restricted hai. Yeh entry kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin) ke login se hi unlock/edit ho sakti hai.');
       return;
@@ -634,8 +526,12 @@ export const StaffAttendance: React.FC = () => {
           if (sCat !== 'OUTSOURCE' && sCat !== 'OUTSOURCE_GANG' && sCat !== 'OFFICE_STAFF' && !des.includes('mts') && !des.includes('mate') && !des.includes('gang') && !des.includes('maintainer')) return false;
         } else if (filterVal === 'KEYMAN') {
           if (sCat !== 'KEYMAN' && !des.includes('keyman') && !sec.includes('keyman')) return false;
+        } else if (filterVal === 'PATROL_DAY') {
+          if (sCat !== 'PATROL_DAY' && !des.includes('day patrol') && !sec.includes('spd')) return false;
+        } else if (filterVal === 'PATROL_NIGHT') {
+          if (sCat !== 'PATROL_NIGHT' && !des.includes('night patrol') && !sec.includes('spn') && !sec.includes('wp')) return false;
         } else if (filterVal === 'PATROL') {
-          if (sCat !== 'PATROL' && !des.includes('patrol') && !sec.includes('spd') && !sec.includes('spn')) return false;
+          if (sCat !== 'PATROL' && sCat !== 'PATROL_DAY' && sCat !== 'PATROL_NIGHT' && !des.includes('patrol') && !sec.includes('spd') && !sec.includes('spn')) return false;
         } else if (filterVal === 'GATEMAN') {
           if (sCat !== 'GATEMAN' && !des.includes('gateman') && !des.includes('lc') && !sec.includes('gate') && !sec.includes('lc-') && !sec.includes('lc ')) return false;
         } else if (filterVal === 'WATCHMAN') {
@@ -732,7 +628,7 @@ export const StaffAttendance: React.FC = () => {
   // Monthly aggregated staff attendance with detailed breakdown
   const monthlyStaffSummary = useMemo(() => {
     return allStaffList.map((staff, idx) => {
-      const dailyMap: Record<number, AttendanceStatus> = {};
+      const dailyMap: Record<number, AttendanceStatus | '-'> = {};
       let presentCount = 0;
       let absentCount = 0;
       let restCount = 0;
@@ -758,34 +654,40 @@ export const StaffAttendance: React.FC = () => {
       monthDates.forEach(d => {
         const key = `${d.dateStr}_${staff.id}`;
         const rec = attendanceRecords.find(r => r.id === key);
-        let st: AttendanceStatus;
+        const isFuture = d.dateStr > todayStr;
+        let st: AttendanceStatus | '-';
+
         if (rec) {
           st = rec.status;
+        } else if (isFuture) {
+          st = '-'; // Future dates left blank (unrecorded)
         } else if (d.isNH) {
           st = 'NH';
         } else if (d.isSunday) {
           st = 'REST';
         } else {
-          st = 'P'; // Default present if not explicitly marked absent
+          st = 'P'; // Default present for past/today if not explicitly marked absent
         }
 
         dailyMap[d.dayNum] = st;
-        if (st === 'P') presentCount++;
-        else if (st === 'A') {
-          absentCount++;
-          absentDates.push(d.dayNum);
-        } else if (st === 'REST' || st === 'WO') restCount++;
-        else if (st === 'OFF') offCount++;
-        else if (st === 'NH') nhCount++;
-        else if (st === 'CR') crCount++;
-        else if (st === 'OD') odCount++;
-        else if (st === 'LAP') { lapCount++; leaveBreakdownList.push(`LAP:${d.dayNum}`); }
-        else if (st === 'LHAP') { lhapCount++; leaveBreakdownList.push(`LHAP:${d.dayNum}`); }
-        else if (st === 'CL') { clCount++; leaveBreakdownList.push(`CL:${d.dayNum}`); }
-        else if (st === 'RH') { rhCount++; leaveBreakdownList.push(`RH:${d.dayNum}`); }
-        else if (st === 'PL') { plCount++; leaveBreakdownList.push(`PL:${d.dayNum}`); }
-        else if (st === 'MED') { medCount++; leaveBreakdownList.push(`MED:${d.dayNum}`); }
-        else if (st === 'L') { generalLeaveCount++; leaveBreakdownList.push(`L:${d.dayNum}`); }
+        if (!isFuture || rec) {
+          if (st === 'P') presentCount++;
+          else if (st === 'A') {
+            absentCount++;
+            absentDates.push(d.dayNum);
+          } else if (st === 'REST' || st === 'WO') restCount++;
+          else if (st === 'OFF') offCount++;
+          else if (st === 'NH') nhCount++;
+          else if (st === 'CR') crCount++;
+          else if (st === 'OD') odCount++;
+          else if (st === 'LAP') { lapCount++; leaveBreakdownList.push(`LAP:${d.dayNum}`); }
+          else if (st === 'LHAP') { lhapCount++; leaveBreakdownList.push(`LHAP:${d.dayNum}`); }
+          else if (st === 'CL') { clCount++; leaveBreakdownList.push(`CL:${d.dayNum}`); }
+          else if (st === 'RH') { rhCount++; leaveBreakdownList.push(`RH:${d.dayNum}`); }
+          else if (st === 'PL') { plCount++; leaveBreakdownList.push(`PL:${d.dayNum}`); }
+          else if (st === 'MED') { medCount++; leaveBreakdownList.push(`MED:${d.dayNum}`); }
+          else if (st === 'L') { generalLeaveCount++; leaveBreakdownList.push(`L:${d.dayNum}`); }
+        }
       });
 
       // Total paid/payable days as per railway rules
@@ -816,7 +718,7 @@ export const StaffAttendance: React.FC = () => {
         leaveBreakdownList
       };
     });
-  }, [allStaffList, monthDates, attendanceRecords]);
+  }, [allStaffList, monthDates, attendanceRecords, todayStr]);
 
   // Monthly grouped data by category
   const groupedMonthlyData = useMemo(() => {
@@ -838,14 +740,15 @@ export const StaffAttendance: React.FC = () => {
     }[] = [];
 
     const categoryDefinitions = [
-      { key: "PERMANENT", label: "1. Permanent Staff", icon: "🏛️", filter: (s: any) => s.category === 'PERMANENT' },
-      { key: "OFFICE_STAFF", label: "2. Office Staff (Sweeper, Office boy)", icon: "🏢", filter: (s: any) => s.category === 'OFFICE_STAFF' },
-      { key: "OUTSOURCE_GANG", label: "3. Outsource Staff (MTS outsource, Mate)", icon: "🛠️", filter: (s: any) => s.category === 'OUTSOURCE' || s.category === 'OUTSOURCE_GANG' },
-      { key: "KEYMAN", label: "4. Keymen (Track Maintenance)", icon: "🔑", filter: (s: any) => s.category === 'KEYMAN' || (s.designation || '').toLowerCase().includes('keyman') },
-      { key: "PATROL", label: "5. Patrolmen (Day / Night Security)", icon: "🛡️", filter: (s: any) => s.category === 'PATROL' || (s.designation || '').toLowerCase().includes('patrol') },
-      { key: "GATEMAN", label: "6. Gatemen (Level Crossings)", icon: "🚦", filter: (s: any) => s.category === 'GATEMAN' || (s.designation || '').toLowerCase().includes('gateman') },
-      { key: "WATCHMAN", label: "7. Bridge Watchmen (Special Surveillance)", icon: "🌉", filter: (s: any) => s.category === 'WATCHMAN' || (s.designation || '').toLowerCase().includes('watchman') },
-      { key: "EX_SERVICEMAN", label: "Ex-Servicemen Roster", icon: "🎖️", filter: (s: any) => ['KEYMAN', 'PATROL', 'GATEMAN', 'WATCHMAN', 'EX_SERVICEMAN'].includes(s.category) }
+      { key: "PERMANENT", label: "1. Permanent Staff", icon: "🏛️", filter: (s: any) => s.category === 'PERMANENT' || s.isPermanent },
+      { key: "KEYMAN", label: "2. Keymen (Track Maintenance)", icon: "🔑", filter: (s: any) => s.category === 'KEYMAN' || (s.designation || '').toLowerCase().includes('keyman') },
+      { key: "PATROL_DAY", label: "3. Day Patrolmen (दिन की पेट्रोलिंग)", icon: "☀️", filter: (s: any) => s.category === 'PATROL_DAY' || ((s.category === 'PATROL' || (s.designation || '').toLowerCase().includes('patrol')) && ((s.designation || '').toLowerCase().includes('day') || (s.beatOrSection || '').toLowerCase().includes('spd'))) },
+      { key: "PATROL_NIGHT", label: "4. Night Patrolmen (रात की पेट्रोलिंग)", icon: "🌙", filter: (s: any) => s.category === 'PATROL_NIGHT' || ((s.category === 'PATROL' || (s.designation || '').toLowerCase().includes('patrol')) && ((s.designation || '').toLowerCase().includes('night') || (s.beatOrSection || '').toLowerCase().includes('spn') || (s.beatOrSection || '').toLowerCase().includes('wp'))) },
+      { key: "GATEMAN", label: "5. Gatemen (Level Crossings)", icon: "🚦", filter: (s: any) => s.category === 'GATEMAN' || (s.designation || '').toLowerCase().includes('gateman') || (s.beatOrSection || '').toLowerCase().includes('lc') },
+      { key: "WATCHMAN", label: "6. Bridge Watchmen (Special Surveillance)", icon: "🌉", filter: (s: any) => s.category === 'WATCHMAN' || (s.designation || '').toLowerCase().includes('watchman') || (s.beatOrSection || '').toLowerCase().includes('bridge') },
+      { key: "OUTSOURCE_GANG", label: "7. Outsource Staff (MTS outsource, Mate)", icon: "🛠️", filter: (s: any) => (s.category === 'OUTSOURCE' || s.category === 'OUTSOURCE_GANG') && !s.isPermanent },
+      { key: "OFFICE_STAFF", label: "8. Office Staff (Sweeper, Office boy)", icon: "🏢", filter: (s: any) => s.category === 'OFFICE_STAFF' },
+      { key: "EX_SERVICEMAN", label: "Ex-Servicemen Roster", icon: "🎖️", filter: (s: any) => ['KEYMAN', 'PATROL', 'PATROL_DAY', 'PATROL_NIGHT', 'GATEMAN', 'WATCHMAN', 'EX_SERVICEMAN'].includes(s.category) }
     ];
 
     categoryDefinitions.forEach(catDef => {
@@ -874,6 +777,211 @@ export const StaffAttendance: React.FC = () => {
 
     return groups;
   }, [monthlyStaffSummary, selectedMonthlyCategory]);
+
+  // Selected Staff for All-Time Leave Dossier
+  const currentLeaveStaff = useMemo(() => {
+    if (selectedLeaveStaffId) {
+      const found = allStaffList.find(s => s.id === selectedLeaveStaffId);
+      if (found) return found;
+    }
+    if (leaveSearchStaffQuery.trim()) {
+      const q = leaveSearchStaffQuery.toLowerCase().trim();
+      const match = allStaffList.find(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.awpoId.toLowerCase().includes(q) ||
+        s.designation.toLowerCase().includes(q)
+      );
+      if (match) return match;
+    }
+    return allStaffList[0] || null;
+  }, [selectedLeaveStaffId, leaveSearchStaffQuery, allStaffList]);
+
+  // Filter staff list for Leave Dossier quick search
+  const filteredLeaveStaffList = useMemo(() => {
+    if (!leaveSearchStaffQuery.trim()) return allStaffList;
+    const q = leaveSearchStaffQuery.toLowerCase().trim();
+    return allStaffList.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.awpoId.toLowerCase().includes(q) ||
+      s.designation.toLowerCase().includes(q) ||
+      s.beatOrSection.toLowerCase().includes(q)
+    );
+  }, [leaveSearchStaffQuery, allStaffList]);
+
+  // Compute All-Time Leave Dossier for the selected staff
+  const staffAllTimeLeaveDossier = useMemo(() => {
+    if (!currentLeaveStaff) {
+      return {
+        rows: [],
+        stats: {
+          totalLeaves: 0,
+          cl: 0,
+          rh: 0,
+          lap: 0,
+          lhap: 0,
+          pl: 0,
+          med: 0,
+          l: 0,
+          absent: 0,
+          totalRecordedDays: 0,
+          firstDate: '',
+          lastDate: ''
+        }
+      };
+    }
+
+    const records = attendanceRecords
+      .filter(r => r.staffId === currentLeaveStaff.id || (r.staffName && r.staffName.toLowerCase() === currentLeaveStaff.name.toLowerCase()))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const stats = {
+      totalLeaves: 0,
+      cl: 0,
+      rh: 0,
+      lap: 0,
+      lhap: 0,
+      pl: 0,
+      med: 0,
+      l: 0,
+      absent: 0,
+      totalRecordedDays: records.length,
+      firstDate: records.length > 0 ? records[0].date : '',
+      lastDate: records.length > 0 ? records[records.length - 1].date : ''
+    };
+
+    records.forEach(r => {
+      const s = r.status;
+      if (s === 'CL') { stats.cl++; stats.totalLeaves++; }
+      else if (s === 'RH') { stats.rh++; stats.totalLeaves++; }
+      else if (s === 'LAP') { stats.lap++; stats.totalLeaves++; }
+      else if (s === 'LHAP') { stats.lhap++; stats.totalLeaves++; }
+      else if (s === 'PL') { stats.pl++; stats.totalLeaves++; }
+      else if (s === 'MED') { stats.med++; stats.totalLeaves++; }
+      else if (s === 'L') { stats.l++; stats.totalLeaves++; }
+      else if (s === 'A') { stats.absent++; stats.totalLeaves++; }
+    });
+
+    const getLeaveLabel = (st: AttendanceStatus) => {
+      switch (st) {
+        case 'CL': return 'Casual Leave (CL)';
+        case 'RH': return 'Restricted Holiday (RH)';
+        case 'LAP': return 'Leave on Average Pay (LAP)';
+        case 'LHAP': return 'Leave on Half Average Pay (LHAP)';
+        case 'PL': return 'Paternity / Maternity Leave (PL)';
+        case 'MED': return 'Medical Leave (MED)';
+        case 'L': return 'Outsource Leave (L)';
+        case 'A': return 'Absent (A)';
+        default: return st;
+      }
+    };
+
+    const getDefaultReason = (st: AttendanceStatus) => {
+      switch (st) {
+        case 'CL': return 'Urgent Personal / Domestic Work';
+        case 'RH': return 'Religious Festival Celebration';
+        case 'LAP': return 'Annual Scheduled Leave';
+        case 'LHAP': return 'Medical / Commuted Leave';
+        case 'PL': return 'Paternity / Family Support';
+        case 'MED': return 'Medical Illness with Medical Fitness Certificate';
+        case 'L': return 'Sanctioned Outsource Leave';
+        case 'A': return 'Unauthorized Absence from P-Way Beat';
+        default: return 'Authorized Leave';
+      }
+    };
+
+    const formatRangeDate = (dStr: string) => {
+      if (!dStr) return '-';
+      const clean = dStr.trim();
+      if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean;
+      const dt = new Date(clean);
+      if (isNaN(dt.getTime())) return clean;
+      const day = String(dt.getDate()).padStart(2, '0');
+      const month = String(dt.getMonth() + 1).padStart(2, '0');
+      const year = dt.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+
+    // Group consecutive days of the same leave status
+    const leaveEvents: {
+      id: string;
+      dateRange: string;
+      fromDate: string;
+      toDate: string;
+      daysCount: number;
+      leaveType: AttendanceStatus;
+      leaveTypeLabel: string;
+      reason: string;
+    }[] = [];
+
+    interface LeaveBlock {
+      fromDate: string;
+      toDate: string;
+      dates: string[];
+      leaveType: AttendanceStatus;
+      remarks: string;
+    }
+
+    let currentBlock: LeaveBlock | null = null;
+
+    const pushCurrentBlock = (blk: LeaveBlock) => {
+      const fromFmt = formatRangeDate(blk.fromDate);
+      const toFmt = formatRangeDate(blk.toDate);
+      leaveEvents.push({
+        id: `${blk.fromDate}_${blk.leaveType}`,
+        dateRange: blk.fromDate === blk.toDate ? fromFmt : `${fromFmt} to ${toFmt}`,
+        fromDate: blk.fromDate,
+        toDate: blk.toDate,
+        daysCount: blk.dates.length,
+        leaveType: blk.leaveType,
+        leaveTypeLabel: getLeaveLabel(blk.leaveType),
+        reason: blk.remarks || getDefaultReason(blk.leaveType)
+      });
+    };
+
+    for (const rec of records) {
+      const isLeave = ['LAP', 'LHAP', 'CL', 'RH', 'PL', 'MED', 'L', 'A'].includes(rec.status);
+      if (!isLeave) {
+        if (currentBlock) {
+          pushCurrentBlock(currentBlock);
+          currentBlock = null;
+        }
+        continue;
+      }
+
+      if (currentBlock && currentBlock.leaveType === rec.status) {
+        const prevDate = new Date(currentBlock.toDate);
+        const currDate = new Date(rec.date);
+        const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 3600 * 24));
+        if (diffDays <= 1) {
+          currentBlock.toDate = rec.date;
+          currentBlock.dates.push(rec.date);
+          if (rec.remarks && !currentBlock.remarks) currentBlock.remarks = rec.remarks;
+          continue;
+        }
+      }
+
+      if (currentBlock) {
+        pushCurrentBlock(currentBlock);
+      }
+
+      currentBlock = {
+        fromDate: rec.date,
+        toDate: rec.date,
+        dates: [rec.date],
+        leaveType: rec.status,
+        remarks: rec.remarks || ''
+      };
+    }
+
+    if (currentBlock) {
+      pushCurrentBlock(currentBlock);
+    }
+
+    return {
+      rows: leaveEvents.reverse(), // latest first
+      stats
+    };
+  }, [currentLeaveStaff, attendanceRecords]);
 
   // Export CSV of the Monthly Absentee Statement (Category-Wise)
   const exportMonthlyCsv = () => {
@@ -982,7 +1090,7 @@ export const StaffAttendance: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const getStatusBadgeStyle = (st: AttendanceStatus) => {
+  const getStatusBadgeStyle = (st: AttendanceStatus | '-') => {
     switch (st) {
       case 'P':
         return 'bg-emerald-100 text-emerald-800 font-bold border border-emerald-200';
@@ -1013,22 +1121,24 @@ export const StaffAttendance: React.FC = () => {
         return 'bg-indigo-100 text-indigo-900 font-bold border border-indigo-300';
       case 'OD':
         return 'bg-violet-100 text-violet-900 font-bold border border-violet-300';
+      case '-':
+        return 'text-slate-300 dark:text-slate-600 font-normal';
       default:
-        return 'bg-slate-100 text-slate-700';
+        return 'text-slate-400';
     }
   };
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12 print-container">
       {/* Top Brand Banner */}
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl">
             <CalendarCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Staff Daily Attendance &amp; Absentee ERP</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Staff Daily Attendance &amp; Absentee ERP</h2>
               <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-50 text-[#123b72] border border-blue-200 uppercase">
                 Official Roster
               </span>
@@ -1040,7 +1150,7 @@ export const StaffAttendance: React.FC = () => {
         </div>
 
         {/* Global Tab Toggles */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('daily')}
@@ -1094,26 +1204,26 @@ export const StaffAttendance: React.FC = () => {
       {activeTab === 'daily' && (
         <div className="space-y-6">
           {/* Date Selector & Day Declaration Power Bar */}
-          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Select Date:</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Select Date:</span>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={e => setSelectedDate(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600"
+                    className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
                 {/* Day status badge */}
                 <span className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 ${
                   currentDateInfo.isNH
-                    ? 'bg-purple-100 text-purple-900 border-purple-300'
+                    ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800'
                     : currentDateInfo.isSunday
-                    ? 'bg-blue-100 text-blue-900 border-blue-300'
-                    : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border-blue-300 dark:border-blue-800'
+                    : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                 }`}>
                   {currentDateInfo.isNH ? '🎉 ' : currentDateInfo.isSunday ? '☕ ' : '🟢 '}
                   <span>{currentDateInfo.title}</span>
@@ -1121,65 +1231,79 @@ export const StaffAttendance: React.FC = () => {
               </div>
 
               {/* Day Declaration Admin Controls */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-bold text-slate-500 mr-1">Declare Day:</span>
-                <button
-                  type="button"
-                  onClick={() => handleDeclareDayType('NORMAL')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
-                    !currentDateInfo.isHoliday
-                      ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50'
-                  }`}
-                >
-                  🟢 Working Day
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeclareDayType('SUNDAY')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
-                    currentDateInfo.type === 'SUNDAY'
-                      ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-blue-50'
-                  }`}
-                >
-                  ☕ Sunday / Rest
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeclareDayType('NH')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
-                    currentDateInfo.isNH
-                      ? 'bg-purple-700 text-white border-purple-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50'
-                  }`}
-                >
-                  🎉 National Holiday (NH)
-                </button>
-              </div>
+              {!isGuest && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">Declare Day:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeclareDayType('NORMAL')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                      !currentDateInfo.isHoliday
+                        ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    🟢 Working Day
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeclareDayType('SUNDAY')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                      currentDateInfo.type === 'SUNDAY'
+                        ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    ☕ Sunday / Rest
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeclareDayType('NH')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                      currentDateInfo.isNH
+                        ? 'bg-purple-700 text-white border-purple-800 shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    🎉 National Holiday (NH)
+                  </button>
+                </div>
+              )}
             </div>
 
+            {/* 👁️ Guest Mode Banner */}
+            {isGuest && (
+              <div className="p-3.5 bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 border-2 border-blue-300 dark:border-blue-700 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm animate-fadeIn">
+                <div className="flex items-center gap-2 font-bold">
+                  <Shield className="w-5 h-5 text-blue-600 dark:text-cyan-400 shrink-0" />
+                  <span>👁️ Guest Visitor Mode: You are viewing attendance in read-only mode. Attendance marking, holiday declarations, and leave approvals are strictly restricted to authorized staff.</span>
+                </div>
+                <span className="px-2.5 py-1 bg-blue-200 dark:bg-blue-900 text-blue-950 dark:text-blue-100 font-black rounded-lg font-mono text-[10px] whitespace-nowrap shadow-sm">
+                  GUEST (READ-ONLY)
+                </span>
+              </div>
+            )}
             
             {/* 🔒 4-Day Historical Lock Alert Banner */}
-            {isDateLockedForNonAdmin && (
-              <div className="p-3.5 bg-amber-50 text-amber-900 border-2 border-amber-300 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm animate-fadeIn">
+            {!isGuest && isDateLockedForNonAdmin && (
+              <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-2 border-amber-300 dark:border-amber-700 rounded-xl flex items-center justify-between gap-3 text-xs shadow-sm animate-fadeIn">
                 <div className="flex items-center gap-2 font-bold">
-                  <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+                  <Lock className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0" />
                   <span>🔒 Attendance Record Locked: {selectedDate} ki attendance 4 din se purani hai. Policy ke anusar purane records me badlav restricted hai. Yeh record kewal APM / Civil (Shri Vivek Kumar Azad, Super Admin ID) ke login se hi unlock aur edit kiya ja sakta hai.</span>
                 </div>
-                <span className="px-2.5 py-1 bg-amber-200 text-amber-950 font-black rounded-lg font-mono text-[10px] whitespace-nowrap shadow-sm">
+                <span className="px-2.5 py-1 bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-100 font-black rounded-lg font-mono text-[10px] whitespace-nowrap shadow-sm">
                   🔒 LOCKED (&gt; 4 DAYS)
                 </span>
               </div>
             )}
 
-            {isSuperAdmin && (
-              <div className="p-2.5 bg-emerald-50 text-emerald-900 border border-emerald-300 rounded-xl flex items-center justify-between gap-2 text-xs shadow-sm">
+            {!isGuest && isSuperAdmin && (
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 rounded-xl flex items-center justify-between gap-2 text-xs shadow-sm">
                 <div className="flex items-center gap-2 font-bold">
-                  <Unlock className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <Unlock className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                   <span>🔓 Super Admin Override Active: Logged in as APM / Civil (Shri Vivek Kumar Azad). All past attendance dates (&gt; 4 days) are fully unlocked for administrative editing.</span>
                 </div>
-                <span className="px-2 py-0.5 bg-emerald-200 text-emerald-950 font-black rounded-md font-mono text-[9px] whitespace-nowrap">
+                <span className="px-2 py-0.5 bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-100 font-black rounded-md font-mono text-[9px] whitespace-nowrap">
                   APM UNLOCKED
                 </span>
               </div>
@@ -1187,74 +1311,76 @@ export const StaffAttendance: React.FC = () => {
 
             {/* Attendance Metrics Counters */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                <span className="text-[10px] text-slate-500 font-bold block uppercase">Total Staff</span>
-                <span className="text-xl font-black text-slate-900 font-mono">{dailyMetrics.total}</span>
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 p-3 rounded-xl">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Total Staff</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-mono">{dailyMetrics.total}</span>
               </div>
-              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
-                <span className="text-[10px] text-emerald-700 font-bold block uppercase">Present (P)</span>
-                <span className="text-xl font-black text-emerald-900 font-mono">{dailyMetrics.p}</span>
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block uppercase">Present (P)</span>
+                <span className="text-xl font-black text-emerald-900 dark:text-emerald-300 font-mono">{dailyMetrics.p}</span>
               </div>
-              <div className="bg-red-50 border border-red-200 p-3 rounded-xl">
-                <span className="text-[10px] text-red-700 font-bold block uppercase">Absent (A)</span>
-                <span className="text-xl font-black text-red-900 font-mono">{dailyMetrics.a}</span>
+              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 p-3 rounded-xl">
+                <span className="text-[10px] text-red-700 dark:text-red-400 font-bold block uppercase">Absent (A)</span>
+                <span className="text-xl font-black text-red-900 dark:text-red-300 font-mono">{dailyMetrics.a}</span>
               </div>
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl">
-                <span className="text-[10px] text-amber-700 font-bold block uppercase">Leaves (LAP/CL/L)</span>
-                <span className="text-xl font-black text-amber-900 font-mono">{dailyMetrics.l}</span>
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-3 rounded-xl">
+                <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block uppercase">Leaves (LAP/CL/L)</span>
+                <span className="text-xl font-black text-amber-900 dark:text-amber-300 font-mono">{dailyMetrics.l}</span>
               </div>
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
-                <span className="text-[10px] text-blue-700 font-bold block uppercase">Rest / Sunday</span>
-                <span className="text-xl font-black text-blue-900 font-mono">{dailyMetrics.rest}</span>
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 p-3 rounded-xl">
+                <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block uppercase">Rest / Sunday</span>
+                <span className="text-xl font-black text-blue-900 dark:text-blue-300 font-mono">{dailyMetrics.rest}</span>
               </div>
-              <div className="bg-purple-50 border border-purple-200 p-3 rounded-xl">
-                <span className="text-[10px] text-purple-700 font-bold block uppercase">Holiday (NH)</span>
-                <span className="text-xl font-black text-purple-900 font-mono">{dailyMetrics.nh}</span>
+              <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 p-3 rounded-xl">
+                <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold block uppercase">Holiday (NH)</span>
+                <span className="text-xl font-black text-purple-900 dark:text-purple-300 font-mono">{dailyMetrics.nh}</span>
               </div>
-              <div className="bg-violet-50 border border-violet-200 p-3 rounded-xl">
-                <span className="text-[10px] text-violet-700 font-bold block uppercase">Duty / Tour (OD)</span>
-                <span className="text-xl font-black text-violet-900 font-mono">{dailyMetrics.od}</span>
+              <div className="bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/60 p-3 rounded-xl">
+                <span className="text-[10px] text-violet-700 dark:text-violet-400 font-bold block uppercase">Duty / Tour (OD)</span>
+                <span className="text-xl font-black text-violet-900 dark:text-violet-300 font-mono">{dailyMetrics.od}</span>
               </div>
             </div>
 
             {/* Quick Bulk Marking Actions */}
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 text-xs">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-slate-500 font-bold text-[11px]">Quick Bulk Mark:</span>
-                <button
-                  type="button"
-                  onClick={() => handleBulkMark('P', 'Normal Duty')}
-                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition shadow-sm"
-                >
-                  ✓ Mark All Present (P)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkMark('A', 'Unauthorized Absent')}
-                  className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition shadow-sm"
-                >
-                  ✕ Mark All Absent (A)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkMark('REST', 'Sunday Rest')}
-                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition shadow-sm"
-                >
-                  ☕ Mark All Rest (REST)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkMark('NH', currentDateInfo.title)}
-                  className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition shadow-sm"
-                >
-                  🎉 Mark All Holiday (NH)
-                </button>
+            {!isGuest && (
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-bold text-[11px]">Quick Bulk Mark:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkMark('P', 'Normal Duty')}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition shadow-sm"
+                  >
+                    ✓ Mark All Present (P)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkMark('A', 'Unauthorized Absent')}
+                    className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition shadow-sm"
+                  >
+                    ✕ Mark All Absent (A)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkMark('REST', 'Sunday Rest')}
+                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition shadow-sm"
+                  >
+                    ☕ Mark All Rest (REST)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkMark('NH', currentDateInfo.title)}
+                    className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition shadow-sm"
+                  >
+                    🎉 Mark All Holiday (NH)
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Search and Filters Bar */}
-          <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative flex-1 w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -1262,7 +1388,7 @@ export const StaffAttendance: React.FC = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search by Name, ID, or Section..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-800 placeholder:text-slate-400"
               />
             </div>
 
@@ -1270,13 +1396,14 @@ export const StaffAttendance: React.FC = () => {
               <select
                 value={selectedCategoryFilter}
                 onChange={e => setSelectedCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+                className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
               >
                 <option value="ALL">All Categories</option>
                 <option value="PERMANENT">Permanent Staff</option>
-                <option value="OUTSOURCE">Outsource</option>
+                <option value="OUTSOURCE">Outsource MTS</option>
                 <option value="KEYMAN">Keyman</option>
-                <option value="PATROL">Patrolman</option>
+                <option value="PATROL_DAY">Day Patrolman (दिन की पेट्रोलिंग)</option>
+                <option value="PATROL_NIGHT">Night Patrolman (रात की पेट्रोलिंग)</option>
                 <option value="GATEMAN">Gateman</option>
                 <option value="WATCHMAN">Watchman</option>
               </select>
@@ -1284,7 +1411,7 @@ export const StaffAttendance: React.FC = () => {
               <select
                 value={selectedStatusFilter}
                 onChange={e => setSelectedStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+                className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
               >
                 <option value="ALL">All Attendance Statuses</option>
                 <option value="P">Present (P)</option>
@@ -1306,10 +1433,10 @@ export const StaffAttendance: React.FC = () => {
           </div>
 
           {/* Daily Attendance Table with Horizontal Slider */}
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto w-full max-w-full scrollbar-thin scrollbar-thumb-slate-300">
-              <table className="w-full text-left text-xs text-slate-800">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto w-full max-w-full scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+              <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="p-3 w-12 text-center">#</th>
                     <th className="p-3 min-w-[240px]">Staff Member (Name, ID, Designation)</th>
@@ -1318,15 +1445,15 @@ export const StaffAttendance: React.FC = () => {
                     <th className="p-3 text-right min-w-[120px]">Quick Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {filteredDailyStaff.map((staff, idx) => {
                     const { status, remarks } = getStaffStatus(staff);
                     const cleanPhone = (staff.phone || '').replace(/[^0-9]/g, '');
                     const statusOptions = staff.isPermanent ? PERMANENT_STATUS_OPTIONS : OUTSOURCE_STATUS_OPTIONS;
 
                     return (
-                      <tr key={staff.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 text-slate-400 font-mono text-center">{idx + 1}</td>
+                      <tr key={staff.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <td className="p-3 text-slate-400 dark:text-slate-500 font-mono text-center">{idx + 1}</td>
                         
                         {/* Streamlined Combined Staff Info (Name, AWPO/Emp ID, Designation) */}
                         <td className="p-3">
@@ -1344,15 +1471,15 @@ export const StaffAttendance: React.FC = () => {
                                 category: staff.categoryLabel as any,
                                 photoUrl: staff.photoUrl
                               })}
-                              className="font-black text-sm text-slate-900 hover:text-blue-700 hover:underline text-left inline-flex items-center gap-1.5"
+                              className="font-black text-sm text-slate-900 dark:text-white hover:text-blue-700 dark:hover:text-cyan-400 hover:underline text-left inline-flex items-center gap-1.5"
                             >
                               <span>{staff.name}</span>
                             </button>
                             <div className="flex items-center gap-2 flex-wrap text-xs">
-                              <span className="font-mono text-[10px] bg-blue-50 text-[#0f2b5c] font-black px-1.5 py-0.5 rounded border border-blue-200">
+                              <span className="font-mono text-[10px] bg-blue-50 dark:bg-blue-950/60 text-[#0f2b5c] dark:text-cyan-300 font-black px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">
                                 {staff.awpoId}
                               </span>
-                              <span className="text-slate-600 font-bold text-xs">
+                              <span className="text-slate-600 dark:text-slate-400 font-bold text-xs">
                                 {staff.designation}
                               </span>
                             </div>
@@ -1368,13 +1495,14 @@ export const StaffAttendance: React.FC = () => {
                                 <button
                                   key={opt.status}
                                   type="button"
+                                  disabled={isGuest || isDateLockedForNonAdmin}
                                   onClick={() => handleMarkStaffStatus(staff, opt.status)}
                                   className={`px-2.5 py-1.5 rounded-lg text-xs font-mono transition border ${
                                     isSelected
                                       ? opt.activeClass
                                       : `${opt.colorClass} border-transparent`
-                                  }`}
-                                  title={opt.label}
+                                  } ${isGuest || isDateLockedForNonAdmin ? 'cursor-not-allowed opacity-80' : ''}`}
+                                  title={isGuest ? 'Guest mode: Read-only' : opt.label}
                                 >
                                   {opt.short}
                                 </button>
@@ -1387,9 +1515,10 @@ export const StaffAttendance: React.FC = () => {
                           <input
                             type="text"
                             defaultValue={remarks}
+                            disabled={isGuest || isDateLockedForNonAdmin}
                             onBlur={e => handleMarkStaffStatus(staff, status, e.target.value)}
-                            placeholder="Remarks..."
-                            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 w-full focus:bg-white focus:outline-none focus:border-blue-500"
+                            placeholder={isGuest ? '-' : 'Remarks...'}
+                            className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 w-full focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 disabled:opacity-60"
                           />
                         </td>
                         
@@ -1405,7 +1534,7 @@ export const StaffAttendance: React.FC = () => {
                                 category: staff.categoryLabel as any,
                                 photoUrl: staff.photoUrl
                               })}
-                              className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-bold border border-blue-200 hover:bg-blue-100"
+                              className="px-2 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-lg text-[11px] font-bold border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900"
                             >
                               🪪 ID
                             </button>
@@ -1413,7 +1542,7 @@ export const StaffAttendance: React.FC = () => {
                               <>
                                 <a
                                   href={`tel:${staff.phone}`}
-                                  className="p-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100"
+                                  className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
                                   title="Call Staff"
                                 >
                                   <Phone className="w-3.5 h-3.5" />
@@ -1422,7 +1551,7 @@ export const StaffAttendance: React.FC = () => {
                                   href={`https://wa.me/91${cleanPhone.slice(-10)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="p-1 bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100"
+                                  className="p-1 bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 rounded-lg border border-green-200 dark:border-green-800 hover:bg-green-100"
                                   title="WhatsApp Message"
                                 >
                                   <MessageSquare className="w-3.5 h-3.5" />
@@ -1447,15 +1576,15 @@ export const StaffAttendance: React.FC = () => {
       {activeTab === "monthly" && (
         <div className="space-y-6">
           {/* Month/Year Selector & Category Filter Bar */}
-          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Statement Month:</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Statement Month:</span>
                   <select
                     value={selectedMonth}
                     onChange={e => setSelectedMonth(parseInt(e.target.value))}
-                    className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none"
                   >
                     {MONTH_NAMES.map((m, idx) => (
                       <option key={m} value={idx}>{m}</option>
@@ -1465,7 +1594,7 @@ export const StaffAttendance: React.FC = () => {
                   <select
                     value={selectedYear}
                     onChange={e => setSelectedYear(parseInt(e.target.value))}
-                    className="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none"
                   >
                     {[2025, 2026, 2027, 2028].map(y => (
                       <option key={y} value={y}>{y}</option>
@@ -1473,13 +1602,23 @@ export const StaffAttendance: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="text-xs text-slate-600 font-mono">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-mono">
                   {daysInMonth} Calendar Days · {monthDates.filter(d => d.isSunday).length} Sundays · {monthDates.filter(d => d.isNH).length} Gazetted NH
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLeaveReportModalOpen(true)}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                  title="Open Detailed Staff Leave Register (CL, RH, LAP, LHAP, PL, MED)"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Leave Statement (छुट्टी रजिस्टर)</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={exportMonthlyCsv}
@@ -1502,7 +1641,7 @@ export const StaffAttendance: React.FC = () => {
 
             {/* Category Filter Pills */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5" /> Filter Category:
               </span>
               {MONTHLY_CATEGORY_GROUPS.map(cat => {
@@ -1518,13 +1657,13 @@ export const StaffAttendance: React.FC = () => {
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       selectedMonthlyCategory === cat.key
                         ? "bg-[#123b72] text-white shadow-sm"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200"
+                        : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                     }`}
                   >
                     <span>{cat.icon}</span>
                     <span>{cat.label}</span>
                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      selectedMonthlyCategory === cat.key ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800"
+                      selectedMonthlyCategory === cat.key ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
                     }`}>
                       {count}
                     </span>
@@ -1536,51 +1675,101 @@ export const StaffAttendance: React.FC = () => {
 
           {/* Category Summary KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-            <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-slate-500 font-bold block uppercase">Total Staff</span>
-              <span className="text-lg font-black text-slate-900 font-mono">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-sm">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Total Staff</span>
+              <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.totalStaff, 0)} Personnel
               </span>
             </div>
 
-            <div className="bg-white border border-emerald-200 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-emerald-700 font-bold block uppercase">Total Present Days</span>
-              <span className="text-lg font-black text-emerald-800 font-mono">
+            <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl shadow-sm">
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block uppercase">Total Present Days</span>
+              <span className="text-lg font-black text-emerald-800 dark:text-emerald-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.present, 0)} Days
               </span>
             </div>
 
-            <div className="bg-white border border-red-200 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-red-700 font-bold block uppercase">Total Absent Days</span>
-              <span className="text-lg font-black text-red-800 font-mono">
+            <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800/60 p-3 rounded-xl shadow-sm">
+              <span className="text-[10px] text-red-700 dark:text-red-400 font-bold block uppercase">Total Absent Days</span>
+              <span className="text-lg font-black text-red-800 dark:text-red-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.absent, 0)} Days
               </span>
             </div>
 
-            <div className="bg-white border border-blue-200 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-blue-700 font-bold block uppercase">Rest / Off Days</span>
-              <span className="text-lg font-black text-blue-800 font-mono">
+            <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/60 p-3 rounded-xl shadow-sm">
+              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block uppercase">Rest / Off Days</span>
+              <span className="text-lg font-black text-blue-800 dark:text-blue-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.rest, 0)} Days
               </span>
             </div>
 
-            <div className="bg-white border border-amber-200 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-amber-700 font-bold block uppercase">Leave Availed</span>
-              <span className="text-lg font-black text-amber-800 font-mono">
+            <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 p-3 rounded-xl shadow-sm">
+              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block uppercase">Leave Availed</span>
+              <span className="text-lg font-black text-amber-800 dark:text-amber-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.leaves, 0)} Days
               </span>
             </div>
 
-            <div className="bg-white border border-purple-200 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-purple-700 font-bold block uppercase">Total Payable Days</span>
-              <span className="text-lg font-black text-purple-900 font-mono">
+            <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800/60 p-3 rounded-xl shadow-sm">
+              <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold block uppercase">Total Payable Days</span>
+              <span className="text-lg font-black text-purple-900 dark:text-purple-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.payable, 0)} Days
               </span>
             </div>
           </div>
 
+          {/* Print Style Isolation for Monthly Absentee Statement */}
+          <style>{`
+            @page {
+              size: A4 landscape;
+              margin: 5mm 5mm 5mm 5mm;
+            }
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-monthly-statement, #printable-monthly-statement * {
+                visibility: visible !important;
+              }
+              #printable-monthly-statement {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 4mm 4mm !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+                z-index: 999999 !important;
+              }
+              #printable-monthly-statement table {
+                font-size: 7.5pt !important;
+                line-height: 1.15 !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+              }
+              #printable-monthly-statement th, #printable-monthly-statement td {
+                padding: 1.5px 1.5px !important;
+                border: 0.8px solid #475569 !important;
+              }
+              #printable-monthly-statement thead {
+                display: table-header-group !important;
+              }
+              #printable-monthly-statement tr {
+                page-break-inside: avoid !important;
+                page-break-after: auto !important;
+              }
+              .print-signatures-block {
+                page-break-inside: avoid !important;
+                margin-top: 15px !important;
+              }
+            }
+          `}</style>
+
           {/* Official Printable Statement */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div id="printable-monthly-statement" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <div className="text-center border-b border-slate-200 pb-4 mb-4">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <span className="px-2.5 py-0.5 bg-[#123b72] text-white text-[10px] font-bold rounded">DFCCIL IMSD SMUN</span>
@@ -1756,6 +1945,27 @@ export const StaffAttendance: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* ✍️ Official Dual Signature Stamps Block for DFCCIL Record */}
+            <div className="mt-10 pt-6 border-t-2 border-slate-300 dark:border-slate-700 flex items-end justify-between px-8 pb-4">
+              <div className="text-center">
+                <div className="w-56 border-b-2 border-slate-800 dark:border-slate-300 mb-2 h-16 flex items-end justify-center">
+                  <span className="text-[10px] italic text-slate-400 font-serif">Verified &amp; Submitted</span>
+                </div>
+                <div className="font-black text-sm text-slate-900 dark:text-white tracking-wide">Arjun Kumar</div>
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">Executive / Civil / SMUN</div>
+                <div className="text-[11px] font-semibold text-slate-500">DFCCIL (P-Way Unit)</div>
+              </div>
+
+              <div className="text-center">
+                <div className="w-56 border-b-2 border-slate-800 dark:border-slate-300 mb-2 h-16 flex items-end justify-center">
+                  <span className="text-[10px] italic text-slate-400 font-serif">Countersigned &amp; Approved</span>
+                </div>
+                <div className="font-black text-sm text-slate-900 dark:text-white tracking-wide">Vivek Kumar Azad</div>
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">APM / Civil / SMUN</div>
+                <div className="text-[11px] font-semibold text-slate-500">DFCCIL (Unit Incharge)</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1766,65 +1976,69 @@ export const StaffAttendance: React.FC = () => {
       ---------------------------------------------------------------------- */}
       {activeTab === 'holidays' && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-slate-900">NH & Rest Day Calendar Master</h3>
-              <p className="text-xs text-slate-500">Manage official Gazetted holidays and special rest days.</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">NH &amp; Rest Day Calendar Master</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Manage official Gazetted holidays and special rest days.</p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsAddHolidayModalOpen(true)}
-              className="px-4 py-2 bg-[#123b72] hover:bg-[#1a4f9c] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Declare New Holiday</span>
-            </button>
+            {!isGuest && (
+              <button
+                type="button"
+                onClick={() => setIsAddHolidayModalOpen(true)}
+                className="px-4 py-2 bg-[#123b72] hover:bg-[#1a4f9c] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Declare New Holiday</span>
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Gazetted 2026 Holidays */}
             {Object.entries(DEFAULT_HOLIDAYS_2026).map(([date, title]) => (
-              <div key={date} className="bg-white border border-purple-200 p-4 rounded-2xl shadow-sm space-y-2">
+              <div key={date} className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800/60 p-4 rounded-2xl shadow-sm space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-mono font-bold text-xs">
+                  <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded font-mono font-bold text-xs">
                     {date}
                   </span>
-                  <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full">
                     Gazetted 2026
                   </span>
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">{title}</h4>
-                <p className="text-[11px] text-slate-500">Indian Railways / DFCCIL Master Calendar</p>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Indian Railways / DFCCIL Master Calendar</p>
               </div>
             ))}
 
             {/* Custom Declared Holidays */}
             {holidayRecords.map(h => (
-              <div key={h.id} className="bg-white border border-blue-200 p-4 rounded-2xl shadow-sm space-y-2 flex flex-col justify-between">
+              <div key={h.id} className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/60 p-4 rounded-2xl shadow-sm space-y-2 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-mono font-bold text-xs">
+                    <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded font-mono font-bold text-xs">
                       {h.date}
                     </span>
-                    <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-full">
                       Custom Declaration ({h.type})
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900 mt-2">{h.title}</h4>
-                  {h.remarks && <p className="text-[11px] text-slate-500 mt-0.5">{h.remarks}</p>}
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-2">{h.title}</h4>
+                  {h.remarks && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{h.remarks}</p>}
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-[10px] text-slate-400">By: {h.declaredBy || 'Admin'}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteHoliday(h.id)}
-                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition"
-                    title="Delete Holiday"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {!isGuest && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteHoliday(h.id)}
+                      className="p-1.5 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 rounded-lg transition"
+                      title="Delete Holiday"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1833,44 +2047,44 @@ export const StaffAttendance: React.FC = () => {
       )}
 
       {/* Add Holiday Modal */}
-      {isAddHolidayModalOpen && (
+      {isAddHolidayModalOpen && !isGuest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Declare National Holiday / Rest Day</h3>
-              <button onClick={() => setIsAddHolidayModalOpen(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Declare National Holiday / Rest Day</h3>
+              <button onClick={() => setIsAddHolidayModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
             </div>
 
             <form onSubmit={handleSaveHolidayForm} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Date</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Date</label>
                 <input
                   type="date"
                   required
                   value={holidayFormData.date}
                   onChange={e => setHolidayFormData({ ...holidayFormData, date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Holiday Title / Occasion</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Holiday Title / Occasion</label>
                 <input
                   type="text"
                   required
                   value={holidayFormData.title}
                   onChange={e => setHolidayFormData({ ...holidayFormData, title: e.target.value })}
                   placeholder="e.g. Haryana Day, Special Mega Block Rest"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Holiday Category</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Holiday Category</label>
                 <select
                   value={holidayFormData.type}
                   onChange={e => setHolidayFormData({ ...holidayFormData, type: e.target.value as any })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                 >
                   <option value="NH">National Holiday (NH)</option>
                   <option value="REST">Rest Day</option>
@@ -1880,13 +2094,13 @@ export const StaffAttendance: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Remarks / Reference Circular</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Remarks / Reference Circular</label>
                 <input
                   type="text"
                   value={holidayFormData.remarks}
                   onChange={e => setHolidayFormData({ ...holidayFormData, remarks: e.target.value })}
                   placeholder="Optional reference"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                 />
               </div>
 
@@ -1894,7 +2108,7 @@ export const StaffAttendance: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddHolidayModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700"
                 >
                   Cancel
                 </button>
@@ -1906,6 +2120,378 @@ export const StaffAttendance: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 4. ALL-TIME INDIVIDUAL STAFF LEAVE DOSSIER MODAL (छुट्टी रजिस्टर) */}
+      {/* ------------------------------------------------------------------------- */}
+      {isLeaveReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          {/* Print Style Isolation for Leave Dossier */}
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-staff-leave-card, #printable-staff-leave-card * {
+                visibility: visible !important;
+              }
+              #printable-staff-leave-card {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+                z-index: 999999 !important;
+              }
+            }
+          `}</style>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-5xl max-h-[92vh] shadow-2xl flex flex-col overflow-hidden animate-scaleUp">
+            {/* Modal Header Bar */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/20 rounded-2xl backdrop-blur-sm shadow-inner">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                    <span>Staff Individual Leave Register &amp; Dossier</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-amber-900 uppercase">
+                      All-Time History
+                    </span>
+                  </h3>
+                  <p className="text-xs text-amber-100 font-medium">
+                    DFCCIL IMSD SMUN · Track Complete Leave Record since First Attendance Entry
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3.5 py-1.5 bg-white text-amber-900 hover:bg-amber-50 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md active:scale-95"
+                  title="Print this Staff's Official Leave Dossier Card"
+                >
+                  <Printer className="w-4 h-4 text-amber-900" />
+                  <span>Print Leave Card</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsLeaveReportModalOpen(false)}
+                  className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition active:scale-95"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Sub-Header: Staff Quick Search & Selector */}
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {/* Search Input */}
+                <div className="relative flex-1 w-full">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    value={leaveSearchStaffQuery}
+                    onChange={e => setLeaveSearchStaffQuery(e.target.value)}
+                    placeholder="Search by Staff Name, AWPO ID, Designation, or Section..."
+                    className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-amber-600 shadow-sm"
+                  />
+                  {leaveSearchStaffQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setLeaveSearchStaffQuery('')}
+                      className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Staff Dropdown Switcher */}
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    Selected Staff:
+                  </span>
+                  <select
+                    value={currentLeaveStaff?.id || ''}
+                    onChange={e => setSelectedLeaveStaffId(e.target.value)}
+                    className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-600 shadow-sm max-w-[280px]"
+                  >
+                    {allStaffList.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} • {s.designation} ({s.awpoId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Staff Quick Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                <span className="text-[11px] font-bold text-slate-400 mr-1 shrink-0">Quick Select:</span>
+                {filteredLeaveStaffList.slice(0, 15).map(s => {
+                  const isSelected = currentLeaveStaff?.id === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelectedLeaveStaffId(s.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-amber-600 text-white shadow-sm ring-1 ring-amber-400'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{s.name}</span>
+                      <span className={`text-[10px] font-mono px-1 py-0.2 rounded ${
+                        isSelected ? 'bg-amber-800 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                      }`}>
+                        {s.awpoId}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Body: Printable Individual Staff Leave Card */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-5 bg-slate-50/50 dark:bg-slate-950/40">
+              {currentLeaveStaff ? (
+                <div
+                  id="printable-staff-leave-card"
+                  className="bg-white dark:bg-slate-900 border-2 border-amber-300 dark:border-amber-900/50 rounded-3xl p-6 shadow-md space-y-5"
+                >
+                  {/* Card Header & Staff Profile */}
+                  <div className="border-b-2 border-slate-200 dark:border-slate-800 pb-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      {/* Left: Staff Bio */}
+                      <div className="flex items-start gap-4">
+                        {currentLeaveStaff.photoUrl ? (
+                          <img
+                            src={currentLeaveStaff.photoUrl}
+                            alt={currentLeaveStaff.name}
+                            className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center text-xl font-black shadow-sm">
+                            {currentLeaveStaff.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                              {currentLeaveStaff.name}
+                            </h4>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-[#123b72] border border-blue-200">
+                              {currentLeaveStaff.isPermanent ? 'Permanent Staff' : 'Outsource Staff'}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              {currentLeaveStaff.categoryLabel}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">AWPO / EMP ID:</span>
+                              <span className="font-mono font-bold text-slate-900 dark:text-white">{currentLeaveStaff.awpoId}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">DESIGNATION / POST:</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{currentLeaveStaff.designation}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">BEAT / SECTION:</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{currentLeaveStaff.beatOrSection}</span>
+                            </div>
+                            {currentLeaveStaff.phone && currentLeaveStaff.phone !== '-' && (
+                              <div>
+                                <span className="text-slate-400 block text-[10px]">CONTACT NO:</span>
+                                <span className="font-mono font-bold text-slate-900 dark:text-white">{currentLeaveStaff.phone}</span>
+                              </div>
+                            )}
+                            {currentLeaveStaff.fatherName && (
+                              <div>
+                                <span className="text-slate-400 block text-[10px]">FATHER'S NAME:</span>
+                                <span className="font-bold text-slate-900 dark:text-white">{currentLeaveStaff.fatherName}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Unit Stamp */}
+                      <div className="text-right sm:border-l sm:border-slate-200 dark:sm:border-slate-800 sm:pl-4">
+                        <div className="text-[10px] font-black uppercase text-[#123b72] dark:text-cyan-400">
+                          DFCCIL IMSD SMUN
+                        </div>
+                        <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Civil Engineering / P-Way
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono mt-1">
+                          Records Span: {staffAllTimeLeaveDossier.stats.totalRecordedDays} Days Tracked
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary KPI Cards for this Staff */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl">
+                      <span className="text-[10px] text-amber-800 dark:text-amber-400 font-bold block uppercase">
+                        Total Leaves Taken (All Time)
+                      </span>
+                      <span className="text-2xl font-black text-amber-900 dark:text-amber-300 font-mono">
+                        {staffAllTimeLeaveDossier.stats.totalLeaves} <span className="text-xs font-normal">Days</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 p-3.5 rounded-2xl">
+                      <span className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold block uppercase">
+                        Casual &amp; Restricted (CL / RH)
+                      </span>
+                      <span className="text-2xl font-black text-emerald-900 dark:text-emerald-300 font-mono">
+                        {staffAllTimeLeaveDossier.stats.cl + staffAllTimeLeaveDossier.stats.rh} <span className="text-xs font-normal">Days</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 p-3.5 rounded-2xl">
+                      <span className="text-[10px] text-blue-800 dark:text-blue-400 font-bold block uppercase">
+                        Earned &amp; Medical (LAP / MED)
+                      </span>
+                      <span className="text-2xl font-black text-blue-900 dark:text-blue-300 font-mono">
+                        {staffAllTimeLeaveDossier.stats.lap + staffAllTimeLeaveDossier.stats.lhap + staffAllTimeLeaveDossier.stats.med} <span className="text-xs font-normal">Days</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-red-50/80 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 p-3.5 rounded-2xl">
+                      <span className="text-[10px] text-red-800 dark:text-red-400 font-bold block uppercase">
+                        Unauthorized Absent (A)
+                      </span>
+                      <span className="text-2xl font-black text-red-900 dark:text-red-300 font-mono">
+                        {staffAllTimeLeaveDossier.stats.absent} <span className="text-xs font-normal">Days</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* All-Time Individual Leave Table */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">
+                        All-Time Leave History Log (सभी दर्ज छुट्टियां)
+                      </h5>
+                      <span className="text-[11px] font-mono text-slate-500">
+                        Total {staffAllTimeLeaveDossier.rows.length} Leave Events Recorded
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase text-[10px] font-black border-b border-slate-200 dark:border-slate-700 text-center">
+                            <th className="p-3 w-10">#</th>
+                            <th className="p-3 min-w-[180px] text-left">Date (From – To) (अवकाश अवधि)</th>
+                            <th className="p-3 min-w-[120px]">No of Days Leave Taken</th>
+                            <th className="p-3 min-w-[180px]">Type of Leave</th>
+                            <th className="p-3 min-w-[240px] text-left">Reason / Remarks (कारण / विवरण)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+                          {staffAllTimeLeaveDossier.rows.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center bg-emerald-50/40 dark:bg-emerald-950/20">
+                                <div className="space-y-1.5">
+                                  <div className="text-2xl">🟢</div>
+                                  <div className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                                    NIL LEAVE RECORDED — FULL ATTENDANCE!
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    Yeh staff jab se roll call par darj h, tab se ab tak 100% Present / On Duty rahe hain.
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : (
+                            staffAllTimeLeaveDossier.rows.map((event, idx) => {
+                              const isAbsent = event.leaveType === 'A';
+                              return (
+                                <tr
+                                  key={event.id}
+                                  className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition text-center ${
+                                    isAbsent ? 'bg-red-50/30' : ''
+                                  }`}
+                                >
+                                  <td className="p-3 font-mono font-bold text-slate-500">{idx + 1}</td>
+                                  <td className="p-3 text-left font-mono font-bold text-slate-900 dark:text-white">
+                                    {event.dateRange}
+                                  </td>
+                                  <td className="p-3 font-mono font-black text-amber-800 dark:text-amber-300">
+                                    <span className="px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 inline-block">
+                                      {event.daysCount} {event.daysCount === 1 ? 'Day' : 'Days'}
+                                    </span>
+                                  </td>
+                                  <td className="p-3">
+                                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold inline-block ${
+                                      isAbsent
+                                        ? 'bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-300 border border-red-300'
+                                        : 'bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-300 border border-blue-200'
+                                    }`}>
+                                      {event.leaveTypeLabel}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-left text-xs text-slate-700 dark:text-slate-300 font-medium">
+                                    {event.reason}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Bottom Verification & Signature Block */}
+                  <div className="pt-4 border-t-2 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 font-medium">
+                    <div>
+                      <span>Generated on: {new Date().toLocaleDateString('en-GB')} · DFCCIL ERP System</span>
+                    </div>
+                    <div className="text-right font-mono text-[10px]">
+                      Authentic Leave Dossier • IMSD SMUN
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-12 text-center text-slate-400">
+                  Select a staff member from the search bar above to view their all-time leave card.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
+              <span className="text-xs text-slate-500 font-medium">
+                {allStaffList.length} Total Staff in SMUN Roster · Staff-wise All-Time Attendance History
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsLeaveReportModalOpen(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition shadow-sm active:scale-95"
+              >
+                Close Register
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -33,6 +33,8 @@ import type {
   TrackDefectRecord
 } from '../types/index.ts';
 
+import { getCentralAiKey, saveCentralAiKey, askVivekAi } from '../services/aiAssistant.ts';
+
 interface AdminAIChatModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,6 +48,7 @@ interface ChatMessage {
   timestamp: string;
   suggestedAction?: { label: string; tab: string };
   dataList?: any[];
+  sources?: { collection: string; id: string }[];
 }
 
 export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
@@ -64,7 +67,7 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
     {
       id: 'init-1',
       sender: 'ai',
-      text: `👋 Greetings ${currentUser?.name || 'Admin'}! I am your DFCCIL IMSD SMUN AI Assistant connected to Google Gemini & Live ERP Database. I have indexed your live Firebase audit logs, staff rosters, track inspections, P-Way daily work logs, and Store inventory.\n\nAsk me anything about your jurisdiction!`,
+      text: `👋 Greetings ${currentUser?.name || 'Officer'}! I am **Vivek AI**, your Official DFCCIL IMSD SMUN Track & Intelligence Assistant.\n\nConnected to live Firestore records across **144 Bridges, 7 LC Gates, 18 Keymen Beats, 29 Patrol Shifts, Turnouts, Curves, USFD Rail Defects, Store Stock, and 1+15 Gang Work Progress**.\n\nAsk me anything in Hindi or English!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -75,12 +78,22 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
   // Quick suggestion prompt chips
   const SUGGESTION_PROMPTS = [
     'How many Keymen & Patrolmen are deployed?',
-    'Show upcoming & overdue inspections',
-    'What is the total JCB work hours logged?',
-    'List low buffer materials in store',
+    'KM 1204 se 1206 ke beech bridges kaunse hain?',
     'Who is assigned to Gate 159 SPL?',
-    'Show 1+15 Gang daily work summary'
+    'List low buffer materials in store',
+    'Show upcoming & overdue inspections',
+    'What is the total JCB work hours logged?'
   ];
+
+  // Auto-sync Central API Key from Firestore on mount
+  useEffect(() => {
+    getCentralAiKey().then(k => {
+      if (k && k !== geminiApiKey) {
+        setGeminiApiKey(k);
+        setApiKeyInput(k);
+      }
+    });
+  }, [isOpen]);
 
   useEffect(() => {
     if (chatBottomRef.current) {
@@ -88,55 +101,11 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
     }
   }, [messages]);
 
-  const handleSaveApiKey = () => {
+  const handleSaveApiKey = async () => {
     const trimmed = apiKeyInput.trim();
     setGeminiApiKey(trimmed);
-    if (trimmed) {
-      localStorage.setItem('raildiary_gemini_api_key', trimmed);
-    } else {
-      localStorage.removeItem('raildiary_gemini_api_key');
-    }
+    await saveCentralAiKey(trimmed);
     setIsApiKeyModalOpen(false);
-  };
-
-  // Call Google Gemini API
-  const queryGeminiAPI = async (userPrompt: string, contextSummary: string, key: string): Promise<string> => {
-    // Model updated to gemini-3.6-flash as requested
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
-    const systemPrompt = `You are the Official DFCCIL Railway Senior Section Engineer & P-Way Intelligence AI Assistant for Section KRJN–SMUN–SBJN–NSIR–SNL (Km 1167.210 to 1249.720, Total 88.679 Km under IMSD SMUN HQ).
-Here is the LIVE, REAL-TIME ERP DATABASE CONTEXT:
-${contextSummary}
-
-Answer the user's question accurately, professionally, and concisely using the real live railway data above. Format your answer with clear markdown bullet points and emojis where helpful. If relevant, mention exact staff names, mobile numbers, chainages (Km), or beat codes.`;
-
-    const payload = {
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `${systemPrompt}\n\nUSER QUESTION: ${userPrompt}` }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 1000
-      }
-    };
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      throw new Error(errJson?.error?.message || `HTTP ${response.status}: Gemini API request failed`);
-    }
-
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) throw new Error('Empty response from Google Gemini API');
-    return candidateText;
   };
 
   if (!isOpen) return null;
@@ -152,25 +121,12 @@ Answer the user's question accurately, professionally, and concisely using the r
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev.slice(-4), userMsg]);
     setInputQuery('');
     setIsProcessing(true);
 
     try {
-      // Query local and Firebase database records
-      const [staff, keymen, patrols, lcs, pwayWorks, inspections, storeItems, defects] = await Promise.all([
-        db.getCollection<OfficerStaffRecord>('officers_staff'),
-        db.getCollection<KeymanRecord>('keymen'),
-        db.getCollection<PatrolShiftRecord>('patrol_shifts'),
-        db.getCollection<LevelCrossingRecord>('level_crossings'),
-        db.getCollection<PWayDailyWorkRecord>('pway_daily_progress'),
-        db.getCollection<PWayScheduleInspectionRecord>('pway_inspections'),
-        db.getCollection<StoreItemRecord>('store_items'),
-        db.getCollection<TrackDefectRecord>('track_defects')
-      ]);
-
       const qLower = q.toLowerCase();
-      let replyText = '';
       let suggestedAction: { label: string; tab: string } | undefined;
 
       // Determine navigation suggestion
@@ -184,69 +140,32 @@ Answer the user's question accurately, professionally, and concisely using the r
         suggestedAction = { label: 'Open Store Module', tab: 'store' };
       } else if (qLower.includes('defect') || qLower.includes('usfd')) {
         suggestedAction = { label: 'View Rail Defects', tab: 'defects' };
+      } else if (qLower.includes('bridge') || qLower.includes('km')) {
+        suggestedAction = { label: 'Open KM Quick Finder', tab: 'km_finder' };
       }
 
-      // If Google Gemini API key is configured, query Gemini with live railway context
-      if (geminiApiKey.trim()) {
-        try {
-          const contextSummary = `
-- Total Staff: ${staff.length} (Keymen: ${keymen.length} Beats, Day Patrols: 12 Beats, Night Patrols: 12 Beats, RG Bhupinder Singh: 7589001321)
-- Level Crossings: ${lcs.map(l => `${l.gateNo || l.lc_no} at Km ${l.km || l.chainage}`).join(', ')}
-- Store SKUs: ${storeItems.length} items (Low Buffer: ${storeItems.filter(i => i.currentStock <= i.minBufferThreshold).map(i => `${i.name}: ${i.currentStock} ${i.unit}`).join(', ') || 'None'})
-- P-Way Daily Work Entries: ${pwayWorks.length} logs (JCB hours total: ${pwayWorks.filter(w => w.workCategory === 'JCB_WORK').reduce((a, b) => a + (Number(b.hoursWorked) || 0), 0)} hrs)
-- Inspections: ${inspections.length} recorded (Overdue: ${inspections.filter(i => i.complianceStatus === 'OVERDUE').length})
-- Track Defects: ${defects.length} USFD/Rail defect points mapped.
-`;
-          replyText = await queryGeminiAPI(q, contextSummary, geminiApiKey.trim());
-        } catch (geminiErr: any) {
-          console.warn('Gemini API call error, falling back to built-in semantic engine:', geminiErr);
-          replyText = `⚠️ *(Gemini Note: ${geminiErr.message || 'API key issue'}). Switched to local engine:*\n\n`;
-        }
-      }
-
-      // Fallback or built-in semantic engine if no gemini replyText yet
-      if (!replyText || replyText.startsWith('⚠️')) {
-        let localReply = '';
-        if (qLower.includes('keyman') || qLower.includes('patrol') || qLower.includes('ex-serviceman')) {
-          const kmCount = keymen.length;
-          const patCount = patrols.length;
-          localReply = `📊 **Keymen & Patrolmen Strength**:\n• Total Keymen Beats: **${kmCount} Beats** (Beats 1 to 18)\n• Total Patrol Shifts: **${patCount} Shifts** (12 Day + 12 Night Patrols)\n• All deployed staff are AWPO Ex-Servicemen covering Km 1167.210 to 1249.720.`;
-        } else if (qLower.includes('inspection') || qLower.includes('schedule') || qLower.includes('turnout') || qLower.includes('curve')) {
-          const overdue = inspections.filter(i => i.complianceStatus === 'OVERDUE').length;
-          const pending = inspections.filter(i => i.complianceStatus === 'PENDING' || i.complianceStatus === 'SCHEDULED').length;
-          const completed = inspections.filter(i => i.complianceStatus === 'COMPLETED').length;
-          localReply = `🔍 **Track & Asset Inspection Status**:\n• Overdue Audits: **${overdue}**\n• Pending / Due This Month: **${pending}**\n• Completed Audits: **${completed}**\n• Master Assets Audited: **58 Turnouts (P&C)** and **42 Curves** with versine compliance verification.`;
-        } else if (qLower.includes('jcb') || qLower.includes('hours') || qLower.includes('machinery')) {
-          const jcbWorks = pwayWorks.filter(w => w.workCategory === 'JCB_WORK' || (w.workDone && w.workDone.toLowerCase().includes('jcb')));
-          const totalHours = jcbWorks.reduce((acc, w) => acc + (Number(w.hoursWorked) || 6.5), 0);
-          localReply = `🚜 **JCB Work & Machinery Log**:\n• Total JCB Work Logs: **${jcbWorks.length || 8} Entries**\n• Cumulative Hours Worked: **${totalHours.toFixed(1)} Hours**\n• Key Sections: Embankment Slope Dressing at Km 1173.5–1177.8, Cess De-silting at SBJN Yard.`;
-        } else if (qLower.includes('gate') || qLower.includes('159') || qLower.includes('sarabjit') || qLower.includes('gateman')) {
-          localReply = `🚪 **Level Crossing Gate 159 SPL (Km 1232.095)**:\n• Classification: **Special Class (Interlocked)**\n• Assigned Gatemen:\n  1. **Sh. Sarabjit Singh** (AWPO: 46549, 📞 9914234082)\n  2. **Sh. Gurtej Singh** (AWPO: 46548, 📞 9402932236)\n  3. **Sh. Pal Singh** (AWPO: 46538, 📞 8360635600)`;
-        } else if (qLower.includes('store') || qLower.includes('stock') || qLower.includes('erc') || qLower.includes('liner') || qLower.includes('material')) {
-          const lowStock = storeItems.filter(i => i.currentStock <= i.minBufferThreshold);
-          localReply = `📦 **P-Way Store & Depot Ledger**:\n• Total Track Material Items: **${storeItems.length} SKUs**\n• Low Buffer Warnings: **${lowStock.length} Items**\n• Key Fasteners in Stock:\n  - ERC Mk-III Clips: **12,500 Nos** (Bay A1)\n  - GRSP 6mm Rubber Pads: **8,200 Nos** (Bay B1)\n  - GFNL 60kg Liners: **14,000 Nos** (Bay B2)\n  - Glued Joints (G3L): **48 Nos**`;
-        } else if (qLower.includes('gang') || qLower.includes('shortage') || qLower.includes('1+15') || qLower.includes('pway') || qLower.includes('p.way')) {
-          const shortageDays = pwayWorks.filter(w => (w.numPersons || 16) < 16).length;
-          localReply = `🏗️ **1+15 Gang Daily Progress & Manpower Norm**:\n• Mandated Gang Strength: **16 Persons** (1 Mate/Supervisor + 15 Maintainers)\n• Total Gang Progress Logs: **${pwayWorks.length} Days Recorded**\n• Shortage Detection: **${shortageDays} shifts** operated below sanctioned 16-person strength.`;
-        } else if (qLower.includes('defect') || qLower.includes('fracture') || qLower.includes('weld')) {
-          localReply = `📍 **Track Defects & Ultrasonic Testing (USFD)**:\n• Total Active Logs: **${defects.length || 48} Rail Defect Points**\n• Classification: IMR (Immediate Removal), OBS (Observe), Weld Defects\n• All locations mapped with GPS and Chainage (Km 1167.210 to 1249.720).`;
-        } else {
-          localReply = `🔍 **Query Result for "${q}"**:\n• Indexed across **82 Staff**, **144 Bridges**, **58 Turnouts**, **42 Curves**, **5 LC Gates**, **10 Store SKUs**, and **48 Track Defects**.\n• System Status: All records synchronized with Cloud Firestore in real time.`;
-        }
-        replyText = replyText ? replyText + localReply : localReply;
-      }
+      // Query Vivek AI Engine (Cloud Function + Central Key Fallback)
+      const aiResponse = await askVivekAi(q);
 
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: replyText,
+        text: aiResponse.answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggestedAction
+        suggestedAction,
+        sources: aiResponse.sources
       };
 
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (err) {
-      console.error('AI query processing error:', err);
+      setMessages(prev => [...prev.slice(-4), aiMsg]);
+    } catch (err: any) {
+      console.error('Vivek AI query processing error:', err);
+      const errMsg: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: 'ai',
+        text: `⚠️ Vivek AI Error: ${err?.message || 'Query processing failed. Please try again.'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev.slice(-4), errMsg]);
     } finally {
       setIsProcessing(false);
     }
@@ -264,14 +183,14 @@ Answer the user's question accurately, professionally, and concisely using the r
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-black tracking-tight text-white">
-                  🤖 DFCCIL AI Search Assistant
+                  🤖 Vivek AI • DFCCIL Smart Assistant
                 </h3>
                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${geminiApiKey ? 'bg-emerald-400 text-slate-950' : 'bg-cyan-400 text-slate-950'}`}>
-                  {geminiApiKey ? '✨ GEMINI AI' : 'APM ADMIN'}
+                  {geminiApiKey ? '✨ LIVE AI ACTIVE' : 'EXACT MATCH'}
                 </span>
               </div>
               <p className="text-[11px] text-blue-200 font-mono">
-                {geminiApiKey ? 'Connected to Google Gemini 3.6 Flash & Firebase' : 'Real-time Semantic Query on ERP Databases'}
+                {geminiApiKey ? 'Universal Multi-Device Sync • Google Gemini & Live Firestore' : 'Real-time Deterministic Search on ERP Databases'}
               </p>
             </div>
           </div>
@@ -280,10 +199,10 @@ Answer the user's question accurately, professionally, and concisely using the r
             <button
               onClick={() => setIsApiKeyModalOpen(true)}
               className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white transition text-xs font-bold flex items-center gap-1"
-              title="Configure Google Gemini API Key"
+              title="Configure Global Gemini API Key (Synchronized Across All Devices)"
             >
               <span>🔑</span>
-              <span>{geminiApiKey ? 'Gemini Active' : 'Connect Gemini'}</span>
+              <span>{geminiApiKey ? 'API Key Active' : 'Set API Key'}</span>
             </button>
             <button
               onClick={onClose}
@@ -300,12 +219,12 @@ Answer the user's question accurately, professionally, and concisely using the r
             <div className="flex items-center justify-between">
               <div className="font-bold flex items-center gap-1.5 text-cyan-300">
                 <span>✨</span>
-                <span>Configure Google Gemini API Key:</span>
+                <span>Configure Universal Gemini API Key for Vivek AI:</span>
               </div>
               <button onClick={() => setIsApiKeyModalOpen(false)} className="text-slate-300 hover:text-white">✕</button>
             </div>
             <p className="text-[11px] text-blue-200">
-              Enter your Google AI Studio / Gemini API Key for unlimited generative reasoning on DFCCIL track, staff, and store records.
+              यह API Key Firestore में सुरक्षित सेव होगी। एक बार सेव करने के बाद आप किसी भी लैपटॉप या मोबाइल से लॉगिन करेंगे, <strong>Vivek AI बिना दोबारा key मांगे तुरंत उत्तर देगा</strong>।
             </p>
             <div className="flex gap-2">
               <input
@@ -320,7 +239,7 @@ Answer the user's question accurately, professionally, and concisely using the r
                 onClick={handleSaveApiKey}
                 className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl font-bold transition shadow"
               >
-                Save
+                Save Globally
               </button>
             </div>
           </div>
@@ -364,6 +283,17 @@ Answer the user's question accurately, professionally, and concisely using the r
                   }`}
                 >
                   {msg.text}
+
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                      <span className="font-bold">Verified Sources:</span>
+                      {msg.sources.map((s, sIdx) => (
+                        <span key={sIdx} className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded font-mono border border-blue-200 dark:border-blue-800">
+                          {s.collection}/{s.id}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {msg.suggestedAction && (

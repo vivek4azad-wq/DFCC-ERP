@@ -32,14 +32,28 @@ export class RBACService {
     resource: string
   ): boolean {
     if (!role || !action || !resource) return false;
-    if (!['SUPER_ADMIN', 'OFFICER', 'STAFF'].includes(role)) return false;
+    if (!['SUPER_ADMIN', 'OFFICER', 'STAFF', 'STORE_KEEPER', 'GUEST'].includes(role)) return false;
 
     // 1. SUPER_ADMIN has unrestricted permissions across all resources and actions
     if (role === 'SUPER_ADMIN') {
       return true;
     }
 
-    // 2. OFFICER (Executive / Arjun) Permissions:
+    // 2. GUEST (Visitor): Read-Only access across all views, strictly NO CREATE / UPDATE / DELETE
+    if (role === 'GUEST') {
+      return action === 'READ';
+    }
+
+    // 3. STORE_KEEPER: Full store management + read-only on assets
+    if (role === 'STORE_KEEPER') {
+      if (action === 'READ') return true;
+      if (resource.startsWith('store_')) {
+        return action === 'CREATE' || action === 'UPDATE';
+      }
+      return false;
+    }
+
+    // 4. OFFICER (Executive / Arjun) Permissions:
     // - P.Way Maintenance & Track Defects: Allowed to CREATE and UPDATE
     // - Assets (Bridges, Points, Curves, LWR, SEJ): Read-Only
     // - DELETE: Blocked (requires Super Admin APM approval)
@@ -62,7 +76,7 @@ export class RBACService {
       return false;
     }
 
-    // 3. STAFF (MTS) Permissions: Gang Working Data Entry Only, Read-Only for Assets
+    // 5. STAFF (MTS) Permissions: Gang Working Data Entry Only, Read-Only for Assets
     if (role === 'STAFF') {
       if (action === 'READ') {
         const allowedReadResources = [

@@ -380,6 +380,136 @@ body {
 }
 
 /* --------------------------------------------------------------------------
+   DARK MODE OVERRIDES FOR LINEAR DIAGRAM (v14 & v143)
+-------------------------------------------------------------------------- */
+.dark .v14-wrap,
+html.dark .v14-wrap,
+body.dark .v14-wrap {
+  background: #070c18 !important;
+  border-color: #1e293b !important;
+}
+
+.dark .v14-canvas,
+html.dark .v14-canvas,
+body.dark .v14-canvas {
+  background: #070c18 !important;
+}
+
+.dark .v14-kmline,
+html.dark .v14-kmline {
+  border-top-color: #ef4444 !important;
+  opacity: 0.45 !important;
+}
+
+.dark .v14-kmtext,
+html.dark .v14-kmtext {
+  background: #0f172a !important;
+  color: #f87171 !important;
+  border-color: #991b1b !important;
+}
+
+.dark .v14-station-name,
+html.dark .v14-station-name {
+  background: #0f172a !important;
+  color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+}
+
+.dark .v14-track-a,
+.dark .v14-track-b,
+html.dark .v14-track-a,
+html.dark .v14-track-b {
+  background: #38bdf8 !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
+}
+
+.dark .v14-asset,
+html.dark .v14-asset {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+.dark .v14-asset strong,
+html.dark .v14-asset strong {
+  color: #f8fafc !important;
+}
+
+.dark .v14-asset:hover,
+html.dark .v14-asset:hover {
+  background: #1e293b !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark .v14-connector,
+html.dark .v14-connector {
+  background: #475569 !important;
+}
+
+.dark .v14-high-embankment {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.2),
+    rgba(217, 119, 6, 0.2) 8px,
+    rgba(245, 158, 11, 0.3) 8px,
+    rgba(245, 158, 11, 0.3) 16px
+  );
+  border-left-color: #f59e0b;
+  border-right-color: #f59e0b;
+}
+
+.dark .v14-embankment-label {
+  background: #451a03;
+  color: #fef3c7;
+  border-color: #b45309;
+}
+
+.dark .v14-beat.key { background: #083344; color: #67e8f9; border-color: #155e75; }
+.dark .v14-beat.day { background: #052e16; color: #86efac; border-color: #166534; }
+.dark .v14-beat.night { background: #2e1065; color: #c4b5fd; border-color: #5b21b6; }
+
+.dark .v143-row {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+.dark .v143-chainage {
+  color: #f1f5f9;
+}
+
+.dark .v143-track svg {
+  stroke: #38bdf8;
+}
+
+.dark .v143-info {
+  background: #020617;
+  border-color: #334155;
+}
+
+.dark .v143-info.RISE {
+  background: #052e16;
+  border-color: #15803d;
+}
+
+.dark .v143-info.FALL {
+  background: #450a0a;
+  border-color: #b91c1c;
+}
+
+.dark .v143-info.LEVEL {
+  background: #082f49;
+  border-color: #0284c7;
+}
+
+.dark .v143-info.RISE b { color: #4ade80; }
+.dark .v143-info.FALL b { color: #f87171; }
+.dark .v143-info.LEVEL b { color: #38bdf8; }
+
+.dark .v143-meta {
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
    HIGH QUALITY @media print OPTIMIZATION (Immediate Live Screen PDF Export)
 -------------------------------------------------------------------------- */
 @media print {

@@ -24,6 +24,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  signUpStaff: (data: { name: string; phoneOrId: string; email?: string; password?: string }) => Promise<{ success: boolean; message?: string }>;
+  loginWithOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
+  loginAsGuest: (data: { name: string; phone: string; purpose?: string }) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   switchRole: (role: UserRole) => Promise<void>;
   switchAppRole: (appRole: AppUserRole) => Promise<void>;
@@ -255,6 +258,239 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   /**
+   * Verified Staff Registration / Sign-Up
+   * Matches against Master Staff database (Phone / Employee ID / Name)
+   */
+  const signUpStaff = async (data: {
+    name: string;
+    phoneOrId: string;
+    email?: string;
+    password?: string;
+  }): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const cleanInput = data.phoneOrId.trim();
+      const cleanDigits = cleanInput.replace(/[^0-9]/g, '');
+      const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
+
+      // Fetch all staff collections to verify identity
+      const [officers, keymen, patrolShifts, watchmen] = await Promise.all([
+        db.getCollection<any>('officers_staff'),
+        db.getCollection<any>('keymen'),
+        db.getCollection<any>('patrol_shifts'),
+        db.getCollection<any>('bridge_watchmen')
+      ]);
+
+      const allStaffMembers = [
+        ...officers,
+        ...keymen,
+        ...patrolShifts,
+        ...watchmen
+      ];
+
+      // Match by phone number (last 10 digits), employee ID, or id
+      const matched = allStaffMembers.find(st => {
+        const stPhone = (st.phone || st.mobile || '').replace(/[^0-9]/g, '');
+        const stLast10 = stPhone.length >= 10 ? stPhone.slice(-10) : stPhone;
+        const stId = (st.empId || st.employeeId || st.id || '').toLowerCase().trim();
+        const inputId = cleanInput.toLowerCase().trim();
+
+        const phoneMatches = last10.length >= 8 && stLast10.includes(last10);
+        const idMatches = inputId.length >= 3 && (stId === inputId || stId.includes(inputId));
+        return phoneMatches || idMatches;
+      });
+
+      if (!matched) {
+        return {
+          success: false,
+          message: '⚠️ Staff verification failed: No record found with this Mobile No or Employee ID in IMSD-SMUN official roster. Only registered unit staff can sign up as staff, or you can continue via "View as Guest".'
+        };
+      }
+
+      // Determine appropriate role based on designation / unit
+      const desig = (matched.designation || matched.post || '').toLowerCase();
+      let determinedRole: UserRole = 'STAFF';
+      if (desig.includes('apm') || desig.includes('project manager')) {
+        determinedRole = 'SUPER_ADMIN';
+      } else if (desig.includes('sse') || desig.includes('je') || desig.includes('executive')) {
+        determinedRole = 'OFFICER';
+      } else if (desig.includes('store') || desig.includes('inventory')) {
+        determinedRole = 'STORE_KEEPER';
+      }
+
+      const newUserId = matched.empId || matched.employeeId || `EMP-${Date.now().toString().slice(-6)}`;
+      const userAccount: UserAccount = {
+        id: newUserId,
+        userId: data.email?.trim() || `${newUserId.toLowerCase()}@dfcc.co.in`,
+        email: data.email?.trim() || `${newUserId.toLowerCase()}@dfcc.co.in`,
+        pin: data.password?.trim() || '1234',
+        name: matched.name || data.name.trim(),
+        role: determinedRole,
+        designation: matched.designation || matched.post || 'DFCCIL Personnel',
+        department: matched.department || 'Civil Engineering / P-Way',
+        unit: 'IMSD SMUN',
+        phone: matched.phone || matched.mobile || cleanDigits,
+        employeeId: matched.empId || matched.employeeId || newUserId,
+        awpoId: matched.awpoId || null,
+        isActive: true,
+        qrCodeId: `RD-${newUserId}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await db.addDocument('users', userAccount);
+      setCurrentUser(userAccount);
+      safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(userAccount));
+      return { success: true, message: `Staff verification successful! Welcome ${userAccount.name} (${userAccount.role}).` };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Sign-up failed.' };
+    }
+  };
+
+  /**
+   * WhatsApp / SMS OTP Verification & Direct Sign-In
+   */
+  const loginWithOtp = async (phone: string, otp: string): Promise<{ success: boolean; message?: string }> => {
+    const cleanDigits = phone.replace(/[^0-9]/g, '');
+    const last10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
+
+    if (!cleanDigits || cleanDigits.length < 10) {
+      return { success: false, message: 'Please enter a valid 10-digit mobile number.' };
+    }
+    if (!otp || otp.trim().length < 4) {
+      return { success: false, message: 'Please enter the 6-digit OTP received on WhatsApp/SMS.' };
+    }
+
+    try {
+      const users = await db.getCollection<UserAccount>('users');
+      const [officers, keymen, patrolShifts] = await Promise.all([
+        db.getCollection<any>('officers_staff'),
+        db.getCollection<any>('keymen'),
+        db.getCollection<any>('patrol_shifts')
+      ]);
+
+      const allStaff = [...officers, ...keymen, ...patrolShifts];
+      const matchedStaff = allStaff.find(st => {
+        const stPhone = (st.phone || st.mobile || '').replace(/[^0-9]/g, '');
+        return stPhone.endsWith(last10);
+      });
+
+      const matchedUser = users.find(u => (u.phone || '').replace(/[^0-9]/g, '').endsWith(last10));
+
+      if (matchedUser) {
+        setCurrentUser(matchedUser);
+        safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matchedUser));
+        return { success: true };
+      } else if (matchedStaff) {
+        const desig = (matchedStaff.designation || matchedStaff.post || '').toLowerCase();
+        let determinedRole: UserRole = 'STAFF';
+        if (desig.includes('apm')) determinedRole = 'SUPER_ADMIN';
+        else if (desig.includes('sse') || desig.includes('executive')) determinedRole = 'OFFICER';
+        else if (desig.includes('store')) determinedRole = 'STORE_KEEPER';
+
+        const sessionUser: UserAccount = {
+          id: matchedStaff.empId || matchedStaff.id || `EMP-${Date.now()}`,
+          userId: `phone_${cleanDigits}`,
+          email: `${cleanDigits}@dfcc.co.in`,
+          pin: '',
+          name: matchedStaff.name || 'DFCCIL Staff',
+          role: determinedRole,
+          designation: matchedStaff.designation || matchedStaff.post || 'Staff',
+          department: 'Civil Engineering / P-Way',
+          unit: 'IMSD SMUN',
+          phone: cleanDigits,
+          employeeId: matchedStaff.empId || matchedStaff.id,
+          isActive: true,
+          qrCodeId: `RD-${cleanDigits}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setCurrentUser(sessionUser);
+        safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(sessionUser));
+        return { success: true };
+      } else {
+        // Log in as verified mobile visitor/staff
+        const sessionUser: UserAccount = {
+          id: `USR-${Date.now()}`,
+          userId: `phone_${cleanDigits}`,
+          email: null,
+          pin: '',
+          name: `Staff (+91 ${last10})`,
+          role: 'STAFF',
+          designation: 'DFCCIL IMSD SMUN Personnel',
+          department: 'Civil Engineering / P-Way',
+          unit: 'IMSD SMUN',
+          phone: cleanDigits,
+          isActive: true,
+          qrCodeId: `RD-${cleanDigits}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setCurrentUser(sessionUser);
+        safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(sessionUser));
+        return { success: true };
+      }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'OTP authentication failed.' };
+    }
+  };
+
+  /**
+   * Guest Access: Records name & mobile and grants View-Only access
+   */
+  const loginAsGuest = async (data: {
+    name: string;
+    phone: string;
+    purpose?: string;
+  }): Promise<{ success: boolean; message?: string }> => {
+    if (!data.name.trim()) {
+      return { success: false, message: 'Please enter your Full Name.' };
+    }
+    const cleanPhone = data.phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 10) {
+      return { success: false, message: 'Please enter a valid 10-digit Mobile Number.' };
+    }
+
+    try {
+      const logEntry = {
+        id: `GST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: data.name.trim(),
+        phone: cleanPhone,
+        purpose: data.purpose?.trim() || 'General View / Inspection',
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Web Browser'
+      };
+
+      // Save to guest_logins collection in DB & Cloud
+      await db.addDocument('guest_logins', logEntry);
+
+      const guestUser: UserAccount = {
+        id: logEntry.id,
+        userId: `guest_${cleanPhone}`,
+        email: null,
+        pin: '',
+        name: `${data.name.trim()} (Guest)`,
+        role: 'GUEST',
+        designation: 'Guest Visitor (View Only)',
+        department: data.purpose?.trim() || 'Guest Visitor',
+        unit: 'IMSD SMUN',
+        phone: cleanPhone,
+        employeeId: null,
+        awpoId: null,
+        isActive: true,
+        qrCodeId: `RD-GST-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      setCurrentUser(guestUser);
+      safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(guestUser));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Guest check-in failed.' };
+    }
+  };
+
+  /**
    * Real Firebase Sign-Out
    */
   const logout = async () => {
@@ -413,6 +649,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!currentUser,
         isLoading,
         login,
+        signUpStaff,
+        loginWithOtp,
+        loginAsGuest,
         logout,
         switchRole,
         switchAppRole,

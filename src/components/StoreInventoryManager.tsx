@@ -42,7 +42,11 @@ import {
   BookOpen,
   Info,
   ChevronRight,
-  QrCode
+  QrCode,
+  Sliders,
+  FileText,
+  Paperclip,
+  Eye
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
@@ -73,7 +77,7 @@ export const StoreInventoryManager: React.FC = () => {
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const isStoreKeeper = role === 'STORE_KEEPER' || role === 'SUPER_ADMIN';
 
-  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock'>('inventory');
+  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock' | 'negative_stock'>('inventory');
   const [items, setItems] = useState<StoreItemRecord[]>([]);
   const [transactions, setTransactions] = useState<StoreTransactionRecord[]>([]);
   const [staffList, setStaffList] = useState<OfficerStaffRecord[]>([]);
@@ -92,6 +96,73 @@ export const StoreInventoryManager: React.FC = () => {
   const [isSapSuggestionOpen, setIsSapSuggestionOpen] = useState(false);
   const [txnSapSuggestions, setTxnSapSuggestions] = useState<SapMaterial[]>([]);
   const [isTxnSapSuggestionOpen, setIsTxnSapSuggestionOpen] = useState(false);
+
+  // SAP Code Edit Modal (Requirement 5)
+  const [isEditSapModalOpen, setIsEditSapModalOpen] = useState(false);
+  const [selectedItemForSapEdit, setSelectedItemForSapEdit] = useState<StoreItemRecord | null>(null);
+  const [sapEditCode, setSapEditCode] = useState('');
+  const [sapEditSpec, setSapEditSpec] = useState('');
+  const [sapModalSearch, setSapModalSearch] = useState('');
+
+  const filteredSapModalMaterials = useMemo(() => {
+    if (!sapModalSearch.trim()) return SAP_MATERIALS;
+    const clean = sapModalSearch.toLowerCase().trim();
+    const tokens = clean.split(' ').filter(Boolean);
+    return SAP_MATERIALS.filter(m => {
+      const hay = `${m.code} ${m.description} ${m.uom} ${m.plantDescription || ''}`.toLowerCase();
+      return tokens.every(t => hay.includes(t)) || m.code.includes(clean);
+    });
+  }, [sapModalSearch]);
+
+  // Min Buffer Edit Modal (Requirement 5)
+  const [isEditBufferModalOpen, setIsEditBufferModalOpen] = useState(false);
+  const [selectedItemForBufferEdit, setSelectedItemForBufferEdit] = useState<StoreItemRecord | null>(null);
+  const [bufferEditValue, setBufferEditValue] = useState<number>(10);
+
+  // Voucher Document Viewer Modal (Requirement 2)
+  const [selectedVoucherDoc, setSelectedVoucherDoc] = useState<{
+    url: string;
+    isPdf: boolean;
+    title: string;
+    refNo: string;
+  } | null>(null);
+  const [isCompressingVoucher, setIsCompressingVoucher] = useState(false);
+
+  // Client-Side WhatsApp Level Image Compression (< 300 KB)
+  const compressImageWhatsAppLevel = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200; // Standard WhatsApp image width
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(e.target?.result as string);
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72); // Produces ~100-250 KB
+          resolve(compressedDataUrl);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   const [selectedItemForTally, setSelectedItemForTally] = useState<StoreItemRecord | null>(null);
   const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
@@ -120,7 +191,11 @@ export const StoreInventoryManager: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
-  const [newItemData, setNewItemData] = useState<Partial<StoreItemRecord>>({
+  const [newItemData, setNewItemData] = useState<Partial<StoreItemRecord> & {
+    voucherDocUrl?: string;
+    voucherDocType?: 'IMAGE' | 'PDF';
+    voucherDocName?: string;
+  }>({
     category: 'T&P',
     unit: 'Nos',
     currentStock: 0,
@@ -131,7 +206,18 @@ export const StoreInventoryManager: React.FC = () => {
     accountsFileNo: '3195'
   });
 
-  const [txnFormData, setTxnFormData] = useState({
+  const [txnFormData, setTxnFormData] = useState<{
+    itemId: string;
+    quantity: number;
+    referenceNo: string;
+    voucherDate: string;
+    issuedToOrReceivedFrom: string;
+    purposeOrSection: string;
+    remarks?: string;
+    voucherDocUrl?: string;
+    voucherDocType?: 'IMAGE' | 'PDF';
+    voucherDocName?: string;
+  }>({
     itemId: '',
     quantity: 1,
     referenceNo: '',
@@ -140,6 +226,64 @@ export const StoreInventoryManager: React.FC = () => {
     purposeOrSection: 'IMSD/USED',
     remarks: ''
   });
+
+  const [ledgerSearchQuery, setLedgerSearchQuery] = useState<string>('');
+  const [isLedgerSearchOpen, setIsLedgerSearchOpen] = useState<boolean>(false);
+  const [editingTxn, setEditingTxn] = useState<StoreTransactionRecord | null>(null);
+  const [isEditTxnModalOpen, setIsEditTxnModalOpen] = useState<boolean>(false);
+  const [editTxnFormData, setEditTxnFormData] = useState<{
+    date: string;
+    referenceNo: string;
+    issuedToOrReceivedFrom: string;
+    purposeOrSection: string;
+    quantity: number;
+    type: 'INWARD' | 'OUTWARD' | 'TRANSFER';
+    remarks?: string;
+  }>({
+    date: new Date().toISOString().split('T')[0],
+    referenceNo: '',
+    issuedToOrReceivedFrom: '',
+    purposeOrSection: 'IMSD/USED',
+    quantity: 1,
+    type: 'INWARD',
+    remarks: ''
+  });
+
+  // Calculate live available stock from transactions
+  // Formula: Balance = Opening Stock + Receipts - Transfers - Issues
+  const getItemLiveStock = (item: StoreItemRecord | null | undefined, txnsList?: StoreTransactionRecord[]): number => {
+    if (!item) return 0;
+    const itemCodeClean = String(item.itemCode || '').toLowerCase().trim();
+    const priceListClean = String(item.priceListCode || '').toLowerCase().trim();
+    const activeTxns = txnsList || transactions;
+
+    const relatedTxns = activeTxns.filter(t => {
+      if (t.itemId && t.itemId === item.id) return true;
+      if (itemCodeClean && t.itemCode && String(t.itemCode).toLowerCase().trim() === itemCodeClean) return true;
+      if (priceListClean && t.priceListCode && String(t.priceListCode).toLowerCase().trim() === priceListClean) return true;
+      return false;
+    });
+
+    if (relatedTxns.length === 0) return Number(item.currentStock || item.openingStock || 0);
+
+    let inward = 0;
+    let outward = 0;
+    let transfer = 0;
+    relatedTxns.forEach(t => {
+      const qty = Number(t.quantity || t.receiptQty || t.issueQty || t.transferQty || 0);
+      if (t.type === 'INWARD' || (t.receiptQty != null && Number(t.receiptQty) > 0)) {
+        inward += Number(t.receiptQty || qty);
+      } else if (t.type === 'OUTWARD' || (t.issueQty != null && Number(t.issueQty) > 0)) {
+        outward += Number(t.issueQty || qty);
+      } else if (t.type === 'TRANSFER' || (t.transferQty != null && Number(t.transferQty) > 0)) {
+        transfer += Number(t.transferQty || qty);
+      }
+    });
+
+    const opening = item.openingStock != null ? Number(item.openingStock) : 0;
+    const computed = opening + inward - outward - transfer;
+    return computed;
+  };
 
   const loadStoreData = async () => {
     setIsLoading(true);
@@ -151,83 +295,140 @@ export const StoreInventoryManager: React.FC = () => {
         db.getCollection<OfficerStaffRecord>('officers_staff')
       ]);
 
-      let finalItems = itemsList || [];
-      let finalTxns = txnList || [];
+      // Load custom locally saved items so newly added items are never lost
+      let customSavedItems: StoreItemRecord[] = [];
+      try {
+        const savedRaw = localStorage.getItem('dfccil_custom_store_items');
+        if (savedRaw) customSavedItems = JSON.parse(savedRaw);
+      } catch {}
 
-      // If no items or old demo items, populate with authentic 196 IMSD Source Tally Master records & 638 transactions
-      const isDemoOnly = finalItems.length === 0 || finalItems.length < 150 || finalItems.some(i => i.id.startsWith('STR-00') || i.id === 'STR-010' || i.itemCode === 'PWAY-ERC-MK3');
-      if (isDemoOnly) {
-        try {
-          const tallyData = await decodeTallyData();
-          finalItems = tallyData.items.map((tItem: any, idx: number) => {
-            const code = tItem.sapMaterial || `IMSD-${tItem.ledgerPage}`;
-            const cat = tItem.source === 'C&P Material' ? 'C&P'
-              : tItem.source === 'T&P Material' ? 'T&P'
-              : tItem.source === 'P.Way Material' ? 'P.way material'
-              : tItem.source;
+      // Decode baseline Tally items
+      let tallyItems: StoreItemRecord[] = [];
+      let tallyTxns: StoreTransactionRecord[] = [];
+      try {
+        const tallyData = await decodeTallyData();
+        tallyItems = tallyData.items.map((tItem: any, idx: number) => {
+          const code = tItem.sapMaterial || `IMSD-${tItem.ledgerPage}`;
+          const cat = tItem.source === 'C&P Material' ? 'C&P'
+            : tItem.source === 'T&P Material' ? 'T&P'
+            : tItem.source === 'P.Way Material' ? 'P.way material'
+            : tItem.source;
 
-            return {
-              id: `STR-IMSD-${idx + 1}`,
-              itemCode: code,
-              priceListCode: code,
-              tallyCodeNo: tItem.ledgerPage,
-              accountsFileNo: tItem.ledgerPage,
-              name: tItem.itemName,
-              category: cat,
-              categoryLabel: tItem.source,
-              specification: tItem.sapDescription ? `${tItem.sapDescription} (Page: ${tItem.ledgerPage})` : `Ledger Page: ${tItem.ledgerPage} • ${tItem.source}`,
-              unit: tItem.sapUom || 'Nos',
-              currentStock: tItem.closingBalance ?? 0,
-              minBufferThreshold: 5,
-              location: 'IMSD SMUN Central Store',
-              inwardTotal: tItem.totalReceipt || 0,
-              outwardTotal: tItem.totalIssue || 0,
-              unitRate: 100,
-              lastReceivedDate: '2024-09-18',
-              lastIssuedDate: '2024-09-20',
-              supplier: 'DFCCIL IMSD Depot',
-              remarks: `${tItem.source} (Page ${tItem.ledgerPage}) • SAP: ${tItem.sapMaterial || 'Pending'}`
-            };
-          });
+          return {
+            id: `STR-IMSD-${idx + 1}`,
+            itemCode: code,
+            priceListCode: code,
+            tallyCodeNo: tItem.ledgerPage,
+            accountsFileNo: tItem.ledgerPage,
+            name: tItem.itemName,
+            category: cat,
+            categoryLabel: tItem.source,
+            specification: tItem.sapDescription ? `${tItem.sapDescription} (Page: ${tItem.ledgerPage})` : `Ledger Page: ${tItem.ledgerPage} • ${tItem.source}`,
+            unit: tItem.sapUom || 'Nos',
+            currentStock: tItem.closingBalance ?? 0,
+            minBufferThreshold: 5,
+            location: 'IMSD SMUN Central Store',
+            inwardTotal: tItem.totalReceipt || 0,
+            outwardTotal: tItem.totalIssue || 0,
+            unitRate: 100,
+            lastReceivedDate: '2024-09-18',
+            lastIssuedDate: '2024-09-20',
+            supplier: 'DFCCIL IMSD Depot',
+            remarks: `${tItem.source} (Page ${tItem.ledgerPage}) • SAP: ${tItem.sapMaterial || 'Pending'}`
+          };
+        });
 
-          finalTxns = tallyData.transactions.map((tTxn: any, idx: number): StoreTransactionRecord => {
-            const code = tTxn.sapMaterial || `IMSD-${tTxn.ledgerPage}`;
-            const isOutward = (tTxn.issue || 0) > 0 || (tTxn.transfer || 0) > 0;
-            const qty = (tTxn.receipt || 0) > 0 ? tTxn.receipt! : ((tTxn.issue || 0) > 0 ? tTxn.issue! : (tTxn.transfer || 0));
+        tallyTxns = tallyData.transactions.map((tTxn: any, idx: number): StoreTransactionRecord => {
+          const code = tTxn.sapMaterial || `IMSD-${tTxn.ledgerPage}`;
+          const isOutward = (tTxn.issue || 0) > 0 || (tTxn.transfer || 0) > 0;
+          const qty = (tTxn.receipt || 0) > 0 ? tTxn.receipt! : ((tTxn.issue || 0) > 0 ? tTxn.issue! : (tTxn.transfer || 0));
 
-            return {
-              id: `STXN-${idx + 1}`,
-              date: tTxn.date || '2024-01-01',
-              type: isOutward ? 'OUTWARD' : 'INWARD',
-              itemId: `STR-IMSD-${idx + 1}`,
-              itemCode: code,
-              itemName: tTxn.itemName,
-              quantity: qty,
-              unit: tTxn.sapUom || 'Nos',
-              referenceNo: tTxn.voucher || `VCH-${idx + 1}`,
-              issuedToOrReceivedFrom: tTxn.party || 'IMSD SMUN Section',
-              purposeOrSection: tTxn.purpose || 'Official Railway Maintenance',
-              authorizedBy: 'Store Keeper / APM',
-              receiptQty: tTxn.receipt || undefined,
-              transferQty: tTxn.transfer || undefined,
-              issueQty: tTxn.issue || undefined,
-              balanceQty: tTxn.balance ?? 0,
-              tallyPageNo: tTxn.ledgerPage,
-              createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString()
-            };
-          });
-        } catch (e) {
-          console.error('Error decoding tally data in loadStoreData:', e);
-        }
+          return {
+            id: `STXN-${idx + 1}`,
+            date: tTxn.date || '2024-01-01',
+            type: isOutward ? 'OUTWARD' : 'INWARD',
+            itemId: `STR-IMSD-${idx + 1}`,
+            itemCode: code,
+            itemName: tTxn.itemName,
+            quantity: qty,
+            unit: tTxn.sapUom || 'Nos',
+            referenceNo: tTxn.voucher || `VCH-${idx + 1}`,
+            issuedToOrReceivedFrom: tTxn.party || 'IMSD SMUN Section',
+            purposeOrSection: tTxn.purpose || 'Official Railway Maintenance',
+            authorizedBy: 'Store Keeper / APM',
+            receiptQty: tTxn.receipt || undefined,
+            transferQty: tTxn.transfer || undefined,
+            issueQty: tTxn.issue || undefined,
+            balanceQty: tTxn.balance ?? 0,
+            tallyPageNo: tTxn.ledgerPage,
+            createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString()
+          };
+        });
+      } catch (e) {
+        console.error('Error decoding tally data in loadStoreData:', e);
       }
+
+      // Merge items: Tally Master + DB Items + Custom Saved Items (custom items take precedence)
+      const itemMap = new Map<string, StoreItemRecord>();
+      tallyItems.forEach(i => itemMap.set(i.id, i));
+      (itemsList || []).forEach(i => itemMap.set(i.id, i));
+      customSavedItems.forEach(i => itemMap.set(i.id, i));
+      let finalItems = Array.from(itemMap.values());
+
+      // Merge transactions: Tally Txns + DB Txns
+      const txnMap = new Map<string, StoreTransactionRecord>();
+      tallyTxns.forEach(t => txnMap.set(t.id, t));
+      (txnList || []).forEach(t => txnMap.set(t.id, t));
+      let finalTxns = Array.from(txnMap.values());
+
+      // Reconcile live stock for all items dynamically from transactions
+      finalItems = finalItems.map(item => {
+        const itemCodeClean = String(item.itemCode || '').toLowerCase().trim();
+        const priceListClean = String(item.priceListCode || '').toLowerCase().trim();
+
+        const relatedTxns = finalTxns.filter(t => {
+          if (t.itemId && t.itemId === item.id) return true;
+          if (itemCodeClean && t.itemCode && String(t.itemCode).toLowerCase().trim() === itemCodeClean) return true;
+          if (priceListClean && t.priceListCode && String(t.priceListCode).toLowerCase().trim() === priceListClean) return true;
+          return false;
+        });
+
+        if (relatedTxns.length > 0) {
+          let totalInward = 0;
+          let totalOutward = 0;
+          let totalTransfer = 0;
+          relatedTxns.forEach(t => {
+            const qty = Number(t.quantity || t.receiptQty || t.issueQty || t.transferQty || 0);
+            if (t.type === 'INWARD' || (t.receiptQty != null && Number(t.receiptQty) > 0)) {
+              totalInward += Number(t.receiptQty || qty);
+            } else if (t.type === 'OUTWARD' || (t.issueQty != null && Number(t.issueQty) > 0)) {
+              totalOutward += Number(t.issueQty || qty);
+            } else if (t.type === 'TRANSFER' || (t.transferQty != null && Number(t.transferQty) > 0)) {
+              totalTransfer += Number(t.transferQty || qty);
+            }
+          });
+
+          const opening = item.openingStock != null ? Number(item.openingStock) : 0;
+          const computed = opening + totalInward - totalOutward - totalTransfer;
+          return {
+            ...item,
+            inwardTotal: totalInward,
+            outwardTotal: totalOutward,
+            currentStock: computed
+          };
+        }
+        return item;
+      });
 
       setItems(finalItems);
       setTransactions(finalTxns);
       setCustomCategories(catList || []);
       setStaffList(staff || []);
 
-      if (!selectedItemForTally && finalItems.length > 0) {
-        setSelectedItemForTally(finalItems[0]);
+      if (finalItems.length > 0) {
+        if (!selectedItemForTally || !finalItems.some(i => i.id === selectedItemForTally.id)) {
+          setSelectedItemForTally(finalItems[0]);
+        }
       }
     } catch (err) {
       console.error('Failed to load store data:', err);
@@ -340,7 +541,11 @@ export const StoreInventoryManager: React.FC = () => {
       if (savedKey) finalCategory = savedKey;
     }
 
-    const newItem: StoreItemRecord = {
+    const newItem: StoreItemRecord & {
+      voucherDocUrl?: string;
+      voucherDocType?: 'IMAGE' | 'PDF';
+      voucherDocName?: string;
+    } = {
       id: `STR-${Date.now().toString().slice(-6)}`,
       itemCode: newItemData.itemCode,
       priceListCode: newItemData.priceListCode || newItemData.itemCode,
@@ -359,10 +564,42 @@ export const StoreInventoryManager: React.FC = () => {
       outwardTotal: 0,
       lastReceivedDate: new Date().toISOString().split('T')[0],
       supplier: newItemData.supplier || 'Approved Vendor',
-      remarks: newItemData.remarks || ''
+      remarks: newItemData.remarks || '',
+      voucherDocUrl: newItemData.voucherDocUrl,
+      voucherDocType: newItemData.voucherDocType,
+      voucherDocName: newItemData.voucherDocName
     };
 
     await db.addDocument('store_items', newItem);
+
+    // If initial stock > 0 and attached voucher exists, log initial receipt transaction
+    if (newItem.currentStock > 0) {
+      const initialTxn: StoreTransactionRecord = {
+        id: `TXN-${Date.now().toString().slice(-6)}-INIT`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'INWARD',
+        itemId: newItem.id,
+        itemCode: newItem.itemCode,
+        priceListCode: newItem.priceListCode,
+        itemName: newItem.name,
+        quantity: newItem.currentStock,
+        unit: newItem.unit,
+        referenceNo: `INIT-STOCK-${newItem.itemCode}`,
+        issuedToOrReceivedFrom: newItem.supplier || 'Vendor Receipt',
+        purposeOrSection: 'Initial Depot Stocking',
+        authorizedBy: currentUser?.name || 'Store Incharge',
+        receiptQty: newItem.currentStock,
+        transferQty: 0,
+        issueQty: 0,
+        balanceQty: newItem.currentStock,
+        voucherDocUrl: newItem.voucherDocUrl,
+        voucherDocType: newItem.voucherDocType,
+        voucherDocName: newItem.voucherDocName,
+        createdAt: new Date().toISOString()
+      };
+      await db.addDocument('store_transactions', initialTxn);
+    }
+
     setIsAddItemModalOpen(false);
     setIsCustomCategoryMode(false);
     setCustomCategoryName('');
@@ -423,21 +660,30 @@ export const StoreInventoryManager: React.FC = () => {
       return;
     }
 
+    // Reconcile live available stock from transactions to ensure 100% ledger accuracy
+    const liveAvailable = getItemLiveStock(targetItem);
     const qty = Number(txnFormData.quantity);
-    if (txnType === 'OUTWARD' && targetItem.currentStock < qty) {
-      alert(`⚠️ Insufficient Stock! Current Available: ${targetItem.currentStock} ${targetItem.unit}`);
+
+    if (txnType === 'OUTWARD' && liveAvailable < qty) {
+      alert(`⚠️ Insufficient Stock! Current Available in Ledger: ${liveAvailable} ${targetItem.unit}`);
       return;
     }
 
     const newStock = txnType === 'INWARD'
-      ? targetItem.currentStock + qty
-      : (txnType === 'OUTWARD' ? targetItem.currentStock - qty : targetItem.currentStock);
+      ? liveAvailable + qty
+      : (txnType === 'OUTWARD' ? liveAvailable - qty : liveAvailable);
 
-    const newTxn: StoreTransactionRecord = {
+    const newTxn: StoreTransactionRecord & {
+      voucherDocUrl?: string;
+      voucherDocType?: 'IMAGE' | 'PDF';
+      voucherDocName?: string;
+    } = {
       id: `TXN-${Date.now().toString().slice(-6)}`,
       date: txnFormData.voucherDate || new Date().toISOString().split('T')[0],
       type: txnType,
       itemId: targetItem.id,
+      itemCode: targetItem.itemCode,
+      priceListCode: targetItem.priceListCode,
       itemName: targetItem.name,
       quantity: qty,
       unit: targetItem.unit,
@@ -450,6 +696,9 @@ export const StoreInventoryManager: React.FC = () => {
       transferQty: txnType === 'TRANSFER' ? qty : 0,
       issueQty: txnType === 'OUTWARD' ? qty : 0,
       balanceQty: newStock,
+      voucherDocUrl: txnFormData.voucherDocUrl,
+      voucherDocType: txnFormData.voucherDocType,
+      voucherDocName: txnFormData.voucherDocName,
       createdAt: new Date().toISOString()
     };
 
@@ -470,6 +719,18 @@ export const StoreInventoryManager: React.FC = () => {
     setIsTxnModalOpen(false);
     setIsOnTheFlyMaterialMode(false);
     setOnTheFlyMaterial({ name: '', itemCode: '', unit: 'Nos', category: 'T&P', priceListCode: '49', tallyCodeNo: '1', accountsFileNo: '3195' });
+    setTxnFormData({
+      itemId: '',
+      quantity: 1,
+      referenceNo: '',
+      voucherDate: new Date().toISOString().split('T')[0],
+      issuedToOrReceivedFrom: '',
+      purposeOrSection: 'IMSD/USED',
+      remarks: '',
+      voucherDocUrl: undefined,
+      voucherDocType: undefined,
+      voucherDocName: undefined
+    });
     loadStoreData();
   };
 
@@ -600,6 +861,23 @@ export const StoreInventoryManager: React.FC = () => {
     });
   }, [items, selectedCategoryFilter, searchQuery]);
 
+  const negativeStockItems = useMemo(() => {
+    return items.filter(item => {
+      if (item.currentStock >= 0) return false;
+      if (selectedCategoryFilter !== 'ALL' && item.category !== selectedCategoryFilter) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          item.name.toLowerCase().includes(q) ||
+          item.itemCode.toLowerCase().includes(q) ||
+          (item.priceListCode && String(item.priceListCode).toLowerCase().includes(q)) ||
+          item.specification?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [items, selectedCategoryFilter, searchQuery]);
+
   const filteredTxns = useMemo(() => {
     return transactions.filter(t => {
       if (activeSubTab === 'inward' && t.type !== 'INWARD') return false;
@@ -617,11 +895,166 @@ export const StoreInventoryManager: React.FC = () => {
     });
   }, [transactions, activeSubTab, searchQuery]);
 
-  // Selected item transactions for Departmental Ledger & Tally Book
-  const tallyTransactions = useMemo(() => {
-    if (!selectedItemForTally) return [];
-    return transactions.filter(t => t.itemId === selectedItemForTally.id || t.itemName.toLowerCase() === selectedItemForTally.name.toLowerCase());
+  // Helper to parse any date string to timestamp for ascending sort (oldest to newest)
+  const parseDateToTimestamp = (dStr: string): number => {
+    if (!dStr) return 0;
+    const clean = dStr.trim();
+    if (/^\d{2}[-/.]\d{2}[-/.]\d{4}$/.test(clean)) {
+      const [d, m, y] = clean.split(/[-/.]/).map(Number);
+      return new Date(y, m - 1, d).getTime();
+    }
+    const t = new Date(clean).getTime();
+    return isNaN(t) ? 0 : t;
+  };
+
+  // Helper to format any date to DD-MM-YYYY strictly
+  const formatDateDDMMYYYY = (dStr: string): string => {
+    if (!dStr) return '-';
+    const clean = dStr.trim();
+    if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean;
+    if (/^\d{2}[/.]\d{2}[/.]\d{4}$/.test(clean)) {
+      return clean.replace(/[/.]/g, '-');
+    }
+    const dt = new Date(clean);
+    if (isNaN(dt.getTime())) return clean;
+    const day = String(dt.getDate()).padStart(2, '0');
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const year = dt.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  // Selected item transactions for Departmental Ledger & Tally Book (Sorted Oldest to Newest with Running Balance)
+  // Filter items for Departmental Ledger Autocomplete Search
+  const filteredLedgerItems = useMemo(() => {
+    if (!ledgerSearchQuery.trim()) return items;
+    const q = ledgerSearchQuery.toLowerCase().trim();
+    return items.filter(i =>
+      String(i.name || '').toLowerCase().includes(q) ||
+      String(i.itemCode || '').toLowerCase().includes(q) ||
+      String(i.priceListCode || '').toLowerCase().includes(q) ||
+      String(i.specification || '').toLowerCase().includes(q)
+    );
+  }, [items, ledgerSearchQuery]);
+
+  // Selected item transactions for Departmental Ledger & Tally Book (Sorted Oldest to Newest with Running Balance)
+  const tallyTransactionsData = useMemo(() => {
+    if (!selectedItemForTally) {
+      return { rows: [], totalReceipts: 0, totalTransfers: 0, totalIssues: 0, closingBalance: 0 };
+    }
+
+    const itemCodeClean = String(selectedItemForTally.itemCode || '').toLowerCase().trim();
+    const priceListClean = String(selectedItemForTally.priceListCode || '').toLowerCase().trim();
+
+    const rawTxns = transactions.filter(t => {
+      if (t.itemId && t.itemId === selectedItemForTally.id) return true;
+      if (itemCodeClean && t.itemCode && String(t.itemCode).toLowerCase().trim() === itemCodeClean) return true;
+      if (priceListClean && t.priceListCode && String(t.priceListCode).toLowerCase().trim() === priceListClean) return true;
+      return false;
+    });
+
+    // Sort by date ascending (oldest to newest)
+    const sorted = [...rawTxns].sort((a, b) => {
+      const timeA = parseDateToTimestamp(a.date || a.createdAt);
+      const timeB = parseDateToTimestamp(b.date || b.createdAt);
+      return timeA - timeB;
+    });
+
+    const opening = selectedItemForTally.openingStock != null ? Number(selectedItemForTally.openingStock) : 0;
+    let runningBal = opening;
+    let totalReceipts = 0;
+    let totalTransfers = 0;
+    let totalIssues = 0;
+
+    const rows = sorted.map(tx => {
+      const qty = Number(tx.quantity) || 0;
+      if (tx.type === 'INWARD' || (tx.receiptQty != null && Number(tx.receiptQty) > 0)) {
+        const rQty = Number(tx.receiptQty || qty);
+        runningBal += rQty;
+        totalReceipts += rQty;
+      } else if (tx.type === 'OUTWARD' || (tx.issueQty != null && Number(tx.issueQty) > 0)) {
+        const iQty = Number(tx.issueQty || qty);
+        runningBal -= iQty;
+        totalIssues += iQty;
+      } else if (tx.type === 'TRANSFER' || (tx.transferQty != null && Number(tx.transferQty) > 0)) {
+        const tQty = Number(tx.transferQty || qty);
+        runningBal -= tQty;
+        totalTransfers += tQty;
+      }
+
+      return {
+        ...tx,
+        formattedDate: formatDateDDMMYYYY(tx.date || tx.createdAt),
+        calculatedBalance: runningBal
+      };
+    });
+
+    return {
+      rows,
+      totalReceipts,
+      totalTransfers,
+      totalIssues,
+      closingBalance: runningBal
+    };
   }, [transactions, selectedItemForTally]);
+
+  const handleDeleteTransaction = async (txn: StoreTransactionRecord) => {
+    if (!window.confirm(`Are you sure you want to delete transaction "${txn.referenceNo || txn.id}" (${txn.quantity} ${txn.unit || 'Nos'})? This will update running ledger balances.`)) {
+      return;
+    }
+    try {
+      await db.deleteDocument('store_transactions', txn.id);
+      setTransactions(prev => prev.filter(t => t.id !== txn.id));
+      alert('✅ Transaction deleted successfully.');
+      loadStoreData();
+    } catch (err: any) {
+      alert(`Failed to delete transaction: ${err.message}`);
+    }
+  };
+
+  const handleOpenEditTransaction = (txn: StoreTransactionRecord) => {
+    setEditingTxn(txn);
+    setEditTxnFormData({
+      date: txn.date || new Date().toISOString().split('T')[0],
+      referenceNo: txn.referenceNo || '',
+      issuedToOrReceivedFrom: txn.issuedToOrReceivedFrom || '',
+      purposeOrSection: txn.purposeOrSection || 'IMSD/USED',
+      quantity: Number(txn.quantity || txn.receiptQty || txn.issueQty || txn.transferQty || 1),
+      type: txn.type || (txn.issueQty ? 'OUTWARD' : txn.transferQty ? 'TRANSFER' : 'INWARD'),
+      remarks: txn.remarks || ''
+    });
+    setIsEditTxnModalOpen(true);
+  };
+
+  const handleSaveEditTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTxn) return;
+    try {
+      const qty = Number(editTxnFormData.quantity);
+      const updatedTxn: Partial<StoreTransactionRecord> = {
+        date: editTxnFormData.date,
+        referenceNo: editTxnFormData.referenceNo,
+        issuedToOrReceivedFrom: editTxnFormData.issuedToOrReceivedFrom,
+        purposeOrSection: editTxnFormData.purposeOrSection,
+        quantity: qty,
+        type: editTxnFormData.type,
+        receiptQty: editTxnFormData.type === 'INWARD' ? qty : undefined,
+        issueQty: editTxnFormData.type === 'OUTWARD' ? qty : undefined,
+        transferQty: editTxnFormData.type === 'TRANSFER' ? qty : undefined,
+        remarks: editTxnFormData.remarks
+      };
+
+      await db.updateDocument('store_transactions', editingTxn.id, updatedTxn);
+      setTransactions(prev => prev.map(t => t.id === editingTxn.id ? { ...t, ...updatedTxn } : t));
+      setIsEditTxnModalOpen(false);
+      setEditingTxn(null);
+      alert('✅ Transaction updated successfully in ledger.');
+      loadStoreData();
+    } catch (err: any) {
+      alert(`Failed to update transaction: ${err.message}`);
+    }
+  };
+
+  const tallyTransactions = useMemo(() => tallyTransactionsData.rows, [tallyTransactionsData]);
 
   const exportStoreCsv = () => {
     const headers = ['Item Code', 'Price List Code', 'Tally Code No', 'Item Name', 'Category', 'Specification', 'Current Stock', 'Unit', 'Min Buffer', 'Unit Rate (₹)', 'Location', 'Last Updated'];
@@ -866,6 +1299,18 @@ export const StoreInventoryManager: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveSubTab('negative_stock')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
+              activeSubTab === 'negative_stock'
+                ? 'bg-rose-700 text-white shadow-md ring-2 ring-rose-400'
+                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-900/50 hover:bg-rose-100'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4 text-rose-600" />
+            <span>⚠️ Negative Stock / Data Error ({negativeStockItems.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('inward')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
               activeSubTab === 'inward'
@@ -916,48 +1361,38 @@ export const StoreInventoryManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Pills Bar with Delete Category button */}
+      {/* Category Pills Bar (Clean buttons matching exact screenshot, no delete buttons) */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1 shrink-0">Categories:</span>
         <button
           onClick={() => setSelectedCategoryFilter('ALL')}
           className={`px-3 py-1 rounded-lg text-xs font-bold transition shrink-0 ${
             selectedCategoryFilter === 'ALL'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
           }`}
         >
           All
         </button>
         {allCategories.map(cat => (
-          <div key={cat.id} className="flex items-center shrink-0">
-            <button
-              onClick={() => setSelectedCategoryFilter(cat.id)}
-              className={`px-3 py-1 rounded-l-lg text-xs font-bold transition ${
-                selectedCategoryFilter === cat.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {cat.label}
-            </button>
-            {isSuperAdmin && (
-              <button
-                onClick={() => handleDeleteCategory(cat.id, cat.label)}
-                className="px-1.5 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/60 dark:hover:bg-red-900 text-red-600 rounded-r-lg border-l border-slate-200 dark:border-slate-700 text-[10px] transition"
-                title={`Delete Category ${cat.label}`}
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition shrink-0 ${
+              selectedCategoryFilter === cat.id
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+            }`}
+          >
+            {cat.label}
+          </button>
         ))}
       </div>
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. MASTER INVENTORY & LOW STOCK TABLE */}
+      {/* 1. MASTER INVENTORY, LOW STOCK & NEGATIVE STOCK TABLE */}
       {/* ------------------------------------------------------------------------- */}
-      {(activeSubTab === 'inventory' || activeSubTab === 'low_stock') && (
+      {(activeSubTab === 'inventory' || activeSubTab === 'low_stock' || activeSubTab === 'negative_stock') && (
         <div className="space-y-3">
           {activeSubTab === 'low_stock' && (
             <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-fadeIn">
@@ -981,6 +1416,28 @@ export const StoreInventoryManager: React.FC = () => {
             </div>
           )}
 
+          {activeSubTab === 'negative_stock' && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 rounded-2xl flex items-center justify-between gap-3 shadow-md animate-fadeIn">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-6 h-6 text-rose-600 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black text-rose-900 dark:text-rose-200 uppercase tracking-wide flex items-center gap-2">
+                    <span>⚠️ Data Input Discrepancy &amp; Negative Stock Items ({negativeStockItems.length} Items)</span>
+                  </h4>
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300">
+                    नीचे दिए गए आइटम्स का बैलेंस ऋणात्मक (Negative) है। ऐसा गलत डेटा इनपुट, अधिक निर्गम (Excess Issues), या प्राप्ति (Receipt Voucher) छूट जाने के कारण हुआ है। संबंधित आइटम की Tally Book खोलकर ✏️ Edit से वाउचर सुधारें।
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveSubTab('inventory')}
+                className="px-3 py-1.5 bg-white dark:bg-slate-900 text-rose-800 dark:text-rose-300 border border-rose-300 rounded-xl text-xs font-bold shrink-0 hover:bg-rose-100 transition"
+              >
+                View All Items ({items.length})
+              </button>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
@@ -988,22 +1445,24 @@ export const StoreInventoryManager: React.FC = () => {
                   <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-slate-200 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-slate-700">
                     <th className="p-3.5">Code / Price List</th>
                     <th className="p-3.5">Item Description (वस्तु का विवरण)</th>
-                    <th className="p-3.5">Category</th>
+                    <th className="p-3.5">Category (श्रेणी)</th>
+                    <th className="p-3.5">SAP Code / Catalog</th>
                     <th className="p-3.5">Available Stock</th>
-                    <th className="p-3.5">Min Buffer</th>
-                    <th className="p-3.5">Est. Rate (₹)</th>
-                    <th className="p-3.5">Store Location</th>
-                    <th className="p-3.5 text-right">Quick Actions</th>
+                    <th className="p-3.5">Min Buffer (✏️ Edit)</th>
+                    <th className="p-3.5 text-right">Tally Book Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
-                  {(activeSubTab === 'low_stock' ? lowStockItems : filteredItems).map(item => {
-                    const isLow = item.currentStock <= item.minBufferThreshold;
+                  {(activeSubTab === 'low_stock' ? lowStockItems : (activeSubTab === 'negative_stock' ? negativeStockItems : filteredItems)).map(item => {
+                    const isNegative = item.currentStock < 0;
+                    const isLow = !isNegative && item.currentStock <= item.minBufferThreshold;
                     return (
                       <tr
                         key={item.id}
                         className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${
-                          isLow ? 'bg-red-50/40 dark:bg-red-950/30' : ''
+                          isNegative
+                            ? 'bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-rose-600'
+                            : (isLow ? 'bg-red-50/40 dark:bg-red-950/30' : '')
                         }`}
                       >
                       <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">
@@ -1019,32 +1478,50 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3.5">
                         <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <span>{item.name}</span>
-                          <button
-                            onClick={() => {
-                              setSelectedItemForTally(item);
-                              setActiveSubTab('tally_book');
-                            }}
-                            className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800 hover:bg-purple-200 transition"
-                            title="Open Departmental Tally Ledger for this item"
-                          >
-                            📋 Tally Book
-                          </button>
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400">{item.specification}</div>
                       </td>
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategoryFilter(item.category || 'ALL')}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 transition"
+                          title="Filter by this Category"
+                        >
                           {item.categoryLabel || item.category}
-                        </span>
+                        </button>
+                      </td>
+                      <td className="p-3.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedItemForSapEdit(item);
+                            setSapEditCode(item.sapMaterialCode || '');
+                            setSapEditSpec(item.specification || '');
+                            setIsEditSapModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-300 transition inline-flex items-center gap-1.5 shadow-sm active:scale-95"
+                          title="Change / Edit SAP Material Code (Auto-Fetch from Catalog)"
+                        >
+                          <Edit className="w-3 h-3 text-amber-700 dark:text-amber-400" />
+                          <span>{item.sapMaterialCode ? `${item.sapMaterialCode} (Edit)` : '✏️ Change SAP Code'}</span>
+                        </button>
                       </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5">
                           <span className={`text-sm font-black font-mono ${
-                            isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'
+                            isNegative
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : (isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')
                           }`}>
                             {item.currentStock.toLocaleString()}
                           </span>
                           <span className="text-[10px] text-slate-500 font-bold">{item.unit}</span>
+                          {isNegative && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-600 text-white animate-pulse">
+                              ⚠️ NEGATIVE STOCK
+                            </span>
+                          )}
                           {isLow && (
                             <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-red-100 text-red-800 border border-red-300 animate-pulse">
                               LOW
@@ -1052,62 +1529,33 @@ export const StoreInventoryManager: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">
-                        {item.minBufferThreshold.toLocaleString()} {item.unit}
-                      </td>
-                      <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300">
-                        ₹{(item.unitRate || 0).toLocaleString()}
-                      </td>
-                      <td className="p-3.5 text-slate-600 dark:text-slate-400 text-[11px]">
-                        {item.location}
+                      <td className="p-3.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedItemForBufferEdit(item);
+                            setBufferEditValue(item.minBufferThreshold);
+                            setIsEditBufferModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs font-bold transition inline-flex items-center gap-1.5 shadow-sm active:scale-95"
+                          title="Click to update Minimum Buffer Stock Threshold"
+                        >
+                          <span>{item.minBufferThreshold.toLocaleString()} {item.unit}</span>
+                          <Edit className="w-3 h-3 text-blue-600 dark:text-cyan-400" />
+                        </button>
                       </td>
                       <td className="p-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => setSelectedItemForQR(item)}
-                            className="px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 text-cyan-800 dark:text-cyan-300 rounded-lg text-[11px] font-bold transition border border-cyan-200 dark:border-cyan-800 flex items-center gap-1 shadow-sm"
-                            title="Generate & Print Dynamic QR Code for Bin Label"
-                          >
-                            <QrCode className="w-3.5 h-3.5" />
-                            <span>QR Label</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedItemForTxn(item);
-                              setTxnType('INWARD');
-                              setTxnFormData(prev => ({ ...prev, itemId: item.id, quantity: 1, purposeOrSection: 'IMSD/USED' }));
-                              setIsTxnModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 rounded-lg text-[11px] font-bold transition border border-emerald-200 dark:border-emerald-800"
-                            title="Receive Inward Stock"
-                          >
-                            + Inward
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedItemForTxn(item);
-                              setTxnType('OUTWARD');
-                              setTxnFormData(prev => ({ ...prev, itemId: item.id, quantity: 1, purposeOrSection: 'Track Maintenance' }));
-                              setIsTxnModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 rounded-lg text-[11px] font-bold transition border border-amber-200 dark:border-amber-800"
-                            title="Issue to Staff / Gang"
-                          >
-                            - Issue
-                          </button>
-
-                          {isSuperAdmin && (
-                            <button
-                              onClick={() => handleDeleteItem(item)}
-                              className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg border border-red-200 dark:border-red-800 transition"
-                              title="Delete Material Record"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedItemForTally(item);
+                            setActiveSubTab('tally_book');
+                          }}
+                          className="px-3 py-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center gap-1.5"
+                          title="Open Departmental Tally Ledger for this item"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          <span>📋 Open Tally Book</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -1176,27 +1624,127 @@ export const StoreInventoryManager: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Item Switcher */}
+            {/* Quick Item Switcher with Live Search & Suggestions */}
             <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Select Item:</span>
-                <select
-                  value={selectedItemForTally.id}
-                  onChange={e => {
-                    const sel = items.find(i => i.id === e.target.value);
-                    if (sel) setSelectedItemForTally(sel);
-                  }}
-                  className="px-3 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                >
-                  {items.map(i => (
-                    <option key={i.id} value={i.id}>
-                      {i.priceListCode || i.itemCode} • {i.name} (Stock: {i.currentStock} {i.unit})
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-2 flex-1 min-w-[280px] max-w-xl">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0">🔍 Select / Search Item:</span>
+                <div className="relative flex-1">
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border-2 border-purple-400 dark:border-purple-600 rounded-xl px-3 py-1.5 shadow-sm">
+                    <Search className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Type Item Name, SAP Code, or Price List..."
+                      value={ledgerSearchQuery}
+                      onChange={e => {
+                        setLedgerSearchQuery(e.target.value);
+                        setIsLedgerSearchOpen(true);
+                      }}
+                      onFocus={() => setIsLedgerSearchOpen(true)}
+                      className="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                    />
+                    {ledgerSearchQuery && (
+                      <button
+                        onClick={() => {
+                          setLedgerSearchQuery('');
+                          setIsLedgerSearchOpen(false);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 p-0.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Suggestions Popover */}
+                  {isLedgerSearchOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border-2 border-purple-300 dark:border-purple-700 rounded-2xl shadow-2xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredLedgerItems.length === 0 ? (
+                        <div className="p-4 text-xs text-slate-400 text-center">No matching material items found</div>
+                      ) : (
+                        filteredLedgerItems.slice(0, 40).map(i => (
+                          <button
+                            key={i.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedItemForTally(i);
+                              setLedgerSearchQuery(`${i.priceListCode || i.itemCode} • ${i.name}`);
+                              setIsLedgerSearchOpen(false);
+                            }}
+                            className={`w-full text-left p-3 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-xs transition flex items-center justify-between gap-2 ${
+                              selectedItemForTally.id === i.id ? 'bg-purple-100/70 dark:bg-purple-950/70 font-black' : ''
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-mono font-black text-red-600 dark:text-red-400">
+                                  [{i.priceListCode || i.itemCode}]
+                                </span>
+                                <span className="font-bold text-slate-900 dark:text-white truncate">
+                                  {i.name}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                                Page: {i.tallyCodeNo || '1'} • Category: {i.categoryLabel || i.category}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-cyan-300 font-mono font-black text-xs">
+                                {getItemLiveStock(i)} {i.unit}
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setIsAddItemModalOpen(true)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+                  title="Add New Material Item"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ New Item</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setNewItemData({
+                      ...selectedItemForTally,
+                      itemCode: selectedItemForTally.itemCode,
+                      priceListCode: selectedItemForTally.priceListCode || '',
+                      tallyCodeNo: selectedItemForTally.tallyCodeNo || '',
+                      accountsFileNo: selectedItemForTally.accountsFileNo || '',
+                      name: selectedItemForTally.name,
+                      category: selectedItemForTally.category,
+                      categoryLabel: selectedItemForTally.categoryLabel,
+                      unit: selectedItemForTally.unit,
+                      currentStock: selectedItemForTally.currentStock,
+                      minBufferThreshold: selectedItemForTally.minBufferThreshold,
+                      unitRate: selectedItemForTally.unitRate,
+                      location: selectedItemForTally.location,
+                      specification: selectedItemForTally.specification,
+                      sourceFile: selectedItemForTally.sourceFile || '',
+                      sapMaterialCode: selectedItemForTally.sapMaterialCode || ''
+                    });
+                    setIsAddItemModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 border border-slate-300 dark:border-slate-700 shadow-sm"
+                  title="Edit Master Details / Switch Category"
+                >
+                  <Edit className="w-3 h-3" />
+                  <span>✏️ Edit / Switch Category</span>
+                </button>
+                <button
+                  onClick={() => setSelectedItemForQR(selectedItemForTally)}
+                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+                  title="Generate Dynamic QR Code for Bin Label"
+                >
+                  <QrCode className="w-3 h-3" />
+                  <span>QR Label</span>
+                </button>
                 <button
                   onClick={() => {
                     setSelectedItemForTxn(selectedItemForTally);
@@ -1221,9 +1769,52 @@ export const StoreInventoryManager: React.FC = () => {
                   <ArrowUpRight className="w-3 h-3" />
                   <span>- Issue Voucher</span>
                 </button>
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => handleDeleteItem(selectedItemForTally)}
+                    className="p-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/60 dark:hover:bg-red-900 text-red-600 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800 transition"
+                    title="Delete Material Item"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
+
+          {/* ⚠️ Modification Required / Negative Stock Discrepancy Banner */}
+          {(tallyTransactionsData.closingBalance < 0 || selectedItemForTally.currentStock < 0) && (
+            <div className="m-4 p-4 bg-rose-50 dark:bg-rose-950/80 border-2 border-rose-500 rounded-2xl flex flex-col sm:flex-row items-start justify-between gap-4 shadow-lg animate-fadeIn">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <h4 className="font-black text-rose-900 dark:text-rose-200 text-sm flex items-center gap-2">
+                    <span>⚠️ Modification Required / डेटा विसंगति चेतावनी:</span>
+                    <span className="px-2 py-0.5 bg-rose-600 text-white rounded font-mono font-bold text-xs">
+                      Closing Balance: {tallyTransactionsData.closingBalance.toFixed(2)} {selectedItemForTally.unit}
+                    </span>
+                  </h4>
+                  <p className="text-rose-800 dark:text-rose-300 font-medium leading-relaxed">
+                    इस आइटम <strong>[{selectedItemForTally.priceListCode || selectedItemForTally.itemCode}] {selectedItemForTally.name}</strong> में गलत डेटा इनपुट हुआ है या अधिक निर्गम (Excess Issues) दर्ज हो गया है, जिससे बैलेंस ऋणात्मक (Negative) हो गया है।
+                  </p>
+                  <p className="text-rose-950 dark:text-rose-100 font-bold">
+                    👉 कृपया नीचे दी गई टेबल में वाउचर के ✏️ Edit बटन से मात्रा/विवरण सही करें अथवा <strong>+ Add Receipt Voucher</strong> से प्राप्ति दर्ज करें।
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedItemForTxn(selectedItemForTally);
+                  setTxnType('INWARD');
+                  setTxnFormData(prev => ({ ...prev, itemId: selectedItemForTally.id, quantity: Math.abs(tallyTransactionsData.closingBalance), purposeOrSection: 'IMSD/USED' }));
+                  setIsTxnModalOpen(true);
+                }}
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shrink-0 transition shadow-sm"
+              >
+                + Add Receipt to Balance
+              </button>
+            </div>
+          )}
 
           {/* Authentic Tally Book Table */}
           <div className="overflow-x-auto">
@@ -1238,10 +1829,11 @@ export const StoreInventoryManager: React.FC = () => {
                   <th className="p-3 border border-slate-300 dark:border-slate-700">स्थानांतरण<br/><span className="text-[10px] font-normal">Transfer</span></th>
                   <th className="p-3 border border-slate-300 dark:border-slate-700 bg-amber-50/50 dark:bg-amber-950/20">निर्गम<br/><span className="text-[10px] font-normal">Issues</span></th>
                   <th className="p-3 border border-slate-300 dark:border-slate-700 bg-blue-50/50 dark:bg-blue-950/20 font-black">शेष<br/><span className="text-[10px] font-normal">Balance</span></th>
+                  <th className="p-3 border border-slate-300 dark:border-slate-700 text-center">कार्रवाई<br/><span className="text-[10px] font-normal">Action</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-medium text-slate-800 dark:text-slate-200">
-                {tallyTransactions.length === 0 ? (
+                {tallyTransactionsData.rows.length === 0 ? (
                   <>
                     {/* Default Seed sample rows matching image */}
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
@@ -1253,6 +1845,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">1.00</td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">-</td>
                     </tr>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">18-09-2024</td>
@@ -1263,6 +1856,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">3.00</td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">-</td>
                     </tr>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">18-09-2024</td>
@@ -1273,6 +1867,7 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">4.00</td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">-</td>
                     </tr>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">18-09-2024</td>
@@ -1283,31 +1878,83 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">0.00</td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">6.00</td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-slate-400 text-[11px]">-</td>
                     </tr>
                   </>
                 ) : (
-                  tallyTransactions.map((tx, idx) => (
+                  tallyTransactionsData.rows.map((tx) => (
                     <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-center">
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{tx.date}</td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-bold">{tx.referenceNo}</td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700">{tx.issuedToOrReceivedFrom}</td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">{tx.purposeOrSection}</td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono">
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white">
+                        {tx.formattedDate}
+                      </td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-bold">
+                        {tx.referenceNo || 'Voucher'}
+                      </td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700">
+                        {tx.issuedToOrReceivedFrom || '-'}
+                      </td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono">
+                        {tx.purposeOrSection || 'IMSD/USED'}
+                      </td>
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-emerald-700 dark:text-emerald-400 font-black font-mono bg-emerald-50/20">
                         {tx.type === 'INWARD' ? Number(tx.quantity).toFixed(2) : '0.00'}
                       </td>
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-slate-500">
                         {tx.type === 'TRANSFER' ? Number(tx.quantity).toFixed(2) : '0.00'}
                       </td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-amber-600 font-bold">
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-amber-600 font-bold bg-amber-50/20">
                         {tx.type === 'OUTWARD' ? Number(tx.quantity).toFixed(2) : '0.00'}
                       </td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/30">
-                        {Number(tx.balanceQty ?? selectedItemForTally.currentStock).toFixed(2)}
+                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/40 text-sm">
+                        {Number(tx.calculatedBalance).toFixed(2)}
+                      </td>
+                      <td className="p-2 border border-slate-300 dark:border-slate-700 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditTransaction(tx)}
+                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 transition"
+                            title="Modify Transaction"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTransaction(tx)}
+                            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/60 dark:hover:bg-red-900 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition"
+                            title="Delete Transaction"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
+              {/* Grand Total & Final Balance Footer */}
+              <tfoot>
+                <tr className="bg-[#0f2b5c] text-white font-black text-xs border-t-2 border-slate-900 text-center">
+                  <td colSpan={4} className="p-3 border border-slate-600 text-right pr-4 uppercase tracking-wider">
+                    कुल योग एवं वर्तमान शेष (Total &amp; Closing Balance):
+                  </td>
+                  <td className="p-3 border border-slate-600 text-emerald-300 font-mono font-black text-sm bg-emerald-950/60">
+                    {tallyTransactionsData.rows.length === 0 ? '6.00' : tallyTransactionsData.totalReceipts.toFixed(2)}
+                  </td>
+                  <td className="p-3 border border-slate-600 text-slate-300 font-mono">
+                    {tallyTransactionsData.rows.length === 0 ? '0.00' : tallyTransactionsData.totalTransfers.toFixed(2)}
+                  </td>
+                  <td className="p-3 border border-slate-600 text-amber-300 font-mono font-black text-sm bg-amber-950/60">
+                    {tallyTransactionsData.rows.length === 0 ? '0.00' : tallyTransactionsData.totalIssues.toFixed(2)}
+                  </td>
+                  <td className="p-3 border border-slate-600 text-cyan-300 font-mono font-black text-base bg-blue-950">
+                    {tallyTransactionsData.rows.length === 0 ? '6.00' : tallyTransactionsData.closingBalance.toFixed(2)}
+                  </td>
+                  <td className="p-3 border border-slate-600 text-center text-slate-400 font-mono text-[10px]">
+                    {tallyTransactionsData.rows.length} Txns
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -1338,7 +1985,29 @@ export const StoreInventoryManager: React.FC = () => {
                   return (
                     <tr key={txn.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
                       <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">{txn.date}</td>
-                      <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">{txn.referenceNo}</td>
+                      <td className="p-3.5 font-mono font-bold text-blue-700 dark:text-cyan-400">
+                        <div className="flex items-center gap-1.5">
+                          <span>{txn.referenceNo}</span>
+                          {(txn as any).voucherDocUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedVoucherDoc({
+                                  url: (txn as any).voucherDocUrl,
+                                  isPdf: (txn as any).voucherDocType === 'PDF' || (txn as any).voucherDocUrl.includes('application/pdf'),
+                                  title: txn.itemName,
+                                  refNo: txn.referenceNo
+                                });
+                              }}
+                              className="px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/60 dark:hover:bg-blue-800 text-blue-800 dark:text-cyan-300 text-[9px] font-bold inline-flex items-center gap-1"
+                              title="Click to view attached voucher document"
+                            >
+                              <Paperclip className="w-2.5 h-2.5" />
+                              <span>Doc</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3.5 font-bold text-slate-900 dark:text-white">{txn.itemName}</td>
                       <td className="p-3.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
@@ -1676,6 +2345,92 @@ export const StoreInventoryManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* Voucher Photo & PDF Attachment (< 300 KB photo, <= 2MB PDF) */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                    <span>Attach Official Voucher (Photo or PDF)</span>
+                  </label>
+                  {newItemData.voucherDocUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setNewItemData({ ...newItemData, voucherDocUrl: undefined, voucherDocType: undefined, voucherDocName: undefined })}
+                      className="text-[10px] text-red-600 font-bold hover:underline"
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
+                </div>
+
+                {newItemData.voucherDocUrl ? (
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {newItemData.voucherDocType === 'PDF' ? (
+                        <FileText className="w-6 h-6 text-red-500 shrink-0" />
+                      ) : (
+                        <img src={newItemData.voucherDocUrl} alt="Voucher Preview" className="w-10 h-10 rounded-lg object-cover border border-slate-300 shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">{newItemData.voucherDocName || 'Attached Voucher'}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {newItemData.voucherDocType === 'PDF' ? 'PDF Document (Max 300 KB)' : 'WhatsApp Compressed Photo (<300 KB)'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
+                      Attached
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.type.includes('pdf')) {
+                          if (file.size > 300 * 1024) {
+                            alert('⚠️ PDF size exceeds 300 KB limit! Please upload a PDF under 300 KB.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            setNewItemData(prev => ({
+                              ...prev,
+                              voucherDocUrl: evt.target?.result as string,
+                              voucherDocType: 'PDF',
+                              voucherDocName: file.name
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        } else {
+                          setIsCompressingVoucher(true);
+                          try {
+                            const compressed = await compressImageWhatsAppLevel(file);
+                            setNewItemData(prev => ({
+                              ...prev,
+                              voucherDocUrl: compressed,
+                              voucherDocType: 'IMAGE',
+                              voucherDocName: file.name
+                            }));
+                          } catch (err) {
+                            console.error('Image compression error:', err);
+                          } finally {
+                            setIsCompressingVoucher(false);
+                          }
+                        }
+                      }}
+                      className="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Supported: Photos (auto WhatsApp-compressed &lt; 300 KB) and PDFs (Max 2 MB limit).
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
@@ -1959,6 +2714,92 @@ export const StoreInventoryManager: React.FC = () => {
                 />
               </div>
 
+              {/* Voucher Photo & PDF Attachment (< 300 KB photo, <= 2MB PDF) */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-amber-600 dark:text-cyan-400" />
+                    <span>Attach Official Voucher (Photo or PDF)</span>
+                  </label>
+                  {txnFormData.voucherDocUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setTxnFormData({ ...txnFormData, voucherDocUrl: undefined, voucherDocType: undefined, voucherDocName: undefined })}
+                      className="text-[10px] text-red-600 font-bold hover:underline"
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
+                </div>
+
+                {txnFormData.voucherDocUrl ? (
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {txnFormData.voucherDocType === 'PDF' ? (
+                        <FileText className="w-6 h-6 text-red-500 shrink-0" />
+                      ) : (
+                        <img src={txnFormData.voucherDocUrl} alt="Voucher Preview" className="w-10 h-10 rounded-lg object-cover border border-slate-300 shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">{txnFormData.voucherDocName || 'Attached Voucher'}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {txnFormData.voucherDocType === 'PDF' ? 'PDF Document (Max 300 KB)' : 'WhatsApp Compressed Photo (<300 KB)'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
+                      Attached
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.type.includes('pdf')) {
+                          if (file.size > 300 * 1024) {
+                            alert('⚠️ PDF size exceeds 300 KB limit! Please upload a PDF under 300 KB.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            setTxnFormData(prev => ({
+                              ...prev,
+                              voucherDocUrl: evt.target?.result as string,
+                              voucherDocType: 'PDF',
+                              voucherDocName: file.name
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        } else {
+                          setIsCompressingVoucher(true);
+                          try {
+                            const compressed = await compressImageWhatsAppLevel(file);
+                            setTxnFormData(prev => ({
+                              ...prev,
+                              voucherDocUrl: compressed,
+                              voucherDocType: 'IMAGE',
+                              voucherDocName: file.name
+                            }));
+                          } catch (err) {
+                            console.error('Image compression error:', err);
+                          } finally {
+                            setIsCompressingVoucher(false);
+                          }
+                        }
+                      }}
+                      className="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Attach signed store receipt/issue voucher copy (Photos WhatsApp-compressed &lt;300 KB, PDFs Max 300 KB limit).
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
@@ -1977,6 +2818,268 @@ export const StoreInventoryManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 5.3 EDIT / MODIFY TRANSACTION MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {isEditTxnModalOpen && editingTxn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                <span>Modify Transaction (वाउचर संशोधन)</span>
+              </h3>
+              <button
+                onClick={() => {
+                  setIsEditTxnModalOpen(false);
+                  setEditingTxn(null);
+                }}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditTransaction} className="space-y-3 text-xs">
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white">{editingTxn.itemName}</div>
+                <div className="font-mono text-slate-500 text-[11px]">
+                  Voucher: {editingTxn.referenceNo || 'N/A'} • Transaction ID: {editingTxn.id}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">Transaction Type</label>
+                  <select
+                    value={editTxnFormData.type}
+                    onChange={e => setEditTxnFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                  >
+                    <option value="INWARD">Receipt (प्राप्ति)</option>
+                    <option value="OUTWARD">Issue (निर्गम)</option>
+                    <option value="TRANSFER">Transfer (स्थानांतरण)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">Date (तारीख)</label>
+                  <input
+                    type="date"
+                    value={editTxnFormData.date}
+                    onChange={e => setEditTxnFormData(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">Quantity (मात्रा)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editTxnFormData.quantity}
+                    onChange={e => setEditTxnFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold font-mono"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">Voucher No. & Date</label>
+                  <input
+                    type="text"
+                    value={editTxnFormData.referenceNo}
+                    onChange={e => setEditTxnFormData(prev => ({ ...prev, referenceNo: e.target.value }))}
+                    placeholder="e.g. Glass/771 Dated 10.09.2024"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">From Whom Received / To Whom Issued</label>
+                <input
+                  type="text"
+                  value={editTxnFormData.issuedToOrReceivedFrom}
+                  onChange={e => setEditTxnFormData(prev => ({ ...prev, issuedToOrReceivedFrom: e.target.value }))}
+                  placeholder="e.g. CIODW Ami Bartan Bhandar / Track Unit"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">Purpose / Section</label>
+                <input
+                  type="text"
+                  value={editTxnFormData.purposeOrSection}
+                  onChange={e => setEditTxnFormData(prev => ({ ...prev, purposeOrSection: e.target.value }))}
+                  placeholder="e.g. IMSD/USED"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 dark:text-slate-400 mb-1 font-bold">Remarks (टिप्पणी)</label>
+                <input
+                  type="text"
+                  value={editTxnFormData.remarks || ''}
+                  onChange={e => setEditTxnFormData(prev => ({ ...prev, remarks: e.target.value }))}
+                  placeholder="Optional remarks..."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditTxnModalOpen(false);
+                    setEditingTxn(null);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 5.5 EDIT MIN BUFFER THRESHOLD MODAL */}
+      {/* ------------------------------------------------------------------------- */}
+      {isEditBufferModalOpen && selectedItemForBufferEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                <span>Update Minimum Buffer Stock</span>
+              </h3>
+              <button onClick={() => setIsEditBufferModalOpen(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+              <div className="font-bold text-slate-900 dark:text-white">{selectedItemForBufferEdit.name}</div>
+              <div className="font-mono text-slate-500 text-[11px]">
+                Code: {selectedItemForBufferEdit.itemCode} • Current Available: {selectedItemForBufferEdit.currentStock} {selectedItemForBufferEdit.unit}
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-bold text-xs text-slate-700 dark:text-slate-300 mb-1">
+                New Minimum Buffer Threshold ({selectedItemForBufferEdit.unit}) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={bufferEditValue}
+                onChange={e => setBufferEditValue(Number(e.target.value))}
+                className="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                When stock falls below this quantity, automatic low-stock alerts are triggered.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsEditBufferModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (selectedItemForBufferEdit) {
+                    await db.updateDocument('store_items', selectedItemForBufferEdit.id, {
+                      minBufferThreshold: bufferEditValue
+                    });
+                    try {
+                      await db.updateDocument('store_inventory' as any, selectedItemForBufferEdit.id, {
+                        minBufferThreshold: bufferEditValue
+                      });
+                    } catch (e) {}
+                    setIsEditBufferModalOpen(false);
+                    await loadStoreData();
+                  }
+                }}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md"
+              >
+                Update Threshold
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 5.6 VOUCHER DOCUMENT VIEWER MODAL (PHOTO / PDF) */}
+      {/* ------------------------------------------------------------------------- */}
+      {selectedVoucherDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-scaleUp text-white flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div>
+                <h4 className="text-sm font-bold text-cyan-300 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-cyan-400" />
+                  <span>Voucher Document • {selectedVoucherDoc.title}</span>
+                </h4>
+                <p className="text-xs text-slate-400 font-mono">Ref No: {selectedVoucherDoc.refNo}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedVoucherDoc.url}
+                  download={`Voucher_${selectedVoucherDoc.refNo || 'Doc'}`}
+                  className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedVoucherDoc(null)}
+                  className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 flex-1 overflow-y-auto flex items-center justify-center bg-black/50">
+              {selectedVoucherDoc.isPdf ? (
+                <iframe
+                  src={selectedVoucherDoc.url}
+                  title="Voucher PDF Document"
+                  className="w-full h-[580px] rounded-2xl border border-slate-800"
+                />
+              ) : (
+                <img
+                  src={selectedVoucherDoc.url}
+                  alt="Voucher Document"
+                  className="max-h-[65vh] max-w-full rounded-2xl object-contain shadow-2xl border border-slate-800"
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -2116,7 +3219,7 @@ export const StoreInventoryManager: React.FC = () => {
                           <div>
                             <span className="text-[8px] font-bold text-slate-400 uppercase block">AVAILABLE</span>
                             <span className="font-black font-mono text-emerald-700">
-                              {selectedItemForQR.currentStock} {selectedItemForQR.unit}
+                              {getItemLiveStock(selectedItemForQR)} {selectedItemForQR.unit}
                             </span>
                           </div>
 
@@ -2223,6 +3326,202 @@ export const StoreInventoryManager: React.FC = () => {
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 9. CHANGE / EDIT SAP MATERIAL CODE MODAL (Requirement 5) */}
+      {/* ------------------------------------------------------------------------- */}
+      {isEditSapModalOpen && selectedItemForSapEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl shadow-2xl p-6 space-y-4 animate-scaleUp max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 rounded-2xl border border-amber-300 dark:border-amber-800">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Change / Edit SAP Material Code
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Master Inventory · Auto-Fetch SAP Material Code &amp; Specifications
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditSapModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Target Item Details Card */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Target Item</span>
+                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-[#123b72] border border-blue-200 uppercase">
+                  {selectedItemForSapEdit.category}
+                </span>
+              </div>
+              <div className="font-black text-slate-900 dark:text-white text-sm">
+                {selectedItemForSapEdit.name}
+              </div>
+              <div className="text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between font-mono">
+                <span>Stock: {getItemLiveStock(selectedItemForSapEdit)} {selectedItemForSapEdit.unit}</span>
+                <span>PL: {selectedItemForSapEdit.priceListCode || selectedItemForSapEdit.itemCode}</span>
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-3.5">
+              {/* Option 1: Live Search & Scrollable Selection from SAP Material Master */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    ⚡ Search &amp; Select from Catalog:
+                  </label>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
+                    {filteredSapModalMaterials.length} Materials
+                  </span>
+                </div>
+                
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search SAP Code, ERC, Liners, Switch, Jack, Torch, etc..."
+                    value={sapModalSearch}
+                    onChange={(e) => setSapModalSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 font-medium"
+                  />
+                  {sapModalSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setSapModalSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Scrollable List with Smooth Scrolling */}
+                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                  {filteredSapModalMaterials.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      No SAP materials matching "{sapModalSearch}"
+                    </div>
+                  ) : (
+                    filteredSapModalMaterials.map(mat => {
+                      const isSelected = sapEditCode === mat.code;
+                      return (
+                        <button
+                          key={`${mat.code}-${mat.plant}`}
+                          type="button"
+                          onClick={() => {
+                            setSapEditCode(mat.code);
+                            setSapEditSpec(mat.description.replace(/^"|"$/g, '').trim());
+                          }}
+                          className={`w-full p-2.5 text-left hover:bg-amber-50 dark:hover:bg-amber-950/40 transition flex items-center justify-between gap-2 ${
+                            isSelected ? 'bg-amber-100/70 dark:bg-amber-900/50 font-bold border-l-4 border-amber-600' : ''
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs text-slate-900 dark:text-white truncate font-bold">
+                              {mat.description.replace(/^"|"$/g, '').trim()}
+                            </div>
+                            <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                              <span>UOM: {mat.uom || 'Nos'}</span>
+                              <span>•</span>
+                              <span className="truncate">{mat.plantDescription || mat.plant}</span>
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 font-mono font-bold text-[11px] text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shrink-0">
+                            {mat.code}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Option 2: Direct SAP Material Code Input */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                  Selected SAP Material Code (8 to 10 Digits) *
+                </label>
+                <input
+                  type="text"
+                  value={sapEditCode}
+                  onChange={(e) => setSapEditCode(e.target.value)}
+                  placeholder="e.g. 10001050"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-600 shadow-sm"
+                />
+              </div>
+
+              {/* Specification / Description */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                  Specification / Drawing Reference
+                </label>
+                <input
+                  type="text"
+                  value={sapEditSpec}
+                  onChange={(e) => setSapEditSpec(e.target.value)}
+                  placeholder="e.g. RDSO/T-3701 Standard Drawing"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-600 shadow-sm"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsEditSapModalOpen(false)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!selectedItemForSapEdit) return;
+                  const trimmed = sapEditCode.trim();
+                  const updatedSpec = sapEditSpec.trim() || selectedItemForSapEdit.specification;
+                  
+                  // Update local items state
+                  setItems(prev => prev.map(i => i.id === selectedItemForSapEdit.id ? { ...i, sapMaterialCode: trimmed, specification: updatedSpec } : i));
+                  
+                  // Update database collections
+                  try {
+                    await Promise.all([
+                      db.updateDocument('store_items' as any, selectedItemForSapEdit.id, { sapMaterialCode: trimmed, specification: updatedSpec }),
+                      db.updateDocument('store_inventory' as any, selectedItemForSapEdit.id, { sapMaterialCode: trimmed, specification: updatedSpec })
+                    ]);
+                  } catch (err) {
+                    console.error('Error updating SAP material code:', err);
+                  }
+
+                  if (selectedItemForTally && selectedItemForTally.id === selectedItemForSapEdit.id) {
+                    setSelectedItemForTally(prev => prev ? { ...prev, sapMaterialCode: trimmed, specification: updatedSpec } : null);
+                  }
+
+                  setIsEditSapModalOpen(false);
+                  setSelectedItemForSapEdit(null);
+                }}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black transition shadow-md active:scale-95 flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save SAP Code</span>
               </button>
             </div>
           </div>

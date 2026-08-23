@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { db } from '../services/database.ts';
 import {
+  Calendar,
   ShieldCheck,
   User,
   Key,
@@ -227,6 +228,71 @@ export const LoginDashboard: React.FC<LoginDashboardProps> = ({ onOpenQRModal })
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>WhatsApp Chat</span>
                 </a>
+              </div>
+            </div>
+
+            {/* 🌟 MY PROFILE: OFFICIAL LEAVE BALANCES & ATTENDANCE STATUS */}
+            <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-md">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                    My Official Leave Balances (Leave Ledger)
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400">Year 2026</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl">
+                  <span className="text-[10px] font-bold uppercase text-blue-300 block">LAP (Earned)</span>
+                  <span className="text-2xl font-black text-white mt-1 block">30</span>
+                  <span className="text-[9px] text-slate-400">Days Available</span>
+                </div>
+
+                <div className="p-3 bg-indigo-950/40 border border-indigo-800/60 rounded-xl">
+                  <span className="text-[10px] font-bold uppercase text-indigo-300 block">LHAP (Medical)</span>
+                  <span className="text-2xl font-black text-white mt-1 block">20</span>
+                  <span className="text-[9px] text-slate-400">Days Available</span>
+                </div>
+
+                <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl">
+                  <span className="text-[10px] font-bold uppercase text-emerald-300 block">CL (Casual)</span>
+                  <span className="text-2xl font-black text-white mt-1 block">8</span>
+                  <span className="text-[9px] text-slate-400">Days Available</span>
+                </div>
+
+                <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl">
+                  <span className="text-[10px] font-bold uppercase text-amber-300 block">RH (Restricted)</span>
+                  <span className="text-2xl font-black text-white mt-1 block">2</span>
+                  <span className="text-[9px] text-slate-400">Days Available</span>
+                </div>
+              </div>
+
+              {/* Attendance Status Summary */}
+              <div className="pt-2 border-t border-slate-800/80">
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-bold text-slate-300">My Monthly Attendance Performance:</span>
+                  <span className="font-bold text-emerald-400">96.2% Present Rate</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-[11px] text-center font-mono">
+                  <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[9px]">PRESENT</span>
+                    <span className="font-black text-emerald-400">25 Days</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[9px]">ABSENT</span>
+                    <span className="font-black text-slate-400">0 Days</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[9px]">LEAVES</span>
+                    <span className="font-black text-amber-400">1 Day</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[9px]">REST/OFF</span>
+                    <span className="font-black text-blue-400">4 Days</span>
+                  </div>
+                </div>
               </div>
             </div>
 

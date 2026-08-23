@@ -184,6 +184,52 @@ export const PWayWorkManager: React.FC = () => {
   const [inspectionStatusFilter, setInspectionStatusFilter] = useState<string>('ALL');
   const [manpowerFilter, setManpowerFilter] = useState<'ALL' | 'SHORTAGE_ONLY' | 'FULL_STRENGTH'>('ALL');
 
+  // Photo Lightbox & Compression State (MTS Photo Upload)
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{
+    url: string;
+    title: string;
+    uploader: string;
+    date: string;
+    km: string;
+  } | null>(null);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+
+  // WhatsApp-level Client Side Image Compression Helper (~100-200 KB)
+  const compressImageWhatsAppLevel = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200; // WhatsApp standard resolution
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(e.target?.result as string);
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Modals
   const [isAddProgressModalOpen, setIsAddProgressModalOpen] = useState(false);
   const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
@@ -204,7 +250,8 @@ export const PWayWorkManager: React.FC = () => {
     supervisor: 'Gurpreet Singh (Mate / 9876543210)',
     dfccilRep: 'Pinki Sharma (MTS / 9592751503)',
     status: 'COMPLETED',
-    remarks: ''
+    remarks: '',
+    photos: []
   });
 
   const [isAddProgramModalOpen, setIsAddProgramModalOpen] = useState(false);
@@ -961,10 +1008,11 @@ export const PWayWorkManager: React.FC = () => {
                     <th className="p-3">KM From – To</th>
                     <th className="p-3">Section</th>
                     <th className="p-3">Category</th>
-                    <th className="p-3 min-w-[200px]">Work Done</th>
+                    <th className="p-3 min-w-[180px]">Work Done</th>
                     <th className="p-3">Output</th>
                     <th className="p-3">Supervisor (Mate)</th>
                     <th className="p-3">DFCCIL Rep (MTS)</th>
+                    <th className="p-3">Photo (MTS)</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-right">Actions</th>
                   </tr>
@@ -973,6 +1021,7 @@ export const PWayWorkManager: React.FC = () => {
                   {filteredDailyProgress.map((item, idx) => {
                     const lengthKm = Math.abs(item.toKm - item.fromKm).toFixed(3);
                     const isShortage = item.numPersons < SANCTIONED_GANG_STRENGTH;
+                    const photoSrc = item.photoUrl || (item.photos && item.photos.length > 0 ? item.photos[0] : null);
                     return (
                       <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                         <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
@@ -1006,6 +1055,33 @@ export const PWayWorkManager: React.FC = () => {
                           <span className="px-2 py-0.5 bg-purple-50 text-purple-900 border border-purple-200 rounded font-semibold text-[11px]">
                             {item.dfccilRep || 'Pinki Sharma (MTS)'}
                           </span>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          {photoSrc ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPhotoForModal({
+                                  url: photoSrc,
+                                  title: item.workCategoryTitle || item.workCategory,
+                                  uploader: item.dfccilRep || 'MTS Representative',
+                                  date: item.date,
+                                  km: `Km ${item.fromKm.toFixed(3)} – ${item.toKm.toFixed(3)} (${item.section})`
+                                });
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2 py-1 bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900 border border-cyan-300 dark:border-cyan-800 rounded-xl text-cyan-800 dark:text-cyan-300 font-bold text-[11px] transition shadow-sm active:scale-95"
+                              title="Click to view full size photo uploaded by MTS"
+                            >
+                              <img
+                                src={photoSrc}
+                                alt="MTS Progress"
+                                className="w-5 h-5 rounded-md object-cover border border-cyan-400 shrink-0"
+                              />
+                              <span>📸 Photo</span>
+                            </button>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">—</span>
+                          )}
                         </td>
                         <td className="p-3">
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -1284,6 +1360,76 @@ export const PWayWorkManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* MTS Field Progress Photo Upload */}
+              <div className="p-3.5 bg-cyan-50/60 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-900 dark:text-white font-bold text-xs flex items-center gap-1.5">
+                    <span>📸 Site Progress Photo (Uploaded by MTS)</span>
+                    <span className="text-[10px] text-cyan-700 dark:text-cyan-400 font-normal">
+                      (WhatsApp level auto-compression &lt; 200 KB)
+                    </span>
+                  </label>
+                  {(progressFormData.photoUrl || (progressFormData.photos && progressFormData.photos.length > 0)) && (
+                    <button
+                      type="button"
+                      onClick={() => setProgressFormData({ ...progressFormData, photoUrl: undefined, photos: [] })}
+                      className="text-[10px] text-red-600 dark:text-red-400 font-bold hover:underline"
+                    >
+                      ✕ Remove Photo
+                    </button>
+                  )}
+                </div>
+
+                {progressFormData.photoUrl || (progressFormData.photos && progressFormData.photos.length > 0) ? (
+                  <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-cyan-300 dark:border-cyan-700">
+                    <img
+                      src={progressFormData.photoUrl || progressFormData.photos![0]}
+                      alt="MTS Progress"
+                      className="w-16 h-16 rounded-lg object-cover border-2 border-cyan-400 shadow-sm shrink-0"
+                    />
+                    <div className="text-xs space-y-1 min-w-0">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold block flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Photo Ready &amp; Compressed</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono block truncate">
+                        Uploaded by: {progressFormData.dfccilRep || 'MTS Representative'}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsCompressingPhoto(true);
+                        try {
+                          const compressed = await compressImageWhatsAppLevel(file);
+                          setProgressFormData(prev => ({
+                            ...prev,
+                            photoUrl: compressed,
+                            photos: [compressed]
+                          }));
+                        } catch (err) {
+                          console.error('Error compressing image:', err);
+                        } finally {
+                          setIsCompressingPhoto(false);
+                        }
+                      }}
+                      className="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"
+                    />
+                    {isCompressingPhoto && (
+                      <span className="text-[10px] text-cyan-600 font-bold animate-pulse mt-1 block">
+                        ⏳ Compressing photo to WhatsApp standard (~100 KB)...
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
@@ -1300,6 +1446,56 @@ export const PWayWorkManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------------------------
+          MODAL: FULL SIZE PHOTO LIGHTBOX (Uploaded by MTS)
+      ---------------------------------------------------------------------- */}
+      {selectedPhotoForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scaleUp text-white">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div>
+                <h4 className="text-sm font-bold text-cyan-300 flex items-center gap-2">
+                  <span>📸 Gang Work Site Photo</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+                    MTS Field Capture
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-300 font-medium">{selectedPhotoForModal.title} • {selectedPhotoForModal.km}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPhotoForModal(null)}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 bg-black/60 flex items-center justify-center max-h-[65vh] overflow-hidden">
+              <img
+                src={selectedPhotoForModal.url}
+                alt="Full Size Site Progress"
+                className="max-h-[60vh] max-w-full rounded-2xl object-contain shadow-2xl border border-slate-800"
+              />
+            </div>
+
+            <div className="p-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs">
+              <div className="text-[11px] text-slate-400 space-y-0.5">
+                <div>Uploaded by MTS: <span className="font-bold text-white">{selectedPhotoForModal.uploader}</span></div>
+                <div className="font-mono text-[10px] text-cyan-300">Date: {selectedPhotoForModal.date}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPhotoForModal(null)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

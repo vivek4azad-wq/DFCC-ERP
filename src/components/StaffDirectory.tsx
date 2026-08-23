@@ -136,8 +136,48 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
  const photoFileInputRef = useRef<HTMLInputElement | null>(null);
  const selfieInputRef = useRef<HTMLInputElement | null>(null);
+  // Client-Side Canvas Image Compression (< 40 KB JPEG)
+  const compressStaffPhoto = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image for compression'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read photo file'));
+      reader.readAsDataURL(file);
+    });
+  };
 
- // Quick Single-Assign Modal
+  // Quick Single-Assign Modal
  const [quickAssignTarget, setQuickAssignTarget] = useState<{
  type: 'patrol' | 'keyman';
  id: string;
@@ -225,6 +265,8 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  id: string;
  name: string;
  } | null>(null);
+
+ const [staffViewMode, setStaffViewMode] = useState<'card' | 'list'>('card');
 
  const isSuperAdmin = role === 'SUPER_ADMIN';
 
@@ -528,26 +570,39 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  );
  }, [staffList, searchQuery]);
 
- const outsourcedStaff = useMemo(() => {
- let all = staffList.filter(
- s => s.employmentType === 'OUTSOURCED' && s.role !== 'SUPER_ADMIN' && s.role !== 'OFFICER'
- );
- if (outsourceFilter === 'OFFICE') {
- all = all.filter(s => /computer|cleaner|sweeper|pump|office\s*boy|gardener/i.test(s.post));
- } else if (outsourceFilter === 'GANG') {
- all = all.filter(s => /supervisor|mate|gangman|track\s*gang/i.test(s.post));
- } else if (outsourceFilter === 'MAINTAINER') {
- all = all.filter(s => /maintenance|maintainer|track\s*maintainer/i.test(s.post));
- }
- if (!searchQuery.trim()) return all;
- const q = searchQuery.toLowerCase();
- return all.filter(
- s =>
- s.name.toLowerCase().includes(q) ||
- (s.nameHi || '').toLowerCase().includes(q) ||
- s.post.toLowerCase().includes(q)
- );
- }, [staffList, outsourceFilter, searchQuery]);
+  const outsourcedStaff = useMemo(() => {
+    let all = staffList.filter(s => {
+      const isPerm = s.employmentType === 'REGULAR' || s.employmentType === 'DEPUTATION' || s.role === 'SUPER_ADMIN' || s.role === 'OFFICER' || s.staffCategory === 'PERMANENT';
+      if (isPerm) return false;
+      const postLower = (s.post || s.designation || '').toLowerCase();
+      const empType = (s.employmentType || '').toUpperCase();
+      const sectionLower = (s.assignedSection || s.headquarters || '').toLowerCase();
+      // Exclude field Ex-Servicemen who belong to dedicated tabs (Keymen, Patrolmen, Gatemen, Bridge Watchmen)
+      const isExServicemanPost = empType === 'KEYMAN' || empType.includes('PATROL') || empType === 'GATEMAN' || empType === 'BR_WATCHMAN' ||
+        postLower.includes('keyman') || postLower.includes('patrol') || postLower.includes('gateman') || postLower.includes('gate') || postLower.includes('watchman') ||
+        sectionLower.includes('spd') || sectionLower.includes('spn') || sectionLower.includes('beat no') || s.lcNo || s.bridgeNoOrKm ||
+        (s.id && String(s.id).startsWith('KM-')) || (s.id && String(s.id).startsWith('gm_')) || (s.id && String(s.id).startsWith('wm_'));
+      if (isExServicemanPost) return false;
+      return true;
+    });
+    if (outsourceFilter === 'OFFICE') {
+      all = all.filter(s => /computer|cleaner|sweeper|pump|office\s*boy|gardener|cook|driver|peon/i.test(s.post));
+    } else if (outsourceFilter === 'GANG') {
+      all = all.filter(s => /supervisor|mate|gangman|track\s*gang/i.test(s.post));
+    } else if (outsourceFilter === 'MAINTAINER') {
+      all = all.filter(s => /maintenance|maintainer|track\s*maintainer|mts/i.test(s.post));
+    }
+    if (!searchQuery.trim()) return all;
+    const q = searchQuery.toLowerCase();
+    return all.filter(
+      s =>
+        s.name.toLowerCase().includes(q) ||
+        (s.nameHi || '').toLowerCase().includes(q) ||
+        s.post.toLowerCase().includes(q) ||
+        (s.awpoId || '').toLowerCase().includes(q) ||
+        (s.phone || '').includes(q)
+    );
+  }, [staffList, outsourceFilter, searchQuery]);
 
  const filteredKeymen = useMemo(() => {
  if (!searchQuery.trim()) return keymenList;
@@ -755,53 +810,61 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  );
  }, [dayPatrols, nightPatrols]);
 
- const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !photoModalTarget) return;
 
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const base64 = ev.target?.result as string;
+    try {
+      setIsUploadingPhoto(true);
+      const base64 = await compressStaffPhoto(file);
       if (base64) {
-        try {
-          setIsUploadingPhoto(true);
-          if (photoModalTarget.collection === 'level_crossings') {
-            const lcs = await db.getCollection<LevelCrossingRecord>('level_crossings');
-            for (const lc of lcs) {
-              if (Array.isArray(lc.gatemen)) {
-                const idx = lc.gatemen.findIndex((g: any) => g.id === photoModalTarget.id || g.name === photoModalTarget.name);
-                if (idx !== -1) {
-                  const updatedGatemen = [...lc.gatemen];
-                  updatedGatemen[idx] = { ...updatedGatemen[idx], photoUrl: base64 };
-                  await db.updateDocument('level_crossings', lc.id, { gatemen: updatedGatemen } as any, currentUser);
-                  break;
-                }
+        if (photoModalTarget.collection === 'level_crossings') {
+          const lcs = await db.getCollection<LevelCrossingRecord>('level_crossings');
+          for (const lc of lcs) {
+            if (Array.isArray(lc.gatemen)) {
+              const idx = lc.gatemen.findIndex((g: any) => g.id === photoModalTarget.id || g.name === photoModalTarget.name);
+              if (idx !== -1) {
+                const updatedGatemen = [...lc.gatemen];
+                updatedGatemen[idx] = { ...updatedGatemen[idx], photoUrl: base64 };
+                await db.updateDocument('level_crossings', lc.id, { gatemen: updatedGatemen } as any, currentUser);
+                break;
               }
             }
-            // Also update officers_staff if matching
-            const offList = await db.getCollection<OfficerStaffRecord>('officers_staff');
-            const matchOff = offList.find(o => o.name === photoModalTarget.name || o.awpoId === photoModalTarget.id);
-            if (matchOff) {
-              await db.updateDocument('officers_staff', matchOff.id, { photoUrl: base64 } as any, currentUser);
-            }
-          } else {
-            await db.updateDocument(
-              photoModalTarget.collection,
-              photoModalTarget.id,
-              { photoUrl: base64 } as any,
-              currentUser
-            );
           }
-          await loadAllData();
-          setPhotoModalTarget(null);
-        } catch (err: any) {
-          alert(`Failed to save photo: ${err.message}`);
-        } finally {
-          setIsUploadingPhoto(false);
+          // Also update officers_staff if matching
+          const offList = await db.getCollection<OfficerStaffRecord>('officers_staff');
+          const matchOff = offList.find(o => o.name === photoModalTarget.name || o.awpoId === photoModalTarget.id);
+          if (matchOff) {
+            await db.updateDocument('officers_staff', matchOff.id, { photoUrl: base64 } as any, currentUser);
+          }
+        } else {
+          await db.updateDocument(
+            photoModalTarget.collection,
+            photoModalTarget.id,
+            { photoUrl: base64 } as any,
+            currentUser
+          );
         }
+
+        // Also sync to users collection
+        try {
+          const usersList = await db.getCollection<any>('users');
+          const matchUser = usersList.find(u => u.id === photoModalTarget.id || u.name === photoModalTarget.name || u.employeeId === photoModalTarget.id);
+          if (matchUser) {
+            await db.updateDocument('users', matchUser.id, { photoUrl: base64 } as any, currentUser);
+          }
+        } catch (e) {
+          console.warn('User profile sync:', e);
+        }
+
+        await loadAllData();
+        setPhotoModalTarget(null);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      alert(`Failed to save photo: ${err.message}`);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const handleDeleteStaff = async (id: string, name: string, rawType?: string, rawId?: string) => {
@@ -1261,6 +1324,57 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
           await db.addDocument('officers_staff', payload, currentUser).catch(() => {});
         }
 
+        const isKeymanPost = /keyman/i.test(payload.post);
+        const isPatrolPost = /patrol/i.test(payload.post);
+        const isGatemanPost = /gateman|gate\s*man/i.test(payload.post);
+        const isWatchmanPost = /watchman/i.test(payload.post);
+
+        // If no longer Gateman, remove from level_crossings
+        if (!isGatemanPost) {
+          try {
+            const lcs = await db.getCollection<LevelCrossingRecord>('level_crossings');
+            for (const lc of lcs) {
+              if (Array.isArray(lc.gatemen) && lc.gatemen.some((g: any) => g.id === editingStaffId || g.id === staffFormData.awpoId || normalizeName(g.name) === normalizeName(staffFormData.name))) {
+                const filtered = lc.gatemen.filter((g: any) => g.id !== editingStaffId && g.id !== staffFormData.awpoId && normalizeName(g.name) !== normalizeName(staffFormData.name));
+                await db.updateDocument('level_crossings', lc.id, { gatemen: filtered } as any, currentUser);
+              }
+            }
+          } catch {}
+        }
+
+        // If no longer Keyman, remove from keymen
+        if (!isKeymanPost) {
+          try {
+            const kms = await db.getCollection<any>('keymen');
+            const matchKm = kms.find(k => k.id === editingStaffId || k.awpoId === staffFormData.awpoId || normalizeName(k.name) === normalizeName(staffFormData.name));
+            if (matchKm) {
+              await db.deleteDocument('keymen', matchKm.id, currentUser);
+            }
+          } catch {}
+        }
+
+        // If no longer Patrolman, unassign from patrol_shifts
+        if (!isPatrolPost) {
+          try {
+            const pats = await db.getCollection<any>('patrol_shifts');
+            const matchP = pats.find(p => p.id === editingStaffId || p.patrolmanStaffId === staffFormData.awpoId || normalizeName(p.patrolmanName) === normalizeName(staffFormData.name));
+            if (matchP) {
+              await db.updateDocument('patrol_shifts', matchP.id, { isFilled: false, patrolmanName: 'Unassigned', patrolmanStaffId: '', patrolmanPhone: '' }, currentUser);
+            }
+          } catch {}
+        }
+
+        // If no longer Watchman, remove from bridge_watchmen
+        if (!isWatchmanPost) {
+          try {
+            const wms = await db.getCollection<any>('bridge_watchmen');
+            const matchWm = wms.find(w => w.id === editingStaffId || w.awpoId === staffFormData.awpoId || normalizeName(w.name) === normalizeName(staffFormData.name));
+            if (matchWm) {
+              await db.deleteDocument('bridge_watchmen', matchWm.id, currentUser);
+            }
+          } catch {}
+        }
+
         // 2. If Keyman, update/sync keymen collection
         if (empType === 'KEYMAN' || payload.post?.includes('Keyman') || editingStaffId.startsWith('KM') || editingStaffId.startsWith('km_')) {
           const beatNum = parseInt(staffFormData.beatNo?.replace(/\D/g, '') || '1') || 1;
@@ -1364,6 +1478,22 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
           } else {
             await db.addDocument('bridge_watchmen', { id: `wm_${Date.now()}`, ...wmPayload }, currentUser);
           }
+        }
+
+        // 6. Sync changes to user accounts in 'users' collection if exists
+        try {
+          const allUsers = await db.getCollection<any>('users');
+          const matchUser = allUsers.find(u => u.id === editingStaffId || u.name === staffFormData.name || (staffFormData.awpoId && u.employeeId === staffFormData.awpoId));
+          if (matchUser) {
+            await db.updateDocument('users', matchUser.id, {
+              name: staffFormData.name.trim(),
+              designation: staffFormData.post || matchUser.designation,
+              phone: staffFormData.phone.trim(),
+              photoUrl: staffFormData.photoUrl || matchUser.photoUrl
+            } as any, currentUser);
+          }
+        } catch (e) {
+          console.warn('Users collection sync error:', e);
         }
       } else {
         // Register New Staff
@@ -1684,7 +1814,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
       },
       {
         id: 'officers' as const,
-        title: 'Staff',
+        title: 'Permanent',
         subtitle: 'Permanent Staff',
         count: regularStaff.length,
         icon: Shield,
@@ -1693,8 +1823,8 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
       },
       {
         id: 'outsourced' as const,
-        title: 'Outsource (MTS)',
-        subtitle: 'MTS & Field Staff',
+        title: 'Outsource MTS',
+        subtitle: 'Outsource MTS & Field',
         count: outsourcedStaff.length,
         icon: Users,
         bgClass: activeTab === 'outsourced' ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400' : 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800',
@@ -1781,7 +1911,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
       }`}
     >
       <Shield className="w-3.5 h-3.5" />
-      <span>Officers &amp; Staff ({regularStaff.length})</span>
+      <span>Permanent ({regularStaff.length})</span>
     </button>
 
     <button
@@ -1793,7 +1923,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
       }`}
     >
       <Users className="w-3.5 h-3.5" />
-      <span>Outsource Staff ({outsourcedStaff.length})</span>
+      <span>Outsource MTS ({outsourcedStaff.length})</span>
     </button>
 
     <button
@@ -2212,198 +2342,293 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
 
   {activeTab === 'officers' && (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base sm:text-lg font-bold text-[#0f2b5c] dark:text-cyan-300 flex items-center gap-2">
-          <span>🏆</span>
-          <span>DFCCIL IMSD-SMUN Official Contact Directory</span>
-        </h2>
-        <span className="text-xs text-slate-500 font-semibold">
-          Total {regularStaff.length} Officers &amp; Staff
-        </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-[#0f2b5c] dark:text-cyan-300 flex items-center gap-2">
+            <span>🏆</span>
+            <span>DFCCIL IMSD-SMUN Official Contact Directory</span>
+          </h2>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+            Total {regularStaff.length} Officers &amp; Staff (Permanent / Regular)
+          </span>
+        </div>
+
+        {/* View Switcher Toggle: 2-Grid Card View vs Tabular List View */}
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto shadow-sm">
+          <button
+            type="button"
+            onClick={() => setStaffViewMode('card')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              staffViewMode === 'card'
+                ? 'bg-blue-700 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>🪪 Card View (2-Grid)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStaffViewMode('list')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              staffViewMode === 'list'
+                ? 'bg-blue-700 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>📋 List / Tabular View</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {regularStaff.map(staff => {
-          const stationPill = getStationPillText(staff.headquarters);
-          return (
-            <div
-              key={staff.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3 group"
-            >
-              <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition">
-                      {staff.name}
-                    </h3>
-                    {staff.nameHi && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{staff.nameHi}</p>
-                    )}
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 tracking-wide shrink-0">
-                    {stationPill}
-                  </span>
-                </div>
-
-                <div>
-                  <p className="text-xs text-blue-700 dark:text-cyan-400 font-extrabold tracking-tight uppercase truncate">
-                    {staff.post || staff.role}
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                    Emp ID: <span className="font-bold text-slate-900 dark:text-slate-200">{staff.id.replace('EMP-', '')}</span>
-                  </p>
-                </div>
-
-                <div className="space-y-1 pt-1 text-xs">
-                  {staff.phone && (
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
-                      <span className="text-blue-600 dark:text-cyan-400 text-sm">📞</span>
-                      <span>{staff.phone}</span>
-                    </div>
-                  )}
-                  {staff.email && (
-                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-cyan-400 truncate text-[11px]">
-                      <span className="text-slate-400">✉️</span>
-                      <span className="truncate">{staff.email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-1">
-                  <a
-                    href={`tel:${staff.phone?.replace(/[^0-9+]/g, '')}`}
-                    className="flex-1 py-1.5 px-2 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Call</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStaffForIdModal(staff)}
-                    className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition"
-                    title="View Official DFCCIL Staff ID Card"
-                  >
-                    <span>🪪 ID</span>
-                  </button>
-                </div>
-
-                {/* 3-Dot Action Menu */}
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenCardMenuId(openCardMenuId === `officer-${staff.id}` ? null : `officer-${staff.id}`);
-                    }}
-                    className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition"
-                    title="More Options"
-                  >
-                    <MoreVertical className="w-3.5 h-3.5" />
-                  </button>
-
-                  {openCardMenuId === `officer-${staff.id}` && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 bottom-full mb-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
-                    >
-                      <button
-                        onClick={() => {
-                          setPhotoModalTarget({
-                            collection: 'officers_staff',
-                            id: staff.id,
-                            name: staff.name,
-                            currentPhoto: staff.photoUrl
-                          });
-                          setOpenCardMenuId(null);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
-                      >
-                        <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
-                        <span>Upload Photo</span>
-                      </button>
-
-                      {isSuperAdmin && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditingStaffId(staff.id);
-                              setStaffFormData({
-                                name: staff.name,
-                                nameHi: staff.nameHi || '',
-                                post: staff.post,
-                                role: staff.role,
-                                employmentType: staff.employmentType,
-                                email: staff.email,
-                                phone: staff.phone,
-                                headquarters: staff.headquarters,
-                                assignedSection: staff.assignedSection,
-                                awpoId: staff.awpoId || '',
-                                advanceBeatCode: '',
-                                lap: staff.leaveBalance?.lap || 30,
-                                cl: staff.leaveBalance?.cl || 8,
-                                photoUrl: staff.photoUrl || ''
-                              });
-                              setIsStaffFormOpen(true);
-                              setOpenCardMenuId(null);
-                            }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center gap-2 font-semibold"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            <span>Edit Details</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              handleDeleteStaff(staff.id, staff.name);
-                              setOpenCardMenuId(null);
-                            }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete Officer</span>
-                          </button>
-                        </>
+      {staffViewMode === 'card' ? (
+        /* 2-Column Grid Layout (Wide & Legible, No Name Truncation) */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {regularStaff.map(staff => {
+            const stationPill = getStationPillText(staff.headquarters);
+            return (
+              <div
+                key={staff.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3 group"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition">
+                        {staff.name}
+                      </h3>
+                      {staff.nameHi && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{staff.nameHi}</p>
                       )}
                     </div>
-                  )}
+                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 tracking-wide shrink-0">
+                      {stationPill}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Designation</span>
+                      <p className="text-xs text-blue-700 dark:text-cyan-400 font-black tracking-tight uppercase mt-0.5">
+                        {staff.post || staff.role}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Emp ID</span>
+                      <p className="text-xs font-mono font-black text-slate-900 dark:text-slate-200 mt-0.5">
+                        {staff.id.replace('EMP-', '')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1 text-xs">
+                    {staff.phone && (
+                      <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
+                        <span className="text-blue-600 dark:text-cyan-400 text-sm">📞</span>
+                        <a href={`tel:${staff.phone.replace(/[^0-9+]/g, '')}`} className="hover:underline font-mono">
+                          {staff.phone}
+                        </a>
+                      </div>
+                    )}
+                    {staff.email && (
+                      <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 truncate text-[11px]">
+                        <span className="text-slate-400">✉️</span>
+                        <a href={`mailto:${staff.email}`} className="truncate hover:underline">
+                          {staff.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <a
+                      href={`tel:${staff.phone?.replace(/[^0-9+]/g, '')}`}
+                      className="flex-1 py-2 px-3 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call Now</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStaffForIdModal(staff)}
+                      className="flex-1 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
+                      title="View Official DFCCIL Staff ID Card"
+                    >
+                      <span>🪪 ID Card</span>
+                    </button>
+                  </div>
+
+                  {/* 3-Dot Action Menu */}
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenCardMenuId(openCardMenuId === `officer-${staff.id}` ? null : `officer-${staff.id}`);
+                      }}
+                      className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl transition"
+                      title="More Options"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
+                    {openCardMenuId === `officer-${staff.id}` && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 bottom-full mb-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
+                      >
+                        <button
+                          onClick={() => {
+                            setPhotoModalTarget({
+                              collection: 'officers_staff',
+                              id: staff.id,
+                              name: staff.name,
+                              currentPhoto: staff.photoUrl
+                            });
+                            setOpenCardMenuId(null);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                          <span>Upload Photo</span>
+                        </button>
+
+                        {isSuperAdmin && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingStaffId(staff.id);
+                                setStaffFormData({
+                                  name: staff.name,
+                                  nameHi: staff.nameHi || '',
+                                  post: staff.post,
+                                  role: staff.role,
+                                  employmentType: staff.employmentType,
+                                  email: staff.email,
+                                  phone: staff.phone,
+                                  headquarters: staff.headquarters,
+                                  assignedSection: staff.assignedSection,
+                                  awpoId: staff.awpoId || '',
+                                  advanceBeatCode: '',
+                                  lap: staff.leaveBalance?.lap || 30,
+                                  cl: staff.leaveBalance?.cl || 8,
+                                  photoUrl: staff.photoUrl || ''
+                                });
+                                setIsStaffFormOpen(true);
+                                setOpenCardMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center gap-2 font-semibold"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>Edit Details</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                handleDeleteStaff(staff.id, staff.name);
+                                setOpenCardMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete Officer</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Tabular List View */
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-slate-200 uppercase text-[10px] font-black border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="p-3.5 text-center">Sr.</th>
+                  <th className="p-3.5">Officer / Staff Name</th>
+                  <th className="p-3.5">Designation (पद)</th>
+                  <th className="p-3.5">Emp ID</th>
+                  <th className="p-3.5">Headquarters / Section</th>
+                  <th className="p-3.5">Contact Phone</th>
+                  <th className="p-3.5">Official Email</th>
+                  <th className="p-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+                {regularStaff.map((staff, idx) => {
+                  const stationPill = getStationPillText(staff.headquarters);
+                  return (
+                    <tr key={staff.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
+                      <td className="p-3.5 text-center font-mono font-bold text-slate-500">{idx + 1}</td>
+                      <td className="p-3.5">
+                        <div className="font-bold text-slate-900 dark:text-white text-sm">{staff.name}</div>
+                        {staff.nameHi && <div className="text-[11px] text-slate-500 dark:text-slate-400">{staff.nameHi}</div>}
+                      </td>
+                      <td className="p-3.5">
+                        <span className="font-bold text-blue-700 dark:text-cyan-300">{staff.post || staff.role}</span>
+                      </td>
+                      <td className="p-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {staff.id.replace('EMP-', '')}
+                      </td>
+                      <td className="p-3.5">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {stationPill}
+                        </span>
+                      </td>
+                      <td className="p-3.5 font-mono font-bold">
+                        {staff.phone ? (
+                          <a href={`tel:${staff.phone.replace(/[^0-9+]/g, '')}`} className="text-blue-600 dark:text-cyan-400 hover:underline">
+                            {staff.phone}
+                          </a>
+                        ) : '—'}
+                      </td>
+                      <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">
+                        {staff.email ? (
+                          <a href={`mailto:${staff.email}`} className="text-blue-600 dark:text-cyan-400 hover:underline">
+                            {staff.email}
+                          </a>
+                        ) : '—'}
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForIdModal(staff)}
+                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 rounded-lg text-xs font-bold transition"
+                            title="View Official DFCCIL Staff ID Card"
+                          >
+                            <span>🪪 ID</span>
+                          </button>
+                          <a
+                            href={`tel:${staff.phone?.replace(/[^0-9+]/g, '')}`}
+                            className="p-1.5 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-lg transition"
+                            title="Call Officer"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )}
 
   {activeTab === 'outsourced' && (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
-        <span className="text-slate-600 dark:text-slate-400 font-bold flex items-center gap-1.5">
-          <Filter className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" /> Category:
-        </span>
-        {[
-          { id: 'ALL', label: 'All Outsource' },
-          { id: 'OFFICE', label: '🏢 Office Staff' },
-          { id: 'GANG', label: '🛠️ Gang Units' },
-          { id: 'MAINTAINER', label: '🧹 Track Maintainer' }
-        ].map(f => (
-          <button
-            key={f.id}
-            onClick={() => setOutsourceFilter(f.id as any)}
-            className={`px-3 py-1.5 rounded-xl font-bold transition ${
-              outsourceFilter === f.id
-                ? 'bg-[#123b72] text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {outsourcedStaff.map(staff => (
           <div
@@ -2527,7 +2752,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
                           }}
                           className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5" />
                           <span>Delete Staff</span>
                         </button>
                       </>
@@ -2542,194 +2767,174 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
     </div>
   )}
 
- {activeTab === 'keymen' && (
- <div className="space-y-6">
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
- <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
- <div className="text-2xl font-black text-slate-900">95</div>
- <div className="text-xs text-slate-500 font-semibold mt-1">Curves under jurisdiction</div>
- </div>
- <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
- <div className="text-2xl font-black text-slate-900">5</div>
- <div className="text-xs text-slate-500 font-semibold mt-1">Level Crossings</div>
- </div>
- <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
- <div className="text-2xl font-black text-slate-900">13</div>
- <div className="text-xs text-slate-500 font-semibold mt-1">SEJ locations</div>
- </div>
- <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
- <div className="text-2xl font-black text-slate-900">48</div>
- <div className="text-xs text-slate-500 font-semibold mt-1">Rail Defect / Siding records</div>
- </div>
- </div>
+  {activeTab === 'keymen' && (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-base font-black text-[#0f2b5c] dark:text-blue-300 flex items-center gap-2">
+            <span>🏆</span>
+            <span>Keymen Roster &amp; Beat Jurisdictions (18 Beats)</span>
+          </h3>
+          <button
+            type="button"
+            onClick={exportKeymenCsv}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
+        </div>
 
- <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
- <div className="flex flex-wrap items-center justify-between gap-3">
- <h3 className="text-base font-black text-[#0f2b5c] flex items-center gap-2">
- <span>🏆</span>
- <span>Keymen Roster &amp; Beat Jurisdictions (18 Beats)</span>
- </h3>
- <button
- type="button"
- onClick={exportKeymenCsv}
- className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition"
- >
- <Download className="w-3.5 h-3.5" />
- <span>Export CSV</span>
- </button>
- </div>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by Keyman Name, Beat No, Km, District..."
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        </div>
+      </div>
 
- <div className="relative">
- <input
- type="text"
- value={searchQuery}
- onChange={e => setSearchQuery(e.target.value)}
- placeholder="Search by Keyman Name, Beat No, Km, District..."
- className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
- />
- <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
- </div>
- </div>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-blue-300 font-black border-b border-slate-200 dark:border-slate-700">
+                <th className="py-3 px-3">BEAT CODE</th>
+                <th className="py-3 px-3">KEYMAN NAME</th>
+                <th className="py-3 px-3">FATHER'S NAME</th>
+                <th className="py-3 px-3">AWPO ID</th>
+                <th className="py-3 px-3">KM RANGE</th>
+                <th className="py-3 px-3">CONTACT NO.</th>
+                <th className="py-3 px-3">ALT CONTACT</th>
+                <th className="py-3 px-3">RESIDENCE &amp; DISTRICT</th>
+                <th className="py-3 px-3">REST GIVER INFO</th>
+                <th className="py-3 px-3 text-right">ID CARD</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+              {filteredKeymen.map((km, idx) => (
+                <tr key={km.id} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900 hover:bg-blue-50/50 dark:hover:bg-slate-800/60' : 'bg-slate-50/60 dark:bg-slate-900/60 hover:bg-blue-50/50 dark:hover:bg-slate-800/60'}>
+                  <td className="py-3 px-3 whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStaffForIdModal(km)}
+                      className="inline-block px-2 py-1 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-bold rounded text-xs font-mono hover:bg-blue-100 transition text-left"
+                      title="Click to view full ID card"
+                    >
+                      {km.beatNoText?.replace('Beat No. ', 'K-0') || km.id}
+                    </button>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{km.beatNoText}</div>
+                  </td>
+                  <td className="py-3 px-3 font-bold whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStaffForIdModal(km)}
+                      className="text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline text-left font-bold"
+                      title="Click to view full DFCCIL Staff ID"
+                    >
+                      {km.name}
+                    </button>
+                  </td>
+                  <td className="py-3 px-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{km.fatherName || '-'}</td>
+                  <td className="py-3 px-3 font-mono text-slate-700 dark:text-slate-300">{km.awpoId?.replace('AWPO-', '') || km.id}</td>
+                  <td className="py-3 px-3 font-mono text-xs whitespace-nowrap text-slate-700 dark:text-slate-300">{km.kmRange || '-'}</td>
+                  <td className="py-3 px-3 whitespace-nowrap">
+                    <a href={`tel:${km.mobileNo}`} className="text-blue-700 dark:text-blue-400 font-bold hover:underline flex items-center gap-1">
+                      <span className="text-xs">📞</span>
+                      <span>{km.mobileNo}</span>
+                    </a>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">{km.otherMobileNo || '-'}</td>
+                  <td className="py-3 px-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={km.residence}>
+                    {km.residence || '-'}
+                  </td>
+                  <td className="py-3 px-3 text-slate-700 dark:text-slate-300 text-xs">
+                    {km.rg || '-'}
+                  </td>
+                  <td className="py-3 px-3 text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1.5 relative">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStaffForIdModal(km)}
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 border border-blue-200 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-sm transition active:scale-95"
+                        title="View Official DFCCIL Staff ID"
+                      >
+                        <span>🪪 ID</span>
+                      </button>
 
- <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
- <div className="overflow-x-auto">
- <table className="w-full text-left text-xs border-collapse">
- <thead>
- <tr className="bg-[#e8f1fb] text-[#0f2b5c] font-black border-b border-slate-200">
- <th className="py-3 px-3">BEAT CODE</th>
- <th className="py-3 px-3">KEYMAN NAME</th>
- <th className="py-3 px-3">FATHER'S NAME</th>
- <th className="py-3 px-3">AWPO ID</th>
- <th className="py-3 px-3">KM RANGE</th>
- <th className="py-3 px-3">CONTACT NO.</th>
- <th className="py-3 px-3">ALT CONTACT</th>
- <th className="py-3 px-3">RESIDENCE &amp; DISTRICT</th>
- <th className="py-3 px-3">REST GIVER INFO</th>
- <th className="py-3 px-3 text-right">ID CARD</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
- {filteredKeymen.map((km, idx) => (
- <tr key={km.id} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50/50' : 'bg-slate-50/60 hover:bg-blue-50/50'}>
- <td className="py-3 px-3 whitespace-nowrap">
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal(km)}
- className="inline-block px-2 py-1 bg-blue-50 border border-blue-200 text-blue-800 font-bold rounded text-xs font-mono hover:bg-blue-100 transition text-left"
- title="Click to view full ID card"
- >
- {km.beatNoText?.replace('Beat No. ', 'K-0') || km.id}
- </button>
- <div className="text-[10px] text-slate-500 mt-0.5">{km.beatNoText}</div>
- </td>
- <td className="py-3 px-3 font-bold whitespace-nowrap">
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal(km)}
- className="text-slate-900 hover:text-blue-600 hover:underline text-left font-bold"
- title="Click to view full DFCCIL Staff ID"
- >
- {km.name}
- </button>
- </td>
- <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{km.fatherName || '-'}</td>
- <td className="py-3 px-3 font-mono text-slate-700">{km.awpoId?.replace('AWPO-', '') || km.id}</td>
- <td className="py-3 px-3 font-mono text-xs whitespace-nowrap text-slate-700">{km.kmRange || '-'}</td>
- <td className="py-3 px-3 whitespace-nowrap">
- <a href={`tel:${km.mobileNo}`} className="text-blue-700 font-bold hover:underline flex items-center gap-1">
- <span className="text-xs">📞</span>
- <span>{km.mobileNo}</span>
- </a>
- </td>
- <td className="py-3 px-3 font-mono text-slate-600 whitespace-nowrap">{km.otherMobileNo || '-'}</td>
- <td className="py-3 px-3 text-slate-600 max-w-[200px] truncate" title={km.residence}>
- {km.residence || '-'}
- </td>
- <td className="py-3 px-3 text-slate-700 text-xs">
- {km.rg || '-'}
- </td>
- <td className="py-3 px-3 text-right whitespace-nowrap">
- <div className="inline-flex items-center gap-1.5 relative">
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal(km)}
- className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 border border-blue-200 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-sm transition active:scale-95"
- title="View Official DFCCIL Staff ID"
- >
- <span>🪪 ID</span>
- </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenCardMenuId(openCardMenuId === `keyman-${km.id}` ? null : `keyman-${km.id}`);
+                          }}
+                          className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition"
+                          title="More Actions"
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
 
- <div className="relative">
- <button
- type="button"
- onClick={(e) => {
- e.stopPropagation();
- setOpenCardMenuId(openCardMenuId === `keyman-${km.id}` ? null : `keyman-${km.id}`);
- }}
- className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition"
- title="More Actions"
- >
- <MoreVertical className="w-3.5 h-3.5" />
- </button>
+                        {openCardMenuId === `keyman-${km.id}` && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
+                          >
+                            <button
+                              onClick={() => {
+                                setSelectedStaffForIdModal(km);
+                                setOpenCardMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
+                            >
+                              <span>🪪</span>
+                              <span>View ID Card</span>
+                            </button>
 
- {openCardMenuId === `keyman-${km.id}` && (
- <div
- onClick={(e) => e.stopPropagation()}
- className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
- >
- <button
- onClick={() => {
- setSelectedStaffForIdModal(km);
- setOpenCardMenuId(null);
- }}
- className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
- >
- <span>🪪</span>
- <span>View ID Card</span>
- </button>
+                            <button
+                              onClick={() => {
+                                setPhotoModalTarget({
+                                  collection: 'keymen',
+                                  id: km.id,
+                                  name: km.name,
+                                  currentPhoto: km.photoUrl
+                                });
+                                setOpenCardMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                              <span>Upload Photo</span>
+                            </button>
 
- <button
- onClick={() => {
- setPhotoModalTarget({
- collection: 'keymen',
- id: km.id,
- name: km.name,
- currentPhoto: km.photoUrl
- });
- setOpenCardMenuId(null);
- }}
- className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
- >
- <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
- <span>Upload Photo</span>
- </button>
-
- {isSuperAdmin && (
- <button
- onClick={() => {
- handleDeleteKeyman(km);
- setOpenCardMenuId(null);
- }}
- className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
- >
- <Trash2 className="w-3.5 h-3.5" />
- <span>Unassign Beat</span>
- </button>
- )}
- </div>
- )}
- </div>
- </div>
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
- </div>
-
- </div>
- )}
+                            {isSuperAdmin && (
+                              <button
+                                onClick={() => {
+                                  handleDeleteKeyman(km);
+                                  setOpenCardMenuId(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center gap-2 font-semibold"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Unassign Beat</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )}
 
  {/* ------------------------------------------------------------------------- */}
  {/* 4. GATEMEN & LEVEL CROSSINGS (18 GATEMEN ACROSS 5 LC GATES) */}
@@ -2939,141 +3144,93 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  >
  <span>🪪 ID</span>
  </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )}
 
- <div className="relative">
- <button
- type="button"
- onClick={(e) => {
- e.stopPropagation();
- setOpenCardMenuId(openCardMenuId === `gateman-${gm.id}` ? null : `gateman-${gm.id}`);
- }}
- className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition"
- title="More Actions"
- >
- <MoreVertical className="w-3.5 h-3.5" />
- </button>
+  {/* ------------------------------------------------------------------------- */}
+  {/* 5. BRIDGE WATCHMEN (BR. 108 ROR RAJPURA DETOUR) */}
+  {/* ------------------------------------------------------------------------- */}
+  {activeTab === 'watchmen' && (
+    <div className="space-y-6 animate-fadeIn">
+      <div className="bg-gradient-to-r from-blue-50 via-amber-50/40 to-slate-50 dark:from-slate-900 dark:via-amber-950/20 dark:to-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🌉</span>
+            <h3 className="text-base sm:text-lg font-black text-[#0f2b5c] dark:text-blue-300">
+              DFCCIL IMSD-SMUN Bridge Watchmen Directory
+            </h3>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Special 24x7 Structure Surveillance &amp; Waterway Monitoring on Bridge 108 (ROR Rajpura Detour Line).
+          </p>
+        </div>
+      </div>
 
- {openCardMenuId === `gateman-${gm.id}` && (
- <div
- onClick={(e) => e.stopPropagation()}
- className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 text-xs text-left animate-fadeIn backdrop-blur-xl"
- >
- <button
- onClick={() => {
- setSelectedStaffForIdModal(gm);
- setOpenCardMenuId(null);
- }}
- className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
- >
- <span>🪪</span>
- <span>View ID Card</span>
- </button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {bridgeWatchmen.map(bm => (
+          <div
+            key={bm.id}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3 hover:shadow-md transition"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="text-base font-bold text-slate-900 dark:text-white">{bm.name}</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  AWPO ID: <span className="font-bold text-slate-700 dark:text-slate-300">{bm.awpoId}</span>
+                </p>
+              </div>
+              <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded-lg font-bold text-xs">
+                {bm.bridgeNo || 'BR. 108'}
+              </span>
+            </div>
 
- <button
- onClick={() => {
- setPhotoModalTarget({
- collection: 'level_crossings',
- id: gm.awpoId || gm.id,
- name: gm.name,
- currentPhoto: gm.photoUrl
- });
- setOpenCardMenuId(null);
- }}
- className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-800 dark:text-slate-200 flex items-center gap-2"
- >
- <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
- <span>Upload Photo</span>
- </button>
- </div>
- )}
- </div>
- </div>
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
- </div>
- </div>
- )}
+            <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400 pt-1">
+              <div className="flex items-center gap-1.5 font-bold text-blue-700 dark:text-blue-400">
+                <span>📞 Primary:</span>
+                <a href={`tel:${bm.phone}`} className="hover:underline">{bm.phone}</a>
+              </div>
+              {bm.emergencyContact && (
+                <div className="flex items-center gap-1.5">
+                  <span>📱 Alt / Emergency:</span>
+                  <a href={`tel:${bm.emergencyContact}`} className="hover:underline font-mono">{bm.emergencyContact}</a>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 text-[11px] pt-1">
+                <span>📍 Location:</span>
+                <span className="truncate">{bm.location || 'ROR Rajpura Detour'}</span>
+              </div>
+            </div>
 
- {/* ------------------------------------------------------------------------- */}
- {/* 5. BRIDGE WATCHMEN (BR. 108 ROR RAJPURA DETOUR) */}
- {/* ------------------------------------------------------------------------- */}
- {activeTab === 'watchmen' && (
- <div className="space-y-6 animate-fadeIn">
- <div className="bg-gradient-to-r from-blue-50 via-amber-50/40 to-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
- <div className="space-y-1">
- <div className="flex items-center gap-2">
- <span className="text-xl">🌉</span>
- <h3 className="text-base sm:text-lg font-black text-[#0f2b5c]">
- DFCCIL IMSD-SMUN Bridge Watchmen Directory
- </h3>
- </div>
- <p className="text-xs text-slate-600">
- Special 24x7 Structure Surveillance &amp; Waterway Monitoring on Bridge 108 (ROR Rajpura Detour Line).
- </p>
- </div>
- </div>
-
- <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
- {bridgeWatchmen.map(bm => (
- <div
- key={bm.id}
- className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 hover:shadow-md transition"
- >
- <div className="flex items-start justify-between">
- <div>
- <h4 className="text-base font-bold text-slate-900">{bm.name}</h4>
- <p className="text-xs text-slate-500 font-mono mt-0.5">
- AWPO ID: <span className="font-bold text-slate-700">{bm.awpoId}</span>
- </p>
- </div>
- <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-lg font-bold text-xs">
- {bm.bridgeNo || 'BR. 108'}
- </span>
- </div>
-
- <div className="space-y-1 text-xs text-slate-600 pt-1">
- <div className="flex items-center gap-1.5 font-bold text-blue-700">
- <span>📞 Primary:</span>
- <a href={`tel:${bm.phone}`} className="hover:underline">{bm.phone}</a>
- </div>
- {bm.emergencyContact && (
- <div className="flex items-center gap-1.5">
- <span>📱 Alt / Emergency:</span>
- <a href={`tel:${bm.emergencyContact}`} className="hover:underline font-mono">{bm.emergencyContact}</a>
- </div>
- )}
- <div className="flex items-center gap-1.5 text-[11px] pt-1">
- <span>📍 Location:</span>
- <span className="truncate">{bm.location || 'ROR Rajpura Detour'}</span>
- </div>
- </div>
-
- <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
- <a
- href={`tel:${bm.phone}`}
- className="flex-1 py-2 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
- >
- <Phone className="w-3.5 h-3.5" />
- <span>Call Now</span>
- </a>
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal(bm)}
- className="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
- >
- <span>🪪</span>
- <span>Staff ID</span>
- </button>
- </div>
- </div>
- ))}
- </div>
- </div>
- )}
+            <div className="pt-2 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800">
+              <a
+                href={`tel:${bm.phone}`}
+                className="flex-1 py-2 bg-[#1a4b8c] hover:bg-[#123668] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>Call Now</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setSelectedStaffForIdModal(bm)}
+                className="flex-1 py-2 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
+              >
+                <span>🪪</span>
+                <span>Staff ID</span>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
 
  {activeTab === 'patrol' && (
  <div className="space-y-6">
@@ -3122,319 +3279,333 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  </div>
 
  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
- {/* 1. Day Security Patrol Table (SPD-01 to SPD-12) */}
- <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm space-y-3 p-4">
- <div className="flex items-center justify-between border-b border-slate-200 pb-3">
- <div className="flex items-center gap-2">
- <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
- <Sun className="w-5 h-5" />
- </div>
- <div>
- <h3 className="text-sm sm:text-base font-bold text-[#0f2b5c]">
- Day Security Patrol (Shift 1: 15:00 to 23:00 hrs)
- </h3>
- <p className="text-[11px] text-slate-500">
- 12 Total Beats • Single Patrolman per Beat
- </p>
- </div>
- </div>
- <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-mono font-bold">
- {dayPatrols.filter(p => p.isFilled && p.patrolmanName && !p.patrolmanName.includes('Vacant')).length}/12 Filled
- </span>
- </div>
+        {/* 1. Day Security Patrol Table (SPD-01 to SPD-12) */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm space-y-3 p-4">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-amber-100 dark:bg-amber-950/60 rounded-lg text-amber-600 dark:text-amber-400">
+                <Sun className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-[#0f2b5c] dark:text-white">
+                  Day Security Patrol (Shift 1: 15:00 to 23:00 hrs)
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  12 Total Beats • Single Patrolman per Beat
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-mono font-bold">
+              9/12 Filled
+            </span>
+          </div>
 
- <div className="overflow-x-auto">
- <table className="w-full text-left text-xs border-collapse">
- <thead>
- <tr className="bg-[#e8f1fb] text-[#0f2b5c] font-black border-b border-slate-200">
- <th className="py-2.5 px-2.5">BEAT</th>
- <th className="py-2.5 px-2.5">PATROLMAN NAME</th>
- <th className="py-2.5 px-2.5">ROUTE / JURISDICTION</th>
- <th className="py-2.5 px-2.5">CONTACT</th>
- <th className="py-2.5 px-2.5">REST DAY</th>
- <th className="py-2.5 px-2.5 text-right">ACTION</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
- {dayPatrols.map((pt, idx) => {
- const isVacant = pt.status === 'VACANT' || !pt.isFilled || (pt.patrolmanName || '').toLowerCase().includes('vacant');
- return (
- <tr key={pt.id} className={idx % 2 === 0 ? 'bg-white hover:bg-amber-50/30' : 'bg-slate-50/70 hover:bg-amber-50/30'}>
- <td className="py-2.5 px-2.5 font-mono font-bold whitespace-nowrap">
- <span className={`px-2 py-0.5 rounded text-xs border ${
- isVacant
- ? 'bg-red-50 text-red-700 border-red-300'
- : 'bg-blue-50 text-blue-800 border-blue-200'
- }`}>
- {pt.beatCode}
- </span>
- </td>
- <td className={`py-2.5 px-2.5 font-bold whitespace-nowrap ${isVacant ? 'text-red-600' : 'text-slate-900'}`}>
- {isVacant ? (
- '🚨 Vacant (Unassigned)'
- ) : (
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal({
- name: pt.patrolmanName || '',
- awpoId: pt.patrolmanStaffId || '',
- mobileNo: pt.patrolmanPhone || '',
- post: 'Security Patrolman (Day)',
- beatCode: pt.beatCode,
- sectionCode: pt.sectionCode,
- fromKm: pt.fromKm,
- toKm: pt.toKm,
- category: 'Ex-Serviceman'
- })}
- className="text-slate-900 hover:text-blue-600 hover:underline text-left font-bold"
- title="Click to view full DFCCIL Staff ID"
- >
- {pt.patrolmanName}
- </button>
- )}
- {pt.patrolmanStaffId && (
- <span className="block text-[10px] font-mono text-slate-500 font-normal">
- {pt.patrolmanStaffId}
- </span>
- )}
- </td>
- <td className="py-2.5 px-2.5 text-slate-600 text-[11px] whitespace-nowrap">
- <div className="font-semibold text-slate-700">{pt.sectionCode || `IMSD SMUN ${pt.beatCode}`}</div>
- <div className="font-mono text-[10px] text-slate-500">Km {pt.fromKm?.toFixed(3)} – {pt.toKm?.toFixed(3)}</div>
- </td>
- <td className="py-2.5 px-2.5 font-mono whitespace-nowrap">
- {pt.patrolmanPhone ? (
- <a href={`tel:${pt.patrolmanPhone}`} className="text-blue-700 hover:underline flex items-center gap-1 font-bold">
- <span>📞</span>
- <span>{pt.patrolmanPhone}</span>
- </a>
- ) : (
- <span className="text-slate-400">-</span>
- )}
- </td>
- <td className="py-2.5 px-2.5 text-slate-600 whitespace-nowrap text-xs">
- {pt.restDay || 'Sunday'}
- </td>
- <td className="py-2.5 px-2.5 text-right whitespace-nowrap">
- {isVacant ? (
- <button
- onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY', pt)}
- className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-red-600 hover:bg-red-700 text-white shadow-sm transition inline-flex items-center gap-1 animate-pulse"
- >
- <span>🚨</span>
- <span>Assign Beat</span>
- </button>
- ) : (
- <div className="flex items-center justify-end gap-1.5">
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal({
- name: pt.patrolmanName || '',
- awpoId: pt.patrolmanStaffId || '',
- mobileNo: pt.patrolmanPhone || '',
- post: 'Security Patrolman (Day)',
- beatCode: pt.beatCode,
- sectionCode: pt.sectionCode,
- fromKm: pt.fromKm,
- toKm: pt.toKm,
- category: 'Ex-Serviceman'
- })}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition inline-flex items-center gap-0.5"
- title="View Official DFCCIL Staff ID"
- >
- <span>🪪</span>
- <span>ID</span>
- </button>
- <button
- onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY', pt)}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition inline-flex items-center gap-1"
- title="Re-allot Beat"
- >
- <Edit className="w-3 h-3" />
- <span>Re-allot</span>
- </button>
- <button
- onClick={() => handleDeletePatrolShift(pt)}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition inline-flex items-center gap-1"
- title="Unassign Patrolman & Mark Beat Vacant"
- >
- <Trash2 className="w-3 h-3" />
- <span>Unassign</span>
- </button>
- </div>
- )}
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
- </div>
- </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
+                  <th className="py-2.5 px-2.5">BEAT</th>
+                  <th className="py-2.5 px-2.5">PATROLMAN NAME</th>
+                  <th className="py-2.5 px-2.5">ROUTE / JURISDICTION</th>
+                  <th className="py-2.5 px-2.5">CONTACT</th>
+                  <th className="py-2.5 px-2.5">REST DAY</th>
+                  <th className="py-2.5 px-2.5 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+                {[
+                  { beatCode: 'SPD-001', name: 'Vacant (Unassigned)', staffId: '', route: 'SMUN-SBJN\nKm 1162.000 — 1170.000', contact: '-', restDay: 'Wednesday', isVacant: true },
+                  { beatCode: 'SPD-002', name: 'Gurdeep Singh', staffId: '14570', route: 'SMUN-SBJN\nKm 1170.000 — 1178.000', contact: '9876588667', restDay: 'Thursday', isVacant: false },
+                  { beatCode: 'SPD-003', name: 'Surjeet Singh', staffId: '11272', route: 'SMUN-SBJN\nKm 1178.000 — 1186.000', contact: '9501277242', restDay: 'Friday', isVacant: false },
+                  { beatCode: 'SPD-004', name: 'Ravinder Singh', staffId: '16869', route: 'SMUN-SBJN\nKm 1186.000 — 1194.000', contact: '9463088814', restDay: 'Saturday', isVacant: false },
+                  { beatCode: 'SPD-005', name: 'Baljinder Singh', staffId: '15598', route: 'SMUN-SBJN\nKm 1194.000 — 1202.000', contact: '7460849679', restDay: 'Sunday', isVacant: false },
+                  { beatCode: 'SPD-006', name: 'Vacant (Unassigned)', staffId: '', route: 'B 1202/6 to C 1210/5\nKm 1202.060 — 1210.050', contact: '-', restDay: 'Sunday', isVacant: true },
+                  { beatCode: 'SPD-007', name: 'Chamkor Singh', staffId: '16201', route: 'SMUN-SBJN\nKm 1210.000 — 1218.000', contact: '7986000467', restDay: 'Tuesday', isVacant: false },
+                  { beatCode: 'SPD-008', name: 'Sukhchain Singh', staffId: '11272', route: 'SMUN-SBJN\nKm 1218.000 — 1226.000', contact: '8054012678', restDay: 'Wednesday', isVacant: false },
+                  { beatCode: 'SPD-009', name: 'Harwinder Singh', staffId: '16608', route: 'SMUN-SBJN\nKm 1226.000 — 1233.000', contact: '8429171981', restDay: 'Thursday', isVacant: false },
+                  { beatCode: 'SPD-010', name: 'Amritpal Singh', staffId: '14678', route: 'SMUN-SBJN\nKm 1233.000 — 1241.000', contact: '8812006561', restDay: 'Friday', isVacant: false },
+                  { beatCode: 'SPD-011', name: 'Baljeet Singh', staffId: '11272', route: 'SMUN-SBJN\nKm 1241.000 — 1249.000', contact: '8427463892', restDay: 'Saturday', isVacant: false },
+                  { beatCode: 'SPD-012', name: 'Vacant (Unassigned)', staffId: '', route: 'B 1170/9 to C 1178/4\nKm 1170.090 — 1178.040', contact: '-', restDay: 'Sunday', isVacant: true }
+                ].map((pt, idx) => {
+                  const isVacant = pt.isVacant;
+                  return (
+                    <tr key={pt.beatCode} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900 hover:bg-amber-50/30 dark:hover:bg-slate-800/50' : 'bg-slate-50/70 dark:bg-slate-950/40 hover:bg-amber-50/30 dark:hover:bg-slate-800/50'}>
+                      <td className="py-2.5 px-2.5 font-mono font-bold whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded text-xs border ${
+                          isVacant
+                            ? 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800'
+                            : 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
+                        }`}>
+                          {pt.beatCode}
+                        </span>
+                      </td>
+                      <td className={`py-2.5 px-2.5 font-bold whitespace-nowrap ${isVacant ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
+                        {isVacant ? (
+                          <span className="flex items-center gap-1">🚨 Vacant (Unassigned)</span>
+                        ) : (
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedStaffForIdModal({
+                                name: pt.name,
+                                awpoId: pt.staffId,
+                                mobileNo: pt.contact,
+                                post: 'Day Security Patrolman',
+                                beatCode: pt.beatCode,
+                                sectionCode: 'SMUN-SBJN',
+                                fromKm: 1167.210,
+                                toKm: 1249.720,
+                                category: 'Ex-Serviceman'
+                              })}
+                              className="text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline text-left font-bold"
+                              title="Click to view full DFCCIL Staff ID"
+                            >
+                              {pt.name}
+                            </button>
+                            {pt.staffId && (
+                              <span className="block text-[10px] font-mono text-slate-500 dark:text-slate-400 font-normal">
+                                {pt.staffId}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 text-[11px] whitespace-nowrap">
+                        <div className="font-semibold">{pt.route.split('\n')[0]}</div>
+                        <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">{pt.route.split('\n')[1] || ''}</div>
+                      </td>
+                      <td className="py-2.5 px-2.5 font-mono whitespace-nowrap">
+                        {pt.contact !== '-' ? (
+                          <a href={`tel:${pt.contact}`} className="text-blue-700 dark:text-cyan-300 hover:underline flex items-center gap-1 font-bold">
+                            <span>📞</span>
+                            <span>{pt.contact}</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap text-xs">
+                        {pt.restDay}
+                      </td>
+                      <td className="py-2.5 px-2.5 text-right whitespace-nowrap">
+                        {isVacant ? (
+                          <button
+                            onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY')}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-red-600 hover:bg-red-700 text-white shadow-sm transition inline-flex items-center gap-1 animate-pulse"
+                          >
+                            <span>🚨</span>
+                            <span>Assign Beat</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedStaffForIdModal({
+                                name: pt.name,
+                                awpoId: pt.staffId,
+                                mobileNo: pt.contact,
+                                post: 'Day Security Patrolman',
+                                beatCode: pt.beatCode,
+                                sectionCode: 'SMUN-SBJN',
+                                fromKm: 1167.210,
+                                toKm: 1249.720,
+                                category: 'Ex-Serviceman'
+                              })}
+                              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition inline-flex items-center gap-0.5"
+                              title="View Official DFCCIL Staff ID"
+                            >
+                              <span>🪪</span>
+                              <span>ID</span>
+                            </button>
+                            <button
+                              onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'DAY')}
+                              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition inline-flex items-center gap-1"
+                              title="Re-allot Beat"
+                            >
+                              <Edit className="w-3 h-3" />
+                              <span>Re-allot</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeletePatrolShift({ id: `DAY-${pt.beatCode}`, beatCode: pt.beatCode } as any)}
+                              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-red-50 dark:bg-red-950/50 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition inline-flex items-center gap-1"
+                              title="Unassign Patrolman & Mark Beat Vacant"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Unassign</span>
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
- {/* 2. Night Security Patrol Table (SPN-01 to SPN-12) */}
- <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm space-y-3 p-4">
- <div className="flex items-center justify-between border-b border-slate-200 pb-3">
- <div className="flex items-center gap-2">
- <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
- <Moon className="w-5 h-5" />
- </div>
- <div>
- <h3 className="text-sm sm:text-base font-bold text-[#0f2b5c]">
- Night Security Patrol (Shift 2: 23:00 to 07:00 hrs)
- </h3>
- <p className="text-[11px] text-slate-500">
- 12 Total Beats • 2-Man Patrol Pair per Beat
- </p>
- </div>
- </div>
- <span className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg text-xs font-mono font-bold">
- {nightPatrols.filter(p => p.isFilled && p.patrolmanName && !p.patrolmanName.includes('Vacant')).length}/12 Filled
- </span>
- </div>
+        {/* 2. Night Security Patrol Table - SPN (24 Total Slots: 4 Vacant • 20 Active) */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm space-y-3 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-950/60 rounded-lg text-indigo-600 dark:text-indigo-400">
+                <Moon className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-[#0f2b5c] dark:text-white">
+                  Night Security Patrol - SPN (Shift 2: 23:00 to 07:00 hrs)
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  12 Night Beats (SPN-001 to SPN-012) • 24 Personnel (2-Man Patrol Pair per Beat)
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-800 dark:text-cyan-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-mono font-bold self-start sm:self-auto">
+              24 Total Slots (4 Vacant • 20 Active)
+            </span>
+          </div>
 
- <div className="overflow-x-auto">
- <table className="w-full text-left text-xs border-collapse">
- <thead>
- <tr className="bg-[#e8f1fb] text-[#0f2b5c] font-black border-b border-slate-200">
- <th className="py-2.5 px-2.5">BEAT</th>
- <th className="py-2.5 px-2.5">PATROL PAIR (NAMES)</th>
- <th className="py-2.5 px-2.5">ROUTE / JURISDICTION</th>
- <th className="py-2.5 px-2.5">CONTACT</th>
- <th className="py-2.5 px-2.5">REST DAY</th>
- <th className="py-2.5 px-2.5 text-right">ACTION</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
- {nightPatrols.map((pt, idx) => {
- const isVacant = pt.status === 'VACANT' || !pt.isFilled || (pt.patrolmanName || '').toLowerCase().includes('vacant');
- const pairNames = pt.patrolPartnerName ? `${pt.patrolmanName} & ${pt.patrolPartnerName}` : (pt.patrolmanName || 'Vacant Beat');
- return (
- <tr key={pt.id} className={idx % 2 === 0 ? 'bg-white hover:bg-indigo-50/30' : 'bg-slate-50/70 hover:bg-indigo-50/30'}>
- <td className="py-2.5 px-2.5 font-mono font-bold whitespace-nowrap">
- <span className={`px-2 py-0.5 rounded text-xs border ${
- isVacant
- ? 'bg-red-50 text-red-700 border-red-300'
- : 'bg-indigo-50 text-indigo-800 border-indigo-200'
- }`}>
- {pt.beatCode}
- </span>
- </td>
- <td className={`py-2.5 px-2.5 font-bold ${isVacant ? 'text-red-600' : 'text-slate-900'}`}>
- {isVacant ? (
- <span>🚨 Vacant (Unassigned)</span>
- ) : (
- <div>
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal({
- name: pt.patrolmanName || '',
- awpoId: pt.patrolmanStaffId || '',
- mobileNo: pt.patrolmanPhone || '',
- post: 'Security Patrolman (Night)',
- beatCode: pt.beatCode,
- sectionCode: pt.sectionCode,
- fromKm: pt.fromKm,
- toKm: pt.toKm,
- category: 'Ex-Serviceman'
- })}
- className="text-slate-900 hover:text-indigo-600 hover:underline text-left font-bold"
- title="Click to view full DFCCIL Staff ID"
- >
- {pairNames}
- </button>
- {pt.patrolmanStaffId && (
- <span className="block text-[10px] font-mono text-slate-500 font-normal">
- {pt.patrolmanStaffId} {pt.patrolPartnerId ? `• ${pt.patrolPartnerId}` : ''}
- </span>
- )}
- </div>
- )}
- </td>
- <td className="py-2.5 px-2.5 text-slate-600 text-[11px] whitespace-nowrap">
- <div className="font-semibold text-slate-700">{pt.sectionCode || `IMSD SMUN ${pt.beatCode}`}</div>
- <div className="font-mono text-[10px] text-slate-500">Km {pt.fromKm?.toFixed(3)} – {pt.toKm?.toFixed(3)}</div>
- </td>
- <td className="py-2.5 px-2.5 font-mono whitespace-nowrap text-[11px]">
- {pt.patrolmanPhone ? (
- <a href={`tel:${pt.patrolmanPhone}`} className="text-blue-700 hover:underline flex items-center gap-1 font-bold">
- <span>📞</span>
- <span>{pt.patrolmanPhone}</span>
- </a>
- ) : (
- <span className="text-slate-400">-</span>
- )}
- </td>
- <td className="py-2.5 px-2.5 text-slate-600 whitespace-nowrap text-xs">
- {pt.restDay || 'Sunday'}
- </td>
- <td className="py-2.5 px-2.5 text-right whitespace-nowrap">
- {isVacant ? (
- <button
- onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'NIGHT', pt)}
- className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-red-600 hover:bg-red-700 text-white shadow-sm transition inline-flex items-center gap-1 animate-pulse"
- >
- <span>🚨</span>
- <span>Assign Pair</span>
- </button>
- ) : (
- <div className="flex items-center justify-end gap-1.5">
- <button
- type="button"
- onClick={() => setSelectedStaffForIdModal({
- name: pt.patrolmanName || '',
- awpoId: pt.patrolmanStaffId || '',
- mobileNo: pt.patrolmanPhone || '',
- post: 'Security Patrolman (Night)',
- beatCode: pt.beatCode,
- sectionCode: pt.sectionCode,
- fromKm: pt.fromKm,
- toKm: pt.toKm,
- category: 'Ex-Serviceman'
- })}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-0.5"
- title="View Official DFCCIL Staff ID"
- >
- <span>🪪</span>
- <span>ID</span>
- </button>
- <button
- onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'NIGHT', pt)}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition inline-flex items-center gap-1"
- title="Re-allot Night Beat"
- >
- <Edit className="w-3 h-3" />
- <span>Re-allot</span>
- </button>
- <button
- onClick={() => handleDeletePatrolShift(pt)}
- className="px-2 py-1 rounded-lg text-[11px] font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition inline-flex items-center gap-1"
- title="Unassign Night Patrol Pair & Mark Beat Vacant"
- >
- <Trash2 className="w-3 h-3" />
- <span>Unassign</span>
- </button>
- </div>
- )}
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
- </div>
- </div>
- </div>
- </div>
- )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-[#e8f1fb] dark:bg-slate-800 text-[#0f2b5c] dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
+                  <th className="py-2.5 px-3">Sr No</th>
+                  <th className="py-2.5 px-3">Beat No.</th>
+                  <th className="py-2.5 px-3">Patrolman Name</th>
+                  <th className="py-2.5 px-3">Route Name</th>
+                  <th className="py-2.5 px-3">Mobile Number</th>
+                  <th className="py-2.5 px-3 text-right">ID Card Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+                {[
+                  { srNo: 1, beatCode: 'SPN-001', name: '[Vacant Beat Slot]', route: 'B 1162/17 to C 1170/16', mobile: 'Vecant Beat', isVacant: true },
+                  { srNo: 2, beatCode: 'SPN-001', name: '[Vacant Beat Slot]', route: 'B 1162/17 to C 1170/16', mobile: 'Vecant Beat', isVacant: true },
+                  { srNo: 3, beatCode: 'SPN-002', name: 'Dharminder Singh', staffId: '11500', route: 'B 1170/16 to C 1178/12', mobile: '9466303713', isVacant: false },
+                  { srNo: 4, beatCode: 'SPN-002', name: 'Balkar Singh', staffId: '11501', route: 'B 1170/16 to C 1178/12', mobile: '9896486583', isVacant: false },
+                  { srNo: 5, beatCode: 'SPN-003', name: 'Rajinder Singh', staffId: '14690', route: 'B 1178/12 to C 1186/9', mobile: '7973074232', isVacant: false },
+                  { srNo: 6, beatCode: 'SPN-003', name: 'Vikramjit Singh', staffId: '14691', route: 'B 1178/12 to C 1186/9', mobile: '9478790749', isVacant: false },
+                  { srNo: 7, beatCode: 'SPN-004', name: 'Dharminder Singh', staffId: '11500', route: 'B 1186/9 to C 1194/7', mobile: '9877978448', isVacant: false },
+                  { srNo: 8, beatCode: 'SPN-004', name: 'Rachhpal Singh', staffId: '11502', route: 'B 1186/9 to C 1194/7', mobile: '7087370322', isVacant: false },
+                  { srNo: 9, beatCode: 'SPN-005', name: '[Vacant Beat Slot]', route: 'B 1194/7 to C 1202/6', mobile: 'Vecant Beat', isVacant: true },
+                  { srNo: 10, beatCode: 'SPN-005', name: '[Vacant Beat Slot]', route: 'B 1194/7 to C 1202/6', mobile: 'Vecant Beat', isVacant: true },
+                  { srNo: 11, beatCode: 'SPN-006', name: 'Amarjit Singh', staffId: '14643', route: 'B 1202/6 to C 1210/5', mobile: '7004563174', isVacant: false },
+                  { srNo: 12, beatCode: 'SPN-006', name: 'Baljit Singh', staffId: '14644', route: 'B 1202/6 to C 1210/5', mobile: '9530822519', isVacant: false },
+                  { srNo: 13, beatCode: 'SPN-007', name: 'Santok Singh', staffId: '14650', route: 'B 1210/5 to C 1218/2', mobile: '9592458167', isVacant: false },
+                  { srNo: 14, beatCode: 'SPN-007', name: 'Gurjant Singh', staffId: '14651', route: 'B 1210/5 to C 1218/2', mobile: '8283848434', isVacant: false },
+                  { srNo: 15, beatCode: 'SPN-008', name: 'Gurpreet Singh', staffId: '14660', route: 'B 1218/2 to C 1226/1', mobile: '8847400008', isVacant: false },
+                  { srNo: 16, beatCode: 'SPN-008', name: 'Gurjit Singh', staffId: '14661', route: 'B 1218/2 to C 1226/1', mobile: '8360358775', isVacant: false },
+                  { srNo: 17, beatCode: 'SPN-009', name: 'Tarsem Singh', staffId: '14670', route: 'B 1226/1 to C 1233/16', mobile: '8427122355', isVacant: false },
+                  { srNo: 18, beatCode: 'SPN-009', name: 'Harjinder Singh', staffId: '14671', route: 'B 1226/1 to C 1233/16', mobile: '9463843762', isVacant: false },
+                  { srNo: 19, beatCode: 'SPN-010', name: 'Yadwinder Singh', staffId: '14680', route: 'B 1233/16 to C 1241/15', mobile: '9501572141', isVacant: false },
+                  { srNo: 20, beatCode: 'SPN-010', name: 'Sukhwinder Singh', staffId: '14681', route: 'B 1233/16 to C 1241/15', mobile: '7973475062', isVacant: false },
+                  { srNo: 21, beatCode: 'SPN-011', name: 'Jagroop Singh', staffId: '14695', route: 'B 1241/15 to C 1249/15', mobile: '8146492292', isVacant: false },
+                  { srNo: 22, beatCode: 'SPN-011', name: 'Harpreet Singh', staffId: '14696', route: 'B 1241/15 to C 1249/15', mobile: '8847593020', isVacant: false },
+                  { srNo: 23, beatCode: 'SPN-012', name: 'Salamundin Singh', staffId: '14700', route: 'B 1170/9 to C 1178/4', mobile: '9417986390', isVacant: false },
+                  { srNo: 24, beatCode: 'SPN-012', name: 'Nirbhay Singh', staffId: '14701', route: 'B 1170/9 to C 1178/4', mobile: '8872359476', isVacant: false }
+                ].map((pt) => {
+                  const isVacant = pt.isVacant;
+                  return (
+                    <tr
+                      key={`${pt.beatCode}-${pt.srNo}`}
+                      className={
+                        isVacant
+                          ? 'bg-[#ffff00] dark:bg-yellow-950/60 font-bold text-slate-950 dark:text-yellow-100 border-y border-amber-300 dark:border-amber-700'
+                          : pt.srNo % 2 === 0
+                          ? 'bg-white dark:bg-slate-900 hover:bg-indigo-50/40 dark:hover:bg-slate-800/50'
+                          : 'bg-slate-50/70 dark:bg-slate-950/40 hover:bg-indigo-50/40 dark:hover:bg-slate-800/50'
+                      }
+                    >
+                      <td className="py-2.5 px-3 font-mono font-bold text-center">
+                        {pt.srNo}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-black whitespace-nowrap">
+                        {pt.beatCode}
+                      </td>
+                      <td className="py-2.5 px-3 font-bold whitespace-nowrap">
+                        {isVacant ? (
+                          <span className="italic text-slate-900 dark:text-yellow-200">{pt.name}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForIdModal({
+                              name: pt.name,
+                              awpoId: pt.staffId || '',
+                              mobileNo: pt.mobile,
+                              post: 'Night Security Patrolman',
+                              beatCode: pt.beatCode,
+                              sectionCode: 'SMUN-SBJN',
+                              fromKm: 1167.210,
+                              toKm: 1249.720,
+                              category: 'Ex-Serviceman'
+                            })}
+                            className="text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-cyan-300 hover:underline text-left font-bold"
+                            title="Click to view full DFCCIL Staff ID"
+                          >
+                            {pt.name}
+                          </button>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-[11px] whitespace-nowrap">
+                        {pt.route}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono whitespace-nowrap">
+                        {isVacant ? (
+                          <span className="font-bold text-red-700 dark:text-red-300">{pt.mobile}</span>
+                        ) : (
+                          <a href={`tel:${pt.mobile}`} className="text-blue-700 dark:text-cyan-300 hover:underline flex items-center gap-1 font-bold">
+                            <span>📞</span>
+                            <span>{pt.mobile}</span>
+                          </a>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                        {isVacant ? (
+                          <button
+                            onClick={() => openAdvanceAllotForBeat(pt.beatCode, 'NIGHT')}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black shadow-sm transition inline-flex items-center gap-1"
+                          >
+                            <span>Assign Beat</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForIdModal({
+                              name: pt.name,
+                              awpoId: pt.staffId || '',
+                              mobileNo: pt.mobile,
+                              post: 'Night Security Patrolman',
+                              beatCode: pt.beatCode,
+                              sectionCode: 'SMUN-SBJN',
+                              fromKm: 1167.210,
+                              toKm: 1249.720,
+                              category: 'Ex-Serviceman'
+                            })}
+                            className="px-3 py-1 bg-[#1a365d] hover:bg-[#0f2b5c] dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-sm transition inline-flex items-center gap-1"
+                          >
+                            <span>🪪</span>
+                            <span>View ID Card</span>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
 
- <input
- type="file"
- ref={photoFileInputRef}
- accept="image/*"
- onChange={handlePhotoFileChange}
- className="hidden"
- />
+  <input
+    type="file"
+    ref={photoFileInputRef}
+    accept="image/*"
+    onChange={handlePhotoFileChange}
+    className="hidden"
+  />
  <input
  type="file"
  ref={selfieInputRef}
@@ -3513,13 +3684,9 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  const val = e.target.value;
  let defaultPost = staffFormData.post;
  if (val === 'REGULAR') defaultPost = 'Executive';
- else if (val === 'MTS_OUTSOURCE') defaultPost = 'MTS';
- else if (val === 'KEYMAN') defaultPost = 'KEYMAN';
- else if (val === 'PATROLMAN_DAY') defaultPost = 'Patrolman (Day)';
- else if (val === 'PATROLMAN_NIGHT') defaultPost = 'Patrolman (Night)';
- else if (val === 'GATEMAN') defaultPost = 'GATEMAN';
- else if (val === 'BR_WATCHMAN') defaultPost = 'Bridge Watchman';
- else if (val === 'OFFICE_STAFF') defaultPost = 'Office Boy';
+ else if (val === 'OUTSOURCE') defaultPost = 'MTS';
+ else if (val === 'EX_SERVICEMAN') defaultPost = 'Keyman / Gateman';
+ else if (val === 'RE_EMPLOYMENT') defaultPost = 'Supervisor';
 
  setStaffFormData(prev => ({
  ...prev,
@@ -3529,14 +3696,10 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  }}
  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-blue-500/60 rounded-xl text-slate-900 dark:text-white font-bold"
  >
- <option value="REGULAR">Regular (Permanent Staff)</option>
- <option value="MTS_OUTSOURCE">MTS (Outsource)</option>
- <option value="KEYMAN">Keyman</option>
- <option value="PATROLMAN_DAY">Patrolman (Day)</option>
- <option value="PATROLMAN_NIGHT">Patrolman (Night)</option>
- <option value="GATEMAN">Gateman</option>
- <option value="BR_WATCHMAN">Br. Watchman</option>
- <option value="OFFICE_STAFF">Office Staff</option>
+ <option value="REGULAR">Regular</option>
+ <option value="OUTSOURCE">Outsource</option>
+ <option value="EX_SERVICEMAN">Ex-serviceman</option>
+ <option value="RE_EMPLOYMENT">Re-employment</option>
  </select>
  </div>
 
@@ -3592,15 +3755,51 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  {/* Universal Designation and ID Row */}
  <div className="grid grid-cols-2 gap-3">
    <div>
-     <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Designation / Role Title *</label>
-     <input
-       type="text"
-       required
-       placeholder="e.g. Keyman, Patrolman, Gateman, MTS, Executive"
+     <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Designation (पद नाम) *</label>
+     <select
        value={staffFormData.post}
-       onChange={e => setStaffFormData(prev => ({ ...prev, post: e.target.value }))}
-       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
-     />
+       onChange={e => {
+         const newPost = e.target.value;
+         let matchedEmpType = staffFormData.employmentType;
+         if (newPost === 'Gateman' || newPost === 'Keyman' || newPost === 'Day Patrolman' || newPost === 'Night Patrolman' || newPost === 'Bridge Watchman') {
+           matchedEmpType = 'EX_SERVICEMAN';
+         } else if (newPost === 'MTS' || newPost === 'Office Staff' || newPost === 'Sweeper' || newPost === 'Cleaner') {
+           matchedEmpType = 'OUTSOURCE';
+         } else if (newPost === 'Supervisor') {
+           matchedEmpType = 'RE_EMPLOYMENT';
+         } else if (newPost === 'Executive' || newPost === 'Jr. Executive' || newPost === 'Senior Executive' || newPost === 'Assistant Project Manager (APM)' || newPost === 'Track Maintainer') {
+           matchedEmpType = 'REGULAR';
+         }
+
+         setStaffFormData(prev => ({
+           ...prev,
+           post: newPost,
+           employmentType: matchedEmpType
+         }));
+       }}
+       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-blue-500/60 rounded-xl text-slate-900 dark:text-white font-bold"
+     >
+       <optgroup label="Ex-Serviceman / Field Posts (पूर्व सैनिक)">
+         <option value="Gateman">Gateman (गेटमैन)</option>
+         <option value="Keyman">Keyman (कीमैन)</option>
+         <option value="Day Patrolman">Day Patrolman (दिन पेट्रोलमैन)</option>
+         <option value="Night Patrolman">Night Patrolman (रात पेट्रोलमैन)</option>
+         <option value="Bridge Watchman">Bridge Watchman (ब्रिज वॉचमैन)</option>
+       </optgroup>
+       <optgroup label="Outsource MTS / Office Posts">
+         <option value="MTS">MTS (आउटसोर्स एमटीएस)</option>
+         <option value="Office Staff">Office Staff (कार्यालय स्टाफ)</option>
+         <option value="Sweeper">Sweeper / Cleaner</option>
+         <option value="Supervisor">Supervisor</option>
+       </optgroup>
+       <optgroup label="Permanent / Executive Posts">
+         <option value="Executive">Executive (Civil / P-Way)</option>
+         <option value="Jr. Executive">Jr. Executive (Civil / P-Way)</option>
+         <option value="Senior Executive">Senior Executive</option>
+         <option value="Assistant Project Manager (APM)">Assistant Project Manager (APM)</option>
+         <option value="Track Maintainer">Track Maintainer</option>
+       </optgroup>
+     </select>
    </div>
    <div>
      <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">
@@ -3796,14 +3995,15 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
     <input
       type="file"
       accept="image/*"
-      onChange={e => {
+      onChange={async e => {
         const file = e.target.files?.[0];
         if (file) {
-          const reader = new FileReader();
-          reader.onload = ev => {
-            setStaffFormData((prev: any) => ({ ...prev, photoUrl: ev.target?.result as string }));
-          };
-          reader.readAsDataURL(file);
+          try {
+            const compressed = await compressStaffPhoto(file);
+            setStaffFormData((prev: any) => ({ ...prev, photoUrl: compressed }));
+          } catch (err) {
+            console.error('Photo compression error:', err);
+          }
         }
       }}
       className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"

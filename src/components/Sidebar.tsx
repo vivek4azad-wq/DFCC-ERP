@@ -22,7 +22,10 @@ import {
   Info,
   CalendarCheck,
   HardHat,
-  Package
+  Package,
+  FileText,
+  Activity,
+  Wrench
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -51,6 +54,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       badge: 'Schematic'
     },
     {
+      id: 'keyplans',
+      label: 'Station Key-Plans & Layout',
+      shortLabel: 'Key-Plans',
+      icon: FileText,
+      badge: 'PDF / CAD'
+    },
+    {
       id: 'categories',
       label: 'Assets Categories',
       shortLabel: 'Categories',
@@ -73,9 +83,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     },
     {
       id: 'pway_work',
-      label: 'P-Way Work & 1+15 Gang',
-      shortLabel: 'P-Way Work',
-      icon: HardHat,
+      label: 'P-Way OMS & TRC',
+      shortLabel: 'P-Way',
+      icon: Activity,
+      badge: 'Quality'
+    },
+    {
+      id: 'maintenance',
+      label: 'Track Maintenance',
+      shortLabel: 'Maintenance',
+      icon: Wrench,
       badge: '1+15 Gang'
     },
     {
@@ -97,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       label: 'Staff & Personnel ERP',
       shortLabel: 'Staff ERP',
       icon: Users,
-      badge: '82 Staff'
+      badge: '84 Staff'
     },
     {
       id: 'defects',
@@ -129,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   // Strictly enforce role-based menu items
   const navItems = useMemo(() => {
     if (currentAppRole === 'MTS' || role === 'STAFF') {
-      // 🔒 Strictly visible for MTS: KM Finder, P.Way, Staff, and own attendance (No inspection tab)
+      // 🔒 Strictly visible for MTS: KM Finder, P.Way, Maintenance, Staff, and own attendance (No inspection tab)
       return [
         {
           id: 'kmfinder',
@@ -140,9 +157,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         },
         {
           id: 'pway_work',
-          label: 'P.Way Work (1+15 Gang)',
+          label: 'P.Way Track Quality & OMS',
           shortLabel: 'P.Way',
-          icon: HardHat,
+          icon: Activity,
+          badge: 'OMS/TRC'
+        },
+        {
+          id: 'maintenance',
+          label: 'Track Maintenance (1+15 Gang)',
+          shortLabel: 'Maintenance',
+          icon: Wrench,
           badge: 'Field'
         },
         {

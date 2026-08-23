@@ -26,7 +26,15 @@ import {
   RefreshCw,
   Plus,
   Compass,
-  X
+  X,
+  GitFork,
+  Route,
+  Fence,
+  ThermometerSun,
+  Sliders,
+  Footprints,
+  Target,
+  Landmark
 } from 'lucide-react';
 import { BridgeDetailModal } from './BridgeDetailModal.tsx';
 import { StaffIdModal, type UnifiedStaffModalData } from './StaffIdModal.tsx';
@@ -388,13 +396,13 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
     return (
       <div className="space-y-6 animate-fadeIn">
         {/* Top Header */}
-        <div className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl">
               <Layers className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Assets Categories</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Assets Categories</h2>
               <p className="text-xs text-slate-500">
                 Categorized infrastructure telemetry across 88.679 Km (DFCCIL IMSD SMUN Unit)
               </p>
@@ -420,15 +428,31 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
                   setFilterOption1('ALL');
                   setFilterOption2('ALL');
                 }}
-                className="bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-400 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3.5 transition group shadow-sm hover:shadow-md hover:-translate-y-0.5 min-h-[160px]"
+                className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-blue-400 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3.5 transition group shadow-sm hover:shadow-md hover:-translate-y-0.5 min-h-[160px]"
               >
-                {/* 4-Square Grid Icon Box */}
+                {/* Specialized Category Icon Box */}
                 <div className={`w-14 h-14 rounded-2xl ${cat.iconBg} ${cat.iconColor} border ${cat.borderColor} flex items-center justify-center group-hover:scale-110 transition shadow-inner`}>
-                  <Grid className="w-7 h-7" />
+                  {cat.key === 'bridges' && (
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 17h20" />
+                      <path d="M4 17V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v9" />
+                      <path d="M4 12h16" />
+                      <path d="M8 17v-5" />
+                      <path d="M12 17v-5" />
+                      <path d="M16 17v-5" />
+                    </svg>
+                  )}
+                  {cat.key === 'points_crossings' && <GitFork className="w-7 h-7 rotate-90" />}
+                  {cat.key === 'curves' && <Route className="w-7 h-7" />}
+                  {cat.key === 'level_crossings' && <Fence className="w-7 h-7" />}
+                  {cat.key === 'lwr' && <ThermometerSun className="w-7 h-7" />}
+                  {cat.key === 'sej' && <Sliders className="w-7 h-7" />}
+                  {cat.key === 'track_defects' && <Target className="w-7 h-7" />}
+                  {cat.key === 'keymen_patrol' && <Footprints className="w-7 h-7" />}
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition leading-snug">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-cyan-300 transition leading-snug">
                     {cat.title}
                   </h3>
                   <p className="text-[11px] text-slate-500 font-mono mt-1">
@@ -441,7 +465,7 @@ export const AssetCategories: React.FC<AssetCategoriesProps> = ({
         </div>
 
         {/* Quick Corridor Jurisdiction Banner */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 shadow-sm">
+        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-300 shadow-sm">
           <div className="flex items-center gap-2">
             <Train className="w-4 h-4 text-blue-700 shrink-0" />
             <span>

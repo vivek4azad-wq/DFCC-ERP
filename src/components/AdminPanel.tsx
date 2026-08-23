@@ -706,11 +706,12 @@ export const AdminPanel: React.FC = () => {
                   <select
                     value={staffFormData.employmentType}
                     onChange={e => setStaffFormData({ ...staffFormData, employmentType: e.target.value as EmploymentType })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold"
                   >
-                    <option value="REGULAR">REGULAR (Permanent)</option>
-                    <option value="OUTSOURCED">OUTSOURCED (AWPO)</option>
-                    <option value="DEPUTATION">DEPUTATION</option>
+                    <option value="REGULAR">Regular</option>
+                    <option value="OUTSOURCE">Outsource</option>
+                    <option value="EX_SERVICEMAN">Ex-serviceman</option>
+                    <option value="RE_EMPLOYMENT">Re-employment</option>
                   </select>
                 </div>
               </div>

@@ -653,7 +653,7 @@ export const StaffManagement: React.FC = () => {
             }`}
           >
             <Shield className="w-4 h-4" />
-            <span>Permanent Staff ({kpis.permanent})</span>
+            <span>Permanent ({kpis.permanent})</span>
           </button>
 
           <button
@@ -668,7 +668,7 @@ export const StaffManagement: React.FC = () => {
             }`}
           >
             <Building className="w-4 h-4" />
-            <span>Outsource Staff ({kpis.outsource})</span>
+            <span>Outsource MTS ({kpis.outsource})</span>
           </button>
 
           <button
@@ -685,36 +685,6 @@ export const StaffManagement: React.FC = () => {
             <HardHat className="w-4 h-4" />
             <span>Ex-Service Man ({kpis.exServiceman})</span>
           </button>
-        </div>
-
-        {/* Sub Duty Quick Toggles */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-800/80 text-xs">
-          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 shrink-0">
-            <Filter className="w-3.5 h-3.5 text-blue-400" /> Quick Duty:
-          </span>
-
-          {[
-            { id: 'ALL', label: `All Types` },
-            { id: 'KEYMAN', label: `Keyman (${kpis.keymen})` },
-            { id: 'PATROL_SPN', label: `Patrolman-SPN (${kpis.patrolSpn})` },
-            { id: 'PATROL_SPD', label: `Patrolman-SPD (${kpis.patrolSpd})` },
-            { id: 'GATEMAN', label: `Gateman (${kpis.gatemen})` },
-            { id: 'WATCHMAN', label: `Watchman (${kpis.watchmen})` }
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => {
-                setDutySubFilter(f.id as any);
-              }}
-              className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap ${
-                dutySubFilter === f.id
-                  ? 'bg-slate-700 text-white ring-1 ring-cyan-400'
-                  : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 border border-slate-800'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
         </div>
       </div>
 

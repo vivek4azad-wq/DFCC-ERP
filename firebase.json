@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "smun",
     "public": "www",
     "ignore": [
       "firebase.json",
@@ -12,5 +13,8 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "functions": {
+    "source": "functions"
   }
 }

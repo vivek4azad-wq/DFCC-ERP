@@ -7,7 +7,7 @@
 // RBAC Roles & Authentication
 // ---------------------------------------------------------------------------
 
-export type UserRole = 'SUPER_ADMIN' | 'OFFICER' | 'STAFF' | 'STORE_KEEPER';
+export type UserRole = 'SUPER_ADMIN' | 'OFFICER' | 'STAFF' | 'STORE_KEEPER' | 'GUEST';
 
 export interface UserAccount {
   id: string;
@@ -30,6 +30,16 @@ export interface UserAccount {
   [key: string]: any;
 }
 
+export interface GuestVisitorLog {
+  id: string;
+  name: string;
+  phone: string;
+  purpose?: string;
+  timestamp: string;
+  userAgent?: string;
+  ipOrDevice?: string;
+}
+
 export type AuthUser = UserAccount;
 export type UserSession = UserAccount;
 
@@ -39,6 +49,7 @@ export type UserSession = UserAccount;
 
 export type CollectionName =
   | 'users'
+  | 'guest_logins'
   | 'jurisdiction'
   | 'bridges'
   | 'level_crossings'
@@ -62,7 +73,8 @@ export type CollectionName =
   | 'store_items'
   | 'store_inventory'
   | 'store_categories'
-  | 'store_transactions';
+  | 'store_transactions'
+  | 'station_keyplans';
 
 export const ALL_COLLECTIONS: CollectionName[] = [
   'users',
@@ -89,7 +101,8 @@ export const ALL_COLLECTIONS: CollectionName[] = [
   'store_items',
   'store_inventory',
   'store_categories',
-  'store_transactions'
+  'store_transactions',
+  'station_keyplans'
 ];
 
 export interface StationRecord {
@@ -242,7 +255,20 @@ export type StaffCategory = 'PERMANENT' | 'OUTSOURCE' | 'EX_SERVICEMAN';
 export type StaffDutyType = 'OFFICER' | 'KEYMAN' | 'PATROLMAN' | 'GATEMAN' | 'WATCHMAN' | 'OFFICE' | 'GANG' | 'MTS';
 export type PermanentDesignation = 'Dy.PM' | 'APM' | 'JPM' | 'Sr.Executive' | 'Executive' | 'Jr.Executive' | 'MTS';
 
-export type EmploymentType = 'REGULAR' | 'OUTSOURCED' | 'CONTRACT' | 'DEPUTATION' | 'PERMANENT' | 'OUTSOURCE';
+export type EmploymentType =
+  | 'REGULAR'
+  | 'OUTSOURCED'
+  | 'CONTRACT'
+  | 'DEPUTATION'
+  | 'PERMANENT'
+  | 'OUTSOURCE'
+  | 'MTS_OUTSOURCE'
+  | 'OFFICE_STAFF'
+  | 'KEYMAN'
+  | 'PATROLMAN_DAY'
+  | 'PATROLMAN_NIGHT'
+  | 'GATEMAN'
+  | 'BR_WATCHMAN';
 
 export interface LeaveBalance {
   lap: number;
@@ -465,7 +491,7 @@ export interface TrackDefectRecord {
   defectCode: string;
   category: DefectCategory;
   title: string;
-  description: string;
+  description?: string;
   sectionCode: string;
   km: number;
   meter?: number;

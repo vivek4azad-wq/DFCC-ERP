@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../services/database.ts';
 import { launchNavigation } from '../services/geo.ts';
+import { useTheme } from '../context/ThemeContext.tsx';
 import { BridgeDetailModal } from './BridgeDetailModal.tsx';
 import { StaffIdModal, type UnifiedStaffModalData } from './StaffIdModal.tsx';
 import { GRADIENT_RECORDS } from '../data/gradientData.ts';
@@ -82,6 +83,7 @@ export interface LinearAssetItem {
 }
 
 export const BridgeLinearDiagram: React.FC = () => {
+  const { isDark } = useTheme();
   const [bridges, setBridges] = useState<BridgeRecord[]>([]);
   const [pointsCrossings, setPointsCrossings] = useState<PointCrossingRecord[]>([]);
   const [curves, setCurves] = useState<CurveRecord[]>([]);
@@ -429,24 +431,58 @@ export const BridgeLinearDiagram: React.FC = () => {
   const getY = (km: number) => 50 + (km - kmFrom) * pxPerKm;
 
   return (
-    <div className={`space-y-4 animate-fadeIn pb-12 print-container ${isFullScreen ? 'fixed inset-0 z-50 bg-[#f8fafc] p-6 overflow-y-auto' : ''}`}>
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-1">
-        <h2 className="text-lg font-black text-slate-900 tracking-tight">
-          IMSD-SMUN Track &amp; Asset Command Centre
-        </h2>
-        <p className="text-xs text-slate-500 font-medium">
-          Jurisdiction: Km 1167.210 to 1249.720 · including SMUN–RPJ Link Line · UBCD station center: Km 1158.856
-        </p>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="border-b border-slate-100 pb-3 flex items-center justify-between flex-wrap gap-2">
+    <div className={`space-y-4 animate-fadeIn pb-12 print-container ${isFullScreen ? 'fixed inset-0 z-50 bg-[#f8fafc] dark:bg-slate-950 p-6 overflow-y-auto' : ''}`}>
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 8mm;
+          }
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-linear-diagram,
+          #printable-linear-diagram * {
+            visibility: visible !important;
+          }
+          #printable-linear-diagram {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 8px !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            display: block !important;
+          }
+          .v14-wrap {
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            border: 1px solid #94a3b8 !important;
+            background: #ffffff !important;
+          }
+          .v14-canvas {
+            background: #ffffff !important;
+          }
+          .no-print, nav, header, footer {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 no-print">
+        <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
               <span>📐</span>
               <span>DFCCIL PKY-SNL — KM-wise Linear Diagram</span>
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
               Same asset database as KM Search, shown on one chainage line.
             </p>
           </div>
@@ -457,8 +493,8 @@ export const BridgeLinearDiagram: React.FC = () => {
               onClick={() => setViewMode('connected')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition border ${
                 viewMode === 'connected'
-                  ? 'bg-[#123b72] text-white border-[#123b72]'
-                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  ? 'bg-[#123b72] text-white border-[#123b72] shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               Connected Profile
@@ -468,8 +504,8 @@ export const BridgeLinearDiagram: React.FC = () => {
               onClick={() => setViewMode('gradient_vertical')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition border ${
                 viewMode === 'gradient_vertical'
-                  ? 'bg-[#123b72] text-white border-[#123b72]'
-                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  ? 'bg-[#123b72] text-white border-[#123b72] shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               Gradient Diagram ({GRADIENT_RECORDS.length})
@@ -479,7 +515,7 @@ export const BridgeLinearDiagram: React.FC = () => {
 
         <form onSubmit={handleGenerate} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">From KM</label>
+            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">From KM</label>
             <input
               type="number"
               step="0.001"
@@ -488,12 +524,12 @@ export const BridgeLinearDiagram: React.FC = () => {
                 setFromKmInput(e.target.value);
                 setCenterKmInput('');
               }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition shadow-inner"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 transition shadow-inner font-bold"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">To KM</label>
+            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">To KM</label>
             <input
               type="number"
               step="0.001"
@@ -502,12 +538,12 @@ export const BridgeLinearDiagram: React.FC = () => {
                 setToKmInput(e.target.value);
                 setCenterKmInput('');
               }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition shadow-inner"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 transition shadow-inner font-bold"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">Center KM</label>
+            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Center KM</label>
             <input
               type="number"
               step="0.001"
@@ -518,7 +554,7 @@ export const BridgeLinearDiagram: React.FC = () => {
                 setFromKmInput('');
                 setToKmInput('');
               }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition shadow-inner placeholder:text-slate-400"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 transition shadow-inner placeholder:text-slate-400 font-bold"
             />
           </div>
 
@@ -533,18 +569,18 @@ export const BridgeLinearDiagram: React.FC = () => {
           <button
             type="button"
             onClick={handleReset}
-            className="w-full py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition flex items-center justify-center active:scale-95"
+            className="w-full py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 transition flex items-center justify-center active:scale-95"
           >
             <span>Reset</span>
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => window.print()}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 print-include"
+              className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 print-include"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Diagram Only</span>
@@ -553,81 +589,57 @@ export const BridgeLinearDiagram: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsFullScreen(!isFullScreen)}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+              className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
             >
               {isFullScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
               <span>{isFullScreen ? 'Exit Full Screen' : 'Full Screen'}</span>
             </button>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl font-bold transition active:scale-95 shadow-sm"
-              title="Increase vertical spacing per KM"
-            >
-              ↕ + Vertical Zoom In
-            </button>
-
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl font-bold transition active:scale-95 shadow-sm"
-              title="Decrease vertical spacing per KM"
-            >
-              ↕ − Vertical Zoom Out
-            </button>
-
-            <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-              {pxPerKm} px / KM
-            </span>
-          </div>
         </div>
 
-        <div className="p-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-xl text-xs text-slate-800 leading-relaxed">
-          <strong>Linear view:</strong> Bridges, P&amp;C, Curves, LWR, SEJ, LC, Stations, Keyman and Patrol beats are placed at their chainage. Click any asset to open its KM-wise All Assets view.
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+          <strong>Linear view:</strong> Bridges, P&amp;C, Curves, LWR, SEJ, LC, Stations, Keyman and Patrol beats are placed at their exact chainages. Click any asset node to open its details.
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 pt-1">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{bridges.length || 144}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">Bridge</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{bridges.length || 144}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Bridge</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{curves.length || 95}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">Curve</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{curves.length || 95}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Curve</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{pointsCrossings.length || 41}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">P&amp;C</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{pointsCrossings.length || 41}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">P&amp;C</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{STATIONS.length - 1}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">Station</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{STATIONS.length - 1}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Station</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{sejList.length || 13}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">SEJ</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{sejList.length || 13}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">SEJ</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{lwrList.length || 6}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">LWR</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{lwrList.length || 6}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">LWR</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{levelCrossings.length || 5}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">LC</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{levelCrossings.length || 5}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">LC</div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-left">
-            <div className="text-2xl font-black text-slate-900 font-mono">{GRADIENT_RECORDS.length}</div>
-            <div className="text-xs font-bold text-slate-500 mt-0.5">Gradient</div>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left">
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{GRADIENT_RECORDS.length}</div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Gradient</div>
           </div>
         </div>
 
@@ -643,7 +655,7 @@ export const BridgeLinearDiagram: React.FC = () => {
           <button
             type="button"
             onClick={() => selectAllLayers(false)}
-            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-300 transition"
+            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg border border-slate-300 dark:border-slate-700 transition"
           >
             Clear
           </button>
@@ -652,10 +664,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('bridges')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.bridges ? 'bg-blue-50 text-blue-800 border-blue-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.bridges ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.bridges ? <CheckSquare className="w-3.5 h-3.5 text-blue-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.bridges ? <CheckSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>Bridges ({bridges.length})</span>
           </button>
 
@@ -663,10 +675,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('points_crossings')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.points_crossings ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.points_crossings ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.points_crossings ? <CheckSquare className="w-3.5 h-3.5 text-emerald-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.points_crossings ? <CheckSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>Main P&amp;C ({pointsCrossings.length})</span>
           </button>
 
@@ -674,10 +686,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('curves')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.curves ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.curves ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.curves ? <CheckSquare className="w-3.5 h-3.5 text-amber-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.curves ? <CheckSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>Curves ({curves.length})</span>
           </button>
 
@@ -685,10 +697,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('level_crossings')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.level_crossings ? 'bg-red-50 text-red-800 border-red-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.level_crossings ? 'bg-red-50 dark:bg-red-950/60 text-red-800 dark:text-red-300 border-red-300 dark:border-red-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.level_crossings ? <CheckSquare className="w-3.5 h-3.5 text-red-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.level_crossings ? <CheckSquare className="w-3.5 h-3.5 text-red-600 dark:text-red-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>LC ({levelCrossings.length})</span>
           </button>
 
@@ -696,10 +708,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('lwr')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.lwr ? 'bg-purple-50 text-purple-800 border-purple-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.lwr ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.lwr ? <CheckSquare className="w-3.5 h-3.5 text-purple-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.lwr ? <CheckSquare className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>LWR ({lwrList.length})</span>
           </button>
 
@@ -707,10 +719,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('sej')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.sej ? 'bg-pink-50 text-pink-800 border-pink-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.sej ? 'bg-pink-50 dark:bg-pink-950/60 text-pink-800 dark:text-pink-300 border-pink-300 dark:border-pink-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.sej ? <CheckSquare className="w-3.5 h-3.5 text-pink-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.sej ? <CheckSquare className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>SEJ ({sejList.length})</span>
           </button>
 
@@ -718,10 +730,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('stations')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.stations ? 'bg-slate-100 text-slate-900 border-slate-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.stations ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.stations ? <CheckSquare className="w-3.5 h-3.5 text-slate-800" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.stations ? <CheckSquare className="w-3.5 h-3.5 text-slate-800 dark:text-slate-200" /> : <Square className="w-3.5 h-3.5" />}
             <span>Stations ({STATIONS.length})</span>
           </button>
 
@@ -729,10 +741,10 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('beats')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.beats ? 'bg-cyan-50 text-cyan-800 border-cyan-300 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.beats ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.beats ? <CheckSquare className="w-3.5 h-3.5 text-cyan-600" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.beats ? <CheckSquare className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>K / P Beats</span>
           </button>
 
@@ -740,28 +752,41 @@ export const BridgeLinearDiagram: React.FC = () => {
             type="button"
             onClick={() => toggleLayer('embankment')}
             className={`px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5 border ${
-              layers.embankment ? 'bg-amber-50 text-amber-900 border-amber-400 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200'
+              layers.embankment ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-400 dark:border-amber-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
             }`}
           >
-            {layers.embankment ? <CheckSquare className="w-3.5 h-3.5 text-amber-700" /> : <Square className="w-3.5 h-3.5" />}
+            {layers.embankment ? <CheckSquare className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" /> : <Square className="w-3.5 h-3.5" />}
             <span>⛰️ Embankment (1173.5–1177.8)</span>
           </button>
         </div>
       </div>
 
       {viewMode === 'connected' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+        <div id="printable-linear-diagram" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
               Km {kmFrom.toFixed(3)} → Km {kmTo.toFixed(3)} · Height: {canvasHeight}px
             </span>
-            <span className="text-xs font-mono font-bold text-[#123b72]">
+            <span className="text-xs font-mono font-black text-blue-700 dark:text-cyan-400">
               {filteredAssets.length} Assets in Range
             </span>
           </div>
 
-          <div ref={diagramContainerRef} className="v14-wrap" style={{ maxHeight: isFullScreen ? 'calc(100vh - 120px)' : '850px' }}>
-            <div className="v14-canvas" style={{ height: `${canvasHeight}px` }}>
+          <div
+            ref={diagramContainerRef}
+            className="v14-wrap bg-white dark:bg-[#070c18] border border-slate-200 dark:border-slate-800"
+            style={{
+              maxHeight: isFullScreen ? 'calc(100vh - 120px)' : '850px',
+              backgroundColor: isDark ? '#070c18' : '#ffffff'
+            }}
+          >
+            <div
+              className="v14-canvas bg-white dark:bg-[#070c18]"
+              style={{
+                height: `${canvasHeight}px`,
+                backgroundColor: isDark ? '#070c18' : '#ffffff'
+              }}
+            >
               <div className="v14-track-a" />
               <div className="v14-track-b" />
 
@@ -902,7 +927,7 @@ export const BridgeLinearDiagram: React.FC = () => {
       )}
 
       {viewMode === 'gradient_vertical' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div id="printable-linear-diagram" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
@@ -1004,6 +1029,11 @@ export const BridgeLinearDiagram: React.FC = () => {
 
                   <div className={`v143-info ${item.direction}`}>
                     <b>{arrow} {gradRatio}</b>
+                    {item.isLinkLine && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-600 text-white font-bold text-[10px] uppercase font-mono shadow-sm">
+                        🔗 SMUN–RPJ LINK LINE
+                      </span>
+                    )}
                     <div className="v143-meta">
                       Elevation {item.elevStart} → {item.elevEnd} m · Length {item.length} m
                       {item.boundaryNote && (
@@ -1048,7 +1078,7 @@ export const BridgeLinearDiagram: React.FC = () => {
           <button
             type="button"
             onClick={handleZoomIn}
-            className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-90 text-white font-black text-base flex items-center justify-center shadow transition"
+            className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-90 text-white font-black text-base flex items-center justify-center shadow transition cursor-pointer"
             title="Vertical Zoom In (+)"
           >
             +
@@ -1058,7 +1088,7 @@ export const BridgeLinearDiagram: React.FC = () => {
           <button
             type="button"
             onClick={handleZoomOut}
-            className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-90 text-white font-black text-base flex items-center justify-center shadow transition"
+            className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-90 text-white font-black text-base flex items-center justify-center shadow transition cursor-pointer"
             title="Vertical Zoom Out (−)"
           >
             −
@@ -1073,7 +1103,7 @@ export const BridgeLinearDiagram: React.FC = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
               if (diagramContainerRef.current) diagramContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-300 text-sm flex items-center justify-center shadow transition"
+            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-300 text-sm flex items-center justify-center shadow transition cursor-pointer"
             title="Scroll to Top (Km 1167.210)"
           >
             ⬆
@@ -1086,7 +1116,7 @@ export const BridgeLinearDiagram: React.FC = () => {
               window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
               if (diagramContainerRef.current) diagramContainerRef.current.scrollTo({ top: diagramContainerRef.current.scrollHeight, behavior: 'smooth' });
             }}
-            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-300 text-sm flex items-center justify-center shadow transition"
+            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-90 text-cyan-300 text-sm flex items-center justify-center shadow transition cursor-pointer"
             title="Scroll to Bottom (Km 1249.720)"
           >
             ⬇
@@ -1097,7 +1127,7 @@ export const BridgeLinearDiagram: React.FC = () => {
         <button
           type="button"
           onClick={() => setPxPerKm(248)}
-          className="w-full px-2 py-1 rounded-lg bg-cyan-400/20 hover:bg-cyan-400/30 text-cyan-200 text-[10px] font-bold transition flex items-center justify-center gap-1 border border-cyan-400/30 active:scale-95"
+          className="w-full px-2 py-1 rounded-lg bg-cyan-400/20 hover:bg-cyan-400/30 text-cyan-200 text-[10px] font-bold transition flex items-center justify-center gap-1 border border-cyan-400/30 active:scale-95 cursor-pointer"
           title="Reset Zoom to 248 px/KM"
         >
           <RefreshCw className="w-2.5 h-2.5" />

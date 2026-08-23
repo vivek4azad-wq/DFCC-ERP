@@ -91,66 +91,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         )}
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
-          {/* Quick Demo Switcher */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Quick Role Switching (Demo / Testing)
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch('SUPER_ADMIN')}
-                className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                  role === 'SUPER_ADMIN'
-                    ? 'bg-purple-950/50 border-purple-500/50 text-purple-200 shadow-sm shadow-purple-900/20'
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                }`}
-              >
-                <div className="text-[11px] font-bold uppercase text-purple-400">Super Admin</div>
-                <div className="text-xs font-medium truncate mt-0.5">APM / Civil</div>
-                <div className="text-[10px] text-slate-500 mt-1">Full CRUD & Admin</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch('OFFICER')}
-                className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                  role === 'OFFICER'
-                    ? 'bg-blue-950/50 border-blue-500/50 text-blue-200 shadow-sm shadow-blue-900/20'
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                }`}
-              >
-                <div className="text-[11px] font-bold uppercase text-blue-400">Field Officer</div>
-                <div className="text-xs font-medium truncate mt-0.5">Sr. SE / P-Way</div>
-                <div className="text-[10px] text-slate-500 mt-1">Add/Edit Assets</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch('STAFF')}
-                className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                  role === 'STAFF'
-                    ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-200 shadow-sm shadow-emerald-900/20'
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                }`}
-              >
-                <div className="text-[11px] font-bold uppercase text-emerald-400">Field Staff</div>
-                <div className="text-xs font-medium truncate mt-0.5">Trackman / MTS</div>
-                <div className="text-[10px] text-slate-500 mt-1">Read-Only View</div>
-              </button>
-            </div>
-          </div>
-
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-slate-800 w-full"></div>
-            <span className="bg-slate-900 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 absolute">
-              Or Login With Credentials
-            </span>
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (

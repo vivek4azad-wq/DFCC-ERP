@@ -451,21 +451,21 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12 print-container">
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl">
             <Search className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">KM Quick Finder &amp; Asset Lookup</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">KM Quick Finder &amp; Asset Lookup</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Immediate corridor inventory, Keymen, Patrolmen, Gates, Bridges &amp; Turnouts across 88.679 Km
             </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
         <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
@@ -474,7 +474,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
               value={kmInput}
               onChange={e => setKmInput(e.target.value)}
               placeholder="Enter DFCCIL Km (e.g. 1170.435, 1188.575)..."
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition shadow-inner placeholder:text-slate-400"
+              className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-800 transition shadow-inner placeholder:text-slate-400"
             />
           </div>
 
@@ -488,14 +488,14 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
           </button>
         </form>
 
-        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="text-slate-500 font-bold mr-1">Quick Jump:</span>
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-slate-500 dark:text-slate-400 font-bold mr-1">Quick Jump:</span>
           {QUICK_STATIONS.map(stn => (
             <button
               key={stn.code}
               type="button"
               onClick={() => handleQuickJump(stn.km)}
-              className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg font-mono text-[11px] transition active:scale-95"
+              className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-[11px] transition active:scale-95"
             >
               <strong>{stn.code}</strong> ({stn.km.toFixed(3)})
             </button>
@@ -503,29 +503,29 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+            <div className="p-2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800">
               <MapPin className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-extrabold text-slate-900 font-mono">
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
               Km {activeKm.toFixed(3)}
             </h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-mono">
+            <span className="px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-mono">
               Nearest: <strong>{nearestStation.name} ({nearestStation.code})</strong> · {stationDist} Km away
             </span>
 
             {currentGradient && (
               <span className={`px-3 py-1 rounded-xl font-mono font-bold flex items-center gap-1 border ${
                 currentGradient.direction === 'RISE'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                   : currentGradient.direction === 'FALL'
-                  ? 'bg-red-50 text-red-800 border-red-300'
-                  : 'bg-blue-50 text-blue-800 border-blue-300'
+                  ? 'bg-red-50 dark:bg-red-950/60 text-red-800 dark:text-red-300 border-red-300 dark:border-red-800'
+                  : 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800'
               }`}>
                 {currentGradient.direction === 'RISE' ? <TrendingUp className="w-3.5 h-3.5" /> : currentGradient.direction === 'FALL' ? <TrendingDown className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
                 <span>Gradient: {currentGradient.gradient === '0' ? 'LEVEL' : `1 in ${Math.abs(Number(currentGradient.gradient))}`} ({currentGradient.direction})</span>
@@ -535,15 +535,15 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
           </div>
         </div>
 
-        <div className="text-xs text-slate-700 flex items-center gap-2">
-          <Train className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <Train className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span><strong>Section:</strong> {sectionName}</span>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
             👷 Assigned Keyman Beat ({matchedKeymen.length})
           </span>
         </div>
@@ -555,52 +555,52 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
               return (
                 <div
                   key={km.id}
-                  className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3"
+                  className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3"
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-xs font-bold text-blue-700">{km.beatNoText}</span>
-                      <h4 className="text-base font-bold text-slate-900">
+                      <span className="text-xs font-bold text-blue-700 dark:text-cyan-400">{km.beatNoText}</span>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white">
                         <button
                           type="button"
                           onClick={() => setSelectedStaffForModal(km)}
-                          className="hover:text-blue-700 hover:underline text-left font-bold"
+                          className="hover:text-blue-700 dark:hover:text-cyan-400 hover:underline text-left font-bold"
                           title="Click to view DFCCIL Staff ID"
                         >
                           {km.name}
                         </button>
                       </h4>
-                      {km.fatherName && <p className="text-xs text-slate-500">S/o {km.fatherName}</p>}
+                      {km.fatherName && <p className="text-xs text-slate-500 dark:text-slate-400">S/o {km.fatherName}</p>}
                     </div>
-                    <span className="px-2 py-0.5 bg-white border border-slate-200 text-slate-700 text-xs font-mono rounded font-bold shadow-sm">
+                    <span className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-mono rounded font-bold shadow-sm">
                       AWPO: {km.awpoId || km.staffId}
                     </span>
                   </div>
 
-                  <div className="text-xs space-y-1 bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
+                  <div className="text-xs space-y-1 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Km Coverage:</span>
-                      <span className="text-emerald-700 font-mono font-bold">{km.kmRange || `Km ${km.fromKm.toFixed(3)} → ${km.toKm.toFixed(3)}`}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Km Coverage:</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">{km.kmRange || `Km ${km.fromKm.toFixed(3)} → ${km.toKm.toFixed(3)}`}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Residence:</span>
-                      <span className="text-slate-700">{km.residence}, {km.district}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Residence:</span>
+                      <span className="text-slate-700 dark:text-slate-300">{km.residence}, {km.district}</span>
                     </div>
                   </div>
 
                   {km.rg && (
-                    <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded-lg">
+                    <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 p-2 rounded-lg">
                       <strong>Rest Giver:</strong> {km.rg}
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-bold text-slate-800">{km.mobileNo}</span>
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">{km.mobileNo}</span>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => setSelectedStaffForModal(km)}
-                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition active:scale-95"
+                        className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-semibold flex items-center gap-1 transition active:scale-95"
                         title="View Official DFCCIL Staff ID Card"
                       >
                         <span>🪪</span>
@@ -608,7 +608,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                       </button>
                       <a
                         href={`tel:${km.mobileNo}`}
-                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                        className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
                       >
                         <Phone className="w-3.5 h-3.5" />
                         <span>Call</span>
@@ -617,7 +617,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                         href={`https://wa.me/91${cleanPhone.slice(-10)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                        className="px-2.5 py-1 bg-green-50 dark:bg-green-950/60 hover:bg-green-100 dark:hover:bg-green-900 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>WA</span>
@@ -629,39 +629,39 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
             })}
           </div>
         ) : (
-          <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
             No specific keyman beat range matched directly for Km {activeKm.toFixed(3)}.
           </div>
         )}
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
             🚶 Assigned Patrolman Beats (Diurnal Roster)
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
+          <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400">
               <Clock className="w-4 h-4" />
               <span>☀️ Shift 1: Day Patrol (15:00 to 23:00)</span>
             </div>
 
             {matchedDayPatrol.length > 0 ? (
               matchedDayPatrol.map(p => (
-                <div key={p.id} className="bg-white p-3 rounded-xl border border-slate-200 space-y-2 text-xs shadow-sm">
+                <div key={p.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs shadow-sm">
                   <div className="flex justify-between items-start">
-                    <strong className="text-slate-900 font-bold">{p.beatCode}: {p.patrolmanName || 'Vacant Beat'}</strong>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.isFilled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                    <strong className="text-slate-900 dark:text-white font-bold">{p.beatCode}: {p.patrolmanName || 'Vacant Beat'}</strong>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.isFilled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
                       {p.status}
                     </span>
                   </div>
-                  <div className="text-slate-500">Route: <span className="text-slate-800 font-medium">{p.route || `Km ${p.fromKm.toFixed(3)} – ${p.toKm.toFixed(3)}`}</span></div>
-                  <div className="text-slate-500">Rest Day: <span className="text-slate-800 font-medium">{p.restDay || '-'}</span></div>
-                  <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-                    <span className="font-mono text-slate-700 font-bold">{p.patrolmanPhone || '-'}</span>
+                  <div className="text-slate-500 dark:text-slate-400">Route: <span className="text-slate-800 dark:text-slate-200 font-medium">{p.route || `Km ${p.fromKm.toFixed(3)} – ${p.toKm.toFixed(3)}`}</span></div>
+                  <div className="text-slate-500 dark:text-slate-400">Rest Day: <span className="text-slate-800 dark:text-slate-200 font-medium">{p.restDay || '-'}</span></div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{p.patrolmanPhone || '-'}</span>
                     <div className="flex items-center gap-1.5">
                       {p.patrolmanName && !p.patrolmanName.includes('Vacant') && (
                         <button
@@ -676,13 +676,13 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                             toKm: p.toKm,
                             category: 'Ex-Serviceman'
                           })}
-                          className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200"
+                          className="px-2 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold border border-blue-200 dark:border-blue-800"
                         >
                           🪪 ID
                         </button>
                       )}
                       {p.patrolmanPhone && (
-                        <a href={`tel:${p.patrolmanPhone}`} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-semibold text-xs flex items-center gap-1 border border-emerald-200">
+                        <a href={`tel:${p.patrolmanPhone}`} className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-lg font-semibold text-xs flex items-center gap-1 border border-emerald-200 dark:border-emerald-800">
                           <Phone className="w-3 h-3" /> Call
                         </a>
                       )}
@@ -691,30 +691,30 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                 </div>
               ))
             ) : (
-              <p className="text-xs text-slate-500">No day patrol beat directly mapped at this Km.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">No day patrol beat directly mapped at this Km.</p>
             )}
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-700">
+          <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-300">
               <Clock className="w-4 h-4" />
               <span>🌙 Shift 2: Night Patrol (23:00 to 07:00)</span>
             </div>
 
             {matchedNightPatrol.length > 0 ? (
               matchedNightPatrol.map(p => (
-                <div key={p.id} className="bg-white p-3 rounded-xl border border-slate-200 space-y-2 text-xs shadow-sm">
+                <div key={p.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs shadow-sm">
                   <div className="flex justify-between items-start">
-                    <strong className="text-slate-900 font-bold">{p.beatCode} (Pair)</strong>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.isFilled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                    <strong className="text-slate-900 dark:text-white font-bold">{p.beatCode} (Pair)</strong>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.isFilled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
                       {p.status}
                     </span>
                   </div>
-                  <div className="text-slate-500">Names: <span className="text-slate-800 font-bold">{p.patrolmanName || 'Vacant Beat'}</span></div>
-                  <div className="text-slate-500">Route: <span className="text-slate-800 font-medium">{p.route || `Km ${p.fromKm.toFixed(3)} – ${p.toKm.toFixed(3)}`}</span></div>
-                  <div className="text-slate-500">Rest Day: <span className="text-slate-800 font-medium">{p.restDay || '-'}</span></div>
-                  <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-                    <span className="font-mono text-slate-700 font-bold">{p.patrolmanPhone || '-'}</span>
+                  <div className="text-slate-500 dark:text-slate-400">Names: <span className="text-slate-800 dark:text-slate-200 font-bold">{p.patrolmanName || 'Vacant Beat'}</span></div>
+                  <div className="text-slate-500 dark:text-slate-400">Route: <span className="text-slate-800 dark:text-slate-200 font-medium">{p.route || `Km ${p.fromKm.toFixed(3)} – ${p.toKm.toFixed(3)}`}</span></div>
+                  <div className="text-slate-500 dark:text-slate-400">Rest Day: <span className="text-slate-800 dark:text-slate-200 font-medium">{p.restDay || '-'}</span></div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{p.patrolmanPhone || '-'}</span>
                     <div className="flex items-center gap-1.5">
                       {p.patrolmanName && !p.patrolmanName.includes('Vacant') && (
                         <button
@@ -729,13 +729,13 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                             toKm: p.toKm,
                             category: 'Ex-Serviceman'
                           })}
-                          className="px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200"
+                          className="px-2 py-1 bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-semibold border border-purple-200 dark:border-purple-800"
                         >
                           🪪 ID
                         </button>
                       )}
                       {p.patrolmanPhone && (
-                        <a href={`tel:${p.patrolmanPhone}`} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-semibold text-xs flex items-center gap-1 border border-emerald-200">
+                        <a href={`tel:${p.patrolmanPhone}`} className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-lg font-semibold text-xs flex items-center gap-1 border border-emerald-200 dark:border-emerald-800">
                           <Phone className="w-3 h-3" /> Call
                         </a>
                       )}
@@ -744,29 +744,29 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                 </div>
               ))
             ) : (
-              <p className="text-xs text-slate-500">No night patrol beat directly mapped at this Km.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">No night patrol beat directly mapped at this Km.</p>
             )}
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <div>
-              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>📐</span>
                 <span>Vertical Linear Track Diagram — Km {activeKm.toFixed(3)}</span>
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Main schematic alignment showing tracks, chainage markers &amp; nearby branching assets.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
-            <span className="text-slate-500 px-1 font-bold">Span:</span>
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+            <span className="text-slate-500 dark:text-slate-400 px-1 font-bold">Span:</span>
             {[0.5, 1.0, 2.0].map(s => (
               <button
                 key={s}
@@ -775,7 +775,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
                   linearWindowSize === s
                     ? 'bg-[#123b72] text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
                 &plusmn;{s.toFixed(1)} Km
@@ -873,7 +873,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                       title={`${asset.label}\n${asset.subLabel}\nKm ${asset.km.toFixed(3)} (Click for details)`}
                     >
                       <strong>{asset.label}</strong>
-                      <span className="text-[10px] text-slate-600 block leading-tight truncate">{asset.subLabel}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-300 block leading-tight truncate">{asset.subLabel}</span>
                     </div>
 
                     <div
@@ -891,7 +891,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Bridges ({matchedBridges.length})</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> P&amp;C ({matchedPC.length})</span>
@@ -900,45 +900,45 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span> LWR ({matchedLWR.length})</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span> SEJ ({matchedSEJ.length})</span>
           </div>
-          <span className="font-mono text-[#123b72] font-bold">
+          <span className="font-mono text-[#123b72] dark:text-cyan-400 font-bold">
             Total {nearbyLinearAssets.length} Assets in Window (&plusmn;{linearWindowSize.toFixed(1)} Km)
           </span>
         </div>
       </div>
 
       {matchedLC.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
               🚥 Level Crossings within &plusmn;2.5 Km ({matchedLC.length})
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {matchedLC.map(lc => (
-              <div key={lc.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div key={lc.id} className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-xs font-bold text-emerald-700">Gate No. {lc.gateNo || lc.lc_no}</span>
-                    <h4 className="text-sm font-bold text-slate-900 font-mono">
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Gate No. {lc.gateNo || lc.lc_no}</span>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white font-mono">
                       Chainage: Km {(lc.km ?? (typeof lc.chainage === 'number' ? lc.chainage : parseFloat(String(lc.chainage || 0)))).toFixed(3)} ({lc.fromStn || lc.from_stn || ''} – {lc.toStn || lc.to_stn || ''})
                     </h4>
                   </div>
-                  <span className="px-2 py-0.5 bg-white border border-slate-200 text-slate-700 text-xs font-mono rounded font-bold shadow-sm">
+                  <span className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-mono rounded font-bold shadow-sm">
                     TVU: {lc.tuv?.toLocaleString()}
                   </span>
                 </div>
 
                 {lc.gatemen && lc.gatemen.length > 0 && (
-                  <div className="space-y-1.5 pt-2 border-t border-slate-200">
-                    <span className="text-[11px] font-bold text-slate-600">Gatemen Roster:</span>
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Gatemen Roster:</span>
                     {lc.gatemen.map((gm, gIdx) => {
                       const cleanGmPhone = (gm.mobile || '').replace(/[^0-9]/g, '');
                       return (
-                        <div key={gIdx} className="bg-white p-2 rounded-lg flex items-center justify-between text-xs border border-slate-200 shadow-sm">
+                        <div key={gIdx} className="bg-white dark:bg-slate-900 p-2 rounded-lg flex items-center justify-between text-xs border border-slate-200 dark:border-slate-700 shadow-sm">
                           <div>
-                            <div className="text-slate-900 font-semibold">{gm.name}</div>
-                            <div className="text-[10px] text-slate-500">ID: {gm.id} | {gm.residence}</div>
+                            <div className="text-slate-900 dark:text-white font-semibold">{gm.name}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">ID: {gm.id} | {gm.residence}</div>
                           </div>
                           <div className="flex items-center gap-1">
                             <button
@@ -951,12 +951,12 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                                 residence: gm.residence,
                                 category: 'Outsource'
                               })}
-                              className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200 font-semibold"
+                              className="px-2 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded text-xs border border-blue-200 dark:border-blue-800 font-semibold"
                             >
                               🪪 ID
                             </button>
-                            <a href={`tel:${gm.mobile}`} className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs border border-emerald-200 font-medium">Call</a>
-                            <a href={`https://wa.me/91${cleanGmPhone.slice(-10)}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs border border-green-200 font-medium">WA</a>
+                            <a href={`tel:${gm.mobile}`} className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded text-xs border border-emerald-200 dark:border-emerald-800 font-medium">Call</a>
+                            <a href={`https://wa.me/91${cleanGmPhone.slice(-10)}`} target="_blank" rel="noopener noreferrer" className="px-2 py-1 bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 rounded text-xs border border-green-200 dark:border-green-800 font-medium">WA</a>
                           </div>
                         </div>
                       );
@@ -969,20 +969,20 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
         </div>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
             🌉 Bridges within &plusmn;1.0 Km ({matchedBridges.length})
           </span>
-          <span className="text-xs text-slate-500 font-mono font-bold">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-bold">
             GPS Pin Verified
           </span>
         </div>
 
         {matchedBridges.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3">Bridge No</th>
                   <th className="p-3">Type</th>
@@ -994,14 +994,14 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                   <th className="p-3 text-right">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 font-mono">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                 {matchedBridges.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-50 transition font-sans">
-                    <td className="p-3 font-bold text-slate-900 font-mono">
+                  <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
+                    <td className="p-3 font-bold text-slate-900 dark:text-white font-mono">
                       <button
                         type="button"
                         onClick={() => setSelectedBridgeForModal(b)}
-                        className="text-[#123b72] hover:underline text-left font-bold font-mono inline-flex items-center gap-1"
+                        className="text-[#123b72] dark:text-blue-400 hover:underline text-left font-bold font-mono inline-flex items-center gap-1"
                         title="Click to view full bridge popup details"
                       >
                         <span>🌉</span>
@@ -1009,24 +1009,24 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                       </button>
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                         {b.bridgeType || b.category}
                       </span>
                     </td>
-                    <td className="p-3 font-bold text-emerald-700 font-mono">
+                    <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">
                       Km {Number(b.fromKm || b.km).toFixed(3)}
                     </td>
-                    <td className="p-3 text-cyan-800 font-mono">{b.oldBridgeNo || '-'}</td>
-                    <td className="p-3 text-slate-700">{b.spanConfiguration}</td>
-                    <td className="p-3 text-slate-600">{b.sectionCode}</td>
+                    <td className="p-3 text-cyan-800 dark:text-cyan-400 font-mono">{b.oldBridgeNo || '-'}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{b.spanConfiguration}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-400">{b.sectionCode}</td>
                     <td className="p-3">
                       <a
                         href={`https://www.google.com/maps?q=${b.latitude},${b.longitude}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold transition"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-lg text-xs font-semibold transition"
                       >
-                        <MapPin className="w-3 h-3 text-emerald-600" />
+                        <MapPin className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                         <span>Exact Pin</span>
                       </a>
                     </td>
@@ -1034,7 +1034,7 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedBridgeForModal(b)}
-                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#123b72] border border-blue-200 rounded-lg text-xs font-semibold transition active:scale-95 shadow-sm"
+                        className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-[#123b72] dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-semibold transition active:scale-95 shadow-sm"
                         title="View Official Bridge Popup"
                       >
                         Details
@@ -1046,19 +1046,19 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
             </table>
           </div>
         ) : (
-          <p className="text-xs text-slate-500">No bridges situated within &plusmn;1.0 Km.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">No bridges situated within &plusmn;1.0 Km.</p>
         )}
       </div>
 
       {matchedPC.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 shadow-sm">
-          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-pink-50 text-pink-700 border border-pink-200">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm">
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
             🛤️ Points &amp; Crossings within &plusmn;1.0 Km ({matchedPC.length})
           </span>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3">Station</th>
                   <th className="p-3">Point No</th>
@@ -1068,17 +1068,17 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                   <th className="p-3">Operation</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 font-mono">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                 {matchedPC.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition font-sans">
-                    <td className="p-3 font-bold text-pink-700">{p.station}</td>
-                    <td className="p-3 font-bold text-slate-900 font-mono">{p.pointNo}</td>
-                    <td className="p-3 text-slate-700">{p.line || p.trackType}</td>
-                    <td className="p-3 text-slate-600 font-mono">{p.angle || p.turnoutRatio}</td>
-                    <td className="p-3 font-bold text-emerald-700 font-mono">
+                  <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
+                    <td className="p-3 font-bold text-pink-700 dark:text-pink-400">{p.station}</td>
+                    <td className="p-3 font-bold text-slate-900 dark:text-white font-mono">{p.pointNo}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{p.line || p.trackType}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-400 font-mono">{p.angle || p.turnoutRatio}</td>
+                    <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">
                       Km {Number(p.srjChainage || p.km).toFixed(3)}
                     </td>
-                    <td className="p-3 text-slate-700">{p.laidOn || p.operation}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{p.laidOn || p.operation}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1088,14 +1088,14 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
       )}
 
       {matchedCurves.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 shadow-sm">
-          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm">
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
             🔄 Curves within &plusmn;1.0 Km ({matchedCurves.length})
           </span>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3">Curve No</th>
                   <th className="p-3">From Km</th>
@@ -1106,16 +1106,16 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                   <th className="p-3">Cant SE (mm)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 font-mono">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                 {matchedCurves.map(c => (
-                  <tr key={c.id} className="hover:bg-slate-50 transition font-sans">
-                    <td className="p-3 font-bold text-blue-700 font-mono">#{c.curveNo || c.curve_no}</td>
-                    <td className="p-3 font-bold text-emerald-700 font-mono">Km {(c.fromKm ?? c.from_km ?? 0).toFixed(3)}</td>
-                    <td className="p-3 text-slate-700 font-mono">{(c.toKm ?? c.to_km ?? 0).toFixed(3)}</td>
-                    <td className="p-3 font-bold text-slate-900">{c.degree}°</td>
-                    <td className="p-3 text-cyan-800">{c.radiusMeters || c.radius} m</td>
-                    <td className="p-3 text-slate-800">{c.lengthMeters || c.length_m} m</td>
-                    <td className="p-3 text-slate-600">{c.cantMm || c.se ? `${c.cantMm || c.se} mm` : '-'}</td>
+                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
+                    <td className="p-3 font-bold text-blue-700 dark:text-blue-400 font-mono">#{c.curveNo || c.curve_no}</td>
+                    <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">Km {(c.fromKm ?? c.from_km ?? 0).toFixed(3)}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300 font-mono">{(c.toKm ?? c.to_km ?? 0).toFixed(3)}</td>
+                    <td className="p-3 font-bold text-slate-900 dark:text-white">{c.degree}°</td>
+                    <td className="p-3 text-cyan-800 dark:text-cyan-400">{c.radiusMeters || c.radius} m</td>
+                    <td className="p-3 text-slate-800 dark:text-slate-200">{c.lengthMeters || c.length_m} m</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-400">{c.cantMm || c.se ? `${c.cantMm || c.se} mm` : '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1125,14 +1125,14 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
       )}
 
       {matchedDefects.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 shadow-sm">
-          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm">
+          <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
             📍 Track Defects / Welds within &plusmn;1.0 Km ({matchedDefects.length})
           </span>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3">Chainage</th>
                   <th className="p-3">Rail Side</th>
@@ -1143,20 +1143,20 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
                   <th className="p-3">Action Taken</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 font-mono">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                 {matchedDefects.map(d => (
-                  <tr key={d.id} className="hover:bg-slate-50 transition font-sans">
-                    <td className="p-3 font-bold text-emerald-700 font-mono">{d.chainage}</td>
-                    <td className="p-3 font-bold text-cyan-800">{d.rail === 'RIGHT_RAIL' ? '(RR)' : '(LR)'}</td>
-                    <td className="p-3 text-slate-700">{d.trackLine}</td>
-                    <td className="p-3 text-slate-600">{d.location || d.sectionCode}</td>
+                  <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition font-sans">
+                    <td className="p-3 font-bold text-emerald-700 dark:text-emerald-400 font-mono">{d.chainage}</td>
+                    <td className="p-3 font-bold text-cyan-800 dark:text-cyan-400">{d.rail === 'RIGHT_RAIL' ? '(RR)' : '(LR)'}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{d.trackLine}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-400">{d.location || d.sectionCode}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${d.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${d.severity === 'CRITICAL' ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800' : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'}`}>
                         {d.severity}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-700">{d.status}</td>
-                    <td className="p-3 text-slate-500 text-[11px]">{d.actionTaken || '-'}</td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300">{d.status}</td>
+                    <td className="p-3 text-slate-500 dark:text-slate-400 text-[11px]">{d.actionTaken || '-'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -186,26 +186,43 @@ export const StoreItemPublicQRView: React.FC<StoreItemPublicQRViewProps> = ({
         }
 
         if (target) {
+          const itemCodeClean = String(target.itemCode || '').toLowerCase().trim();
+          const priceListClean = String(target.priceListCode || '').toLowerCase().trim();
+
           const relatedTxns = (allTxns || [])
-            .filter(t => t.itemId === target!.id || t.itemName === target!.name || (t as any).itemCode === target!.itemCode)
+            .filter(t => {
+              if (t.itemId && t.itemId === target!.id) return true;
+              if (itemCodeClean && t.itemCode && String(t.itemCode).toLowerCase().trim() === itemCodeClean) return true;
+              if (priceListClean && t.priceListCode && String(t.priceListCode).toLowerCase().trim() === priceListClean) return true;
+              return false;
+            })
             .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime());
 
           let dynamicInward = 0;
           let dynamicOutward = 0;
+          let dynamicTransfer = 0;
+
           relatedTxns.forEach(t => {
-            const qty = Number(t.quantity) || 0;
-            if (t.type === 'INWARD') dynamicInward += qty;
-            else if (t.type === 'OUTWARD') dynamicOutward += qty;
+            const qty = Number(t.quantity || t.receiptQty || t.issueQty || t.transferQty || 0);
+            if (t.type === 'INWARD' || (t.receiptQty != null && Number(t.receiptQty) > 0)) {
+              dynamicInward += Number(t.receiptQty || qty);
+            } else if (t.type === 'OUTWARD' || (t.issueQty != null && Number(t.issueQty) > 0)) {
+              dynamicOutward += Number(t.issueQty || qty);
+            } else if (t.type === 'TRANSFER' || (t.transferQty != null && Number(t.transferQty) > 0)) {
+              dynamicTransfer += Number(t.transferQty || qty);
+            }
           });
 
-          const opening = target.openingStock != null ? Number(target.openingStock) : ((target.inwardTotal != null && target.outwardTotal != null) ? target.inwardTotal - target.outwardTotal : target.currentStock);
-          const computedCurrentStock = (opening || 0) + (dynamicInward > 0 ? (dynamicInward - dynamicOutward) : 0);
+          // Exact formula requested: Balance = Opening Stock + Receipts - Transfers - Issues
+          const initialStock = target.openingStock != null ? Number(target.openingStock) : 0;
+          const computedBal = initialStock + dynamicInward - dynamicOutward - dynamicTransfer;
+          const liveStock = relatedTxns.length > 0 ? computedBal : Number(target.currentStock || target.openingStock || 0);
 
           const liveItem: StoreItemRecord = {
             ...target,
             inwardTotal: dynamicInward > 0 ? dynamicInward : (target.inwardTotal || 0),
             outwardTotal: dynamicOutward > 0 ? dynamicOutward : (target.outwardTotal || 0),
-            currentStock: (dynamicInward > 0 || dynamicOutward > 0) ? computedCurrentStock : target.currentStock
+            currentStock: liveStock
           };
 
           setItem(liveItem);
@@ -457,9 +474,21 @@ export const StoreItemPublicQRView: React.FC<StoreItemPublicQRViewProps> = ({
                           {txn.referenceNo || `VCH-${txn.id.slice(-6)}`}
                         </span>
 
-                        <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                        <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1 font-bold">
                           <Calendar className="w-3 h-3 text-slate-400" />
-                          {txn.date || new Date(txn.createdAt).toLocaleDateString()}
+                          {(() => {
+                            const raw = txn.date || txn.createdAt;
+                            if (!raw) return '-';
+                            const clean = String(raw).trim();
+                            if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean;
+                            if (/^\d{2}[/.]\d{2}[/.]\d{4}$/.test(clean)) return clean.replace(/[/.]/g, '-');
+                            const dt = new Date(clean);
+                            if (isNaN(dt.getTime())) return clean;
+                            const d = String(dt.getDate()).padStart(2, '0');
+                            const m = String(dt.getMonth() + 1).padStart(2, '0');
+                            const y = dt.getFullYear();
+                            return `${d}-${m}-${y}`;
+                          })()}
                         </span>
                       </div>
 

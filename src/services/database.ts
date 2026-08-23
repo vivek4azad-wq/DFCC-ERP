@@ -24,7 +24,7 @@ import type {
 } from '../types/index.ts';
 
 const STORAGE_PREFIX = 'raildiary_db_';
-const INITIALIZED_KEY = 'raildiary_db_initialized_v27';
+const INITIALIZED_KEY = 'raildiary_db_initialized_v28';
 
 export class DatabaseSecurityError extends Error {
   constructor(message: string, public role?: UserRole, public action?: string) {

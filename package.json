@@ -13,6 +13,8 @@
     "chart.js": "^4.4.7",
     "clsx": "^2.1.1",
     "firebase": "^11.3.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "jsqr": "^1.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",

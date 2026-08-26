@@ -27,6 +27,8 @@ const MONTHLY_CATEGORY_GROUPS = [
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { db } from '../services/database.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import {
@@ -1119,10 +1121,217 @@ export const StaffAttendance: React.FC = () => {
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     const catSuffix = selectedMonthlyCategory === "ALL" ? "All_Categories" : selectedMonthlyCategory;
-    link.setAttribute("download", `DFCCIL_Absentee_Statement_${catSuffix}_${monthName}_${selectedYear}.csv`);
+    link.setAttribute("download", `DFCCIL_Attendance_Statement_${catSuffix}_${monthName}_${selectedYear}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Direct High-Resolution A4 Landscape PDF Generator
+  const exportMonthlyPdf = () => {
+    const monthName = MONTH_NAMES[selectedMonth];
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const categoryLabel = selectedMonthlyCategory === 'ALL'
+      ? 'All Categories (Consolidated)'
+      : MONTHLY_CATEGORY_GROUPS.find(g => g.key === selectedMonthlyCategory)?.label || selectedMonthlyCategory;
+
+    // Header Title
+    doc.setFillColor(18, 59, 114);
+    doc.rect(6, 6, 285, 16, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DEDICATED FREIGHT CORRIDOR CORPORATION OF INDIA LTD.', 148.5, 11, { align: 'center' });
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('IMSD SMUN (CIVIL / P-WAY) · SECTION: KM 1167.210 TO KM 1249.720', 148.5, 15, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.text(`CATEGORY-WISE MONTHLY ATTENDANCE STATEMENT — ${monthName.toUpperCase()} ${selectedYear} (${categoryLabel})`, 148.5, 19.5, { align: 'center' });
+
+    // Table Headers
+    const headers = [
+      '#',
+      'Staff Name',
+      'Designation',
+      'AWPO/ID',
+      ...monthDates.map(d => `${d.dayNum}\n${d.dayName[0]}`),
+      'P',
+      'REST',
+      'Payable'
+    ];
+
+    const body: any[] = [];
+
+    groupedMonthlyData.forEach((group, gIdx) => {
+      // Category Group Banner Row
+      body.push([
+        {
+          content: `${gIdx + 1}. ${group.label.toUpperCase()} (${group.subtotals.totalStaff} Personnel)  |  Sub-Total: ${group.subtotals.present} Present, ${group.subtotals.rest} Rest, ${group.subtotals.payable} Payable Days`,
+          colSpan: headers.length,
+          styles: { fillColor: [220, 230, 245], fontStyle: 'bold', textColor: [15, 35, 75], halign: 'left' }
+        }
+      ]);
+
+      // Staff Rows
+      group.rows.forEach((row, rIdx) => {
+        body.push([
+          rIdx + 1,
+          row.staff.name,
+          row.staff.designation,
+          row.staff.awpoId || '-',
+          ...monthDates.map(d => row.dailyMap[d.dayNum] || 'P'),
+          row.presentCount,
+          row.restCount,
+          row.payableDays
+        ]);
+      });
+
+      // Category Subtotal
+      body.push([
+        {
+          content: `${group.label} Sub-Total:`,
+          colSpan: 4,
+          styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 248] }
+        },
+        ...monthDates.map(() => ({ content: '—', styles: { halign: 'center', fillColor: [240, 243, 248], textColor: [120, 120, 120] } })),
+        { content: String(group.subtotals.present), styles: { fontStyle: 'bold', fillColor: [209, 250, 229], textColor: [6, 95, 70] } },
+        { content: String(group.subtotals.rest), styles: { fontStyle: 'bold', fillColor: [219, 234, 254], textColor: [30, 64, 175] } },
+        { content: String(group.subtotals.payable), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42] } }
+      ]);
+    });
+
+    // Grand Total Row
+    body.push([
+      {
+        content: `GRAND TOTAL (${groupedMonthlyData.reduce((a, b) => a + b.subtotals.totalStaff, 0)} STAFF):`,
+        colSpan: 4,
+        styles: { fontStyle: 'bold', halign: 'right', fillColor: [18, 59, 114], textColor: [255, 255, 255] }
+      },
+      ...monthDates.map(() => ({ content: `${daysInMonth}d`, styles: { halign: 'center', fillColor: [18, 59, 114], textColor: [200, 220, 255] } })),
+      { content: String(groupedMonthlyData.reduce((a, b) => a + b.subtotals.present, 0)), styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255] } },
+      { content: String(groupedMonthlyData.reduce((a, b) => a + b.subtotals.rest, 0)), styles: { fontStyle: 'bold', fillColor: [30, 64, 175], textColor: [255, 255, 255] } },
+      { content: String(groupedMonthlyData.reduce((a, b) => a + b.subtotals.payable, 0)), styles: { fontStyle: 'bold', fillColor: [15, 23, 42], textColor: [255, 255, 255] } }
+    ]);
+
+    // Column Sizing
+    const columnStyles: any = {
+      0: { cellWidth: 6, halign: 'center' },
+      1: { cellWidth: 26, fontStyle: 'bold' },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 14, halign: 'center' }
+    };
+
+    const dateColWidth = daysInMonth === 31 ? 5.8 : daysInMonth === 30 ? 6.0 : 6.3;
+    for (let i = 0; i < monthDates.length; i++) {
+      const colIdx = 4 + i;
+      columnStyles[colIdx] = { cellWidth: dateColWidth, halign: 'center' };
+    }
+
+    const pIdx = 4 + monthDates.length;
+    const restIdx = pIdx + 1;
+    const payableIdx = restIdx + 1;
+
+    columnStyles[pIdx] = { cellWidth: 8, halign: 'center', fontStyle: 'bold' };
+    columnStyles[restIdx] = { cellWidth: 8, halign: 'center', fontStyle: 'bold' };
+    columnStyles[payableIdx] = { cellWidth: 10, halign: 'center', fontStyle: 'bold' };
+
+    autoTable(doc, {
+      head: [headers],
+      body: body,
+      startY: 24,
+      margin: { top: 24, left: 6, right: 6, bottom: 20 },
+      theme: 'grid',
+      styles: {
+        fontSize: 5.5,
+        cellPadding: 0.8,
+        lineColor: [180, 190, 205],
+        lineWidth: 0.2,
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [18, 59, 114],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 5.5,
+        halign: 'center'
+      },
+      didDrawPage: () => {
+        const pageHeight = doc.internal.pageSize.height || 210;
+        doc.setFontSize(6.5);
+        doc.setTextColor(50, 50, 50);
+
+        // Left signature
+        doc.text('____________________________________', 25, pageHeight - 12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Arjun Kumar', 25, pageHeight - 8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Executive / Civil / SMUN (DFCCIL P-Way Unit)', 25, pageHeight - 5);
+
+        // Right signature
+        doc.text('____________________________________', 225, pageHeight - 12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Vivek Kumar Azad', 225, pageHeight - 8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('APM / Civil / SMUN (DFCCIL Unit Incharge)', 225, pageHeight - 5);
+
+        // Footer Page Number
+        doc.setFontSize(6);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Page ${doc.getNumberOfPages()} · Generated on: ${new Date().toLocaleDateString('en-GB')}`, 148.5, pageHeight - 4, { align: 'center' });
+      }
+    });
+
+    const catSuffix = selectedMonthlyCategory === 'ALL' ? 'All_Categories' : selectedMonthlyCategory;
+    doc.save(`DFCCIL_Attendance_Statement_${catSuffix}_${monthName}_${selectedYear}.pdf`);
+  };
+
+  const handlePrintSheet = () => {
+    const printElem = document.getElementById('printable-monthly-statement');
+    if (!printElem) {
+      window.print();
+      return;
+    }
+    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>DFCCIL Attendance Statement - ${MONTH_NAMES[selectedMonth]} ${selectedYear}</title>
+          <style>
+            @page { size: A4 landscape; margin: 4mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 4mm; color: #000; }
+            table { width: 100%; border-collapse: collapse; font-size: 8pt; line-height: 1.15; }
+            th, td { border: 0.8px solid #334155; padding: 2px 2px; text-align: center; }
+            th { background-color: #f1f5f9; font-weight: bold; }
+            .bg-slate-200 { background-color: #e2e8f0; }
+            .bg-slate-100 { background-color: #f1f5f9; }
+            .bg-emerald-50 { background-color: #ecfdf5; }
+            .bg-blue-50 { background-color: #eff6ff; }
+            .bg-purple-100 { background-color: #f3e8ff; }
+            .bg-blue-100 { background-color: #dbeafe; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+            .font-bold { font-weight: bold; }
+            .font-black { font-weight: 900; }
+            .print-signatures-block { display: flex; justify-content: space-between; margin-top: 25px; page-break-inside: avoid; }
+          </style>
+        </head>
+        <body>
+          ${printElem.innerHTML}
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 800);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const getStatusBadgeStyle = (st: AttendanceStatus | '-') => {
@@ -1665,9 +1874,9 @@ export const StaffAttendance: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={exportMonthlyPdf}
                   className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
-                  title="Export complete 31-Day Attendance Statement to PDF in Landscape mode"
+                  title="Direct Download complete 31-Day Attendance Statement to PDF in Landscape mode"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
                   <span>Export PDF (पूरे महीने का PDF)</span>
@@ -1675,8 +1884,9 @@ export const StaffAttendance: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={handlePrintSheet}
                   className="px-3.5 py-1.5 bg-[#123b72] hover:bg-[#1a4f9c] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                  title="Print Attendance Sheet in Landscape A4"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Sheet</span>

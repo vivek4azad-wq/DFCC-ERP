@@ -1188,22 +1188,22 @@ export const StoreInventoryManager: React.FC = () => {
         </div>
 
         <div
-          onClick={() => setActiveSubTab('tally_book')}
+          onClick={() => setActiveSubTab('low_stock')}
           className={`p-4 rounded-2xl border transition cursor-pointer ${
-            activeSubTab === 'tally_book'
-              ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 shadow-md ring-2 ring-purple-400'
+            activeSubTab === 'low_stock'
+              ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-700 shadow-md ring-2 ring-red-400'
               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">खाता पुस्तक (Tally Book)</span>
-            <BookOpen className="w-4 h-4 text-purple-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400">Low Stock Alert</span>
+            <AlertTriangle className="w-4 h-4 text-red-500" />
           </div>
-          <div className="text-xl font-black text-purple-700 dark:text-purple-300 mt-1 truncate">
-            {selectedItemForTally?.name || 'Crockery Items'}
+          <div className="text-2xl font-black text-red-600 dark:text-red-400 mt-1">
+            {lowStockItems.length}
           </div>
-          <div className="text-[11px] text-purple-600/90 mt-0.5">
-            Code: {selectedItemForTally?.priceListCode || selectedItemForTally?.itemCode || '49'} • Bal: {selectedItemForTally?.currentStock ?? 6} {selectedItemForTally?.unit || 'Nos'}
+          <div className="text-[11px] text-red-600/90 mt-0.5">
+            Items below minimum stock threshold
           </div>
         </div>
 

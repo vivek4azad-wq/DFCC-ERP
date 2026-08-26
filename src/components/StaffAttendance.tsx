@@ -1666,10 +1666,20 @@ export const StaffAttendance: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => window.print()}
+                  className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                  title="Export complete 31-Day Attendance Statement to PDF in Landscape mode"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Export PDF (पूरे महीने का PDF)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
                   className="px-3.5 py-1.5 bg-[#123b72] hover:bg-[#1a4f9c] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Print Statement</span>
+                  <span>Print Sheet</span>
                 </button>
               </div>
             </div>
@@ -1709,7 +1719,7 @@ export const StaffAttendance: React.FC = () => {
           </div>
 
           {/* Category Summary KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-sm">
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Total Staff</span>
               <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
@@ -1718,30 +1728,16 @@ export const StaffAttendance: React.FC = () => {
             </div>
 
             <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block uppercase">Total Present Days</span>
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block uppercase">Total Present (P)</span>
               <span className="text-lg font-black text-emerald-800 dark:text-emerald-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.present, 0)} Days
               </span>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800/60 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-red-700 dark:text-red-400 font-bold block uppercase">Total Absent Days</span>
-              <span className="text-lg font-black text-red-800 dark:text-red-300 font-mono">
-                {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.absent, 0)} Days
-              </span>
-            </div>
-
             <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/60 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block uppercase">Rest / Off Days</span>
+              <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block uppercase">Rest / Off (REST)</span>
               <span className="text-lg font-black text-blue-800 dark:text-blue-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.rest, 0)} Days
-              </span>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block uppercase">Leave Availed</span>
-              <span className="text-lg font-black text-amber-800 dark:text-amber-300 font-mono">
-                {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.leaves, 0)} Days
               </span>
             </div>
 
@@ -1757,7 +1753,7 @@ export const StaffAttendance: React.FC = () => {
           <style>{`
             @page {
               size: A4 landscape;
-              margin: 5mm 5mm 5mm 5mm;
+              margin: 4mm 4mm 4mm 4mm;
             }
             @media print {
               body * {
@@ -1772,7 +1768,7 @@ export const StaffAttendance: React.FC = () => {
                 top: 0 !important;
                 width: 100% !important;
                 margin: 0 !important;
-                padding: 4mm 4mm !important;
+                padding: 2mm 2mm !important;
                 background: #ffffff !important;
                 color: #000000 !important;
                 box-shadow: none !important;
@@ -1780,14 +1776,14 @@ export const StaffAttendance: React.FC = () => {
                 z-index: 999999 !important;
               }
               #printable-monthly-statement table {
-                font-size: 7.5pt !important;
+                font-size: 7pt !important;
                 line-height: 1.15 !important;
                 width: 100% !important;
                 border-collapse: collapse !important;
               }
               #printable-monthly-statement th, #printable-monthly-statement td {
-                padding: 1.5px 1.5px !important;
-                border: 0.8px solid #475569 !important;
+                padding: 1.5px 1px !important;
+                border: 0.6px solid #475569 !important;
               }
               #printable-monthly-statement thead {
                 display: table-header-group !important;
@@ -1805,12 +1801,14 @@ export const StaffAttendance: React.FC = () => {
 
           {/* Official Printable Statement */}
           <div id="printable-monthly-statement" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-center border-b border-slate-200 pb-4 mb-4">
+            <div className="text-center border-b border-slate-200 pb-3 mb-3">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <span className="px-2.5 py-0.5 bg-[#123b72] text-white text-[10px] font-bold rounded">DFCCIL IMSD SMUN</span>
                 <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">CIVIL / P-WAY</span>
               </div>
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide">Category-Wise Monthly Absentee Statement</h3>
+              <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
+                CATEGORY-WISE MONTHLY ATTENDANCE STATEMENT
+              </h3>
               <p className="text-xs text-slate-600 font-mono">
                 Month: {MONTH_NAMES[selectedMonth]} {selectedYear} · Section: Km 1167.210 – 1249.720 · Category: {selectedMonthlyCategory === "ALL" ? "All Categories (Consolidated)" : MONTHLY_CATEGORY_GROUPS.find(g => g.key === selectedMonthlyCategory)?.label}
               </p>
@@ -1820,15 +1818,14 @@ export const StaffAttendance: React.FC = () => {
               <table className="w-full text-left text-[11px] text-slate-800 border-collapse border border-slate-300">
                 <thead>
                   <tr className="bg-slate-100 text-slate-700 font-bold">
-                    <th className="p-2 border border-slate-300 w-8">#</th>
-                    <th className="p-2 border border-slate-300 min-w-[130px]">Staff Name</th>
-                    <th className="p-2 border border-slate-300 min-w-[100px]">Designation</th>
-                    <th className="p-2 border border-slate-300 min-w-[80px]">Category</th>
-                    <th className="p-2 border border-slate-300 min-w-[80px]">AWPO / ID</th>
+                    <th className="p-1.5 border border-slate-300 w-7 text-center">#</th>
+                    <th className="p-1.5 border border-slate-300 min-w-[130px]">Staff Name</th>
+                    <th className="p-1.5 border border-slate-300 min-w-[100px]">Designation</th>
+                    <th className="p-1.5 border border-slate-300 min-w-[70px]">AWPO / ID</th>
                     {monthDates.map(d => (
                       <th
                         key={d.dayNum}
-                        className={`p-1 border border-slate-300 text-center font-mono text-[10px] w-6 ${
+                        className={`p-0.5 border border-slate-300 text-center font-mono text-[10px] w-6 ${
                           d.isNH
                             ? "bg-purple-100 text-purple-900 font-black"
                             : d.isSunday
@@ -1841,13 +1838,9 @@ export const StaffAttendance: React.FC = () => {
                         <div className="text-[8px] opacity-75">{d.dayName[0]}</div>
                       </th>
                     ))}
-                    <th className="p-1.5 border border-slate-300 text-center bg-emerald-50 text-emerald-900 font-bold">P</th>
-                    <th className="p-1.5 border border-slate-300 text-center bg-red-50 text-red-900 font-bold">A</th>
-                    <th className="p-1.5 border border-slate-300 text-center bg-blue-50 text-blue-900 font-bold">REST</th>
-                    <th className="p-1.5 border border-slate-300 text-center bg-purple-50 text-purple-900 font-bold">NH</th>
-                    <th className="p-1.5 border border-slate-300 text-center bg-amber-50 text-amber-900 font-bold">Leaves</th>
-                    <th className="p-1.5 border border-slate-300 text-center bg-slate-200 text-slate-900 font-black">Payable</th>
-                    <th className="p-1.5 border border-slate-300 min-w-[140px]">Absent / Leave Summary</th>
+                    <th className="p-1.5 border border-slate-300 text-center bg-emerald-50 text-emerald-900 font-bold w-9">P</th>
+                    <th className="p-1.5 border border-slate-300 text-center bg-blue-50 text-blue-900 font-bold w-9">REST</th>
+                    <th className="p-1.5 border border-slate-300 text-center bg-slate-200 text-slate-900 font-black w-12">Payable</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1855,7 +1848,7 @@ export const StaffAttendance: React.FC = () => {
                     <React.Fragment key={group.key}>
                       {/* Category Header Row */}
                       <tr className="bg-slate-200/90 text-slate-900 font-black border-y-2 border-slate-400">
-                        <td colSpan={monthDates.length + 12} className="p-2">
+                        <td colSpan={monthDates.length + 7} className="p-2">
                           <div className="flex items-center justify-between">
                             <span className="flex items-center gap-2 text-xs uppercase tracking-wide">
                               <span>{group.icon}</span>
@@ -1865,7 +1858,7 @@ export const StaffAttendance: React.FC = () => {
                               </span>
                             </span>
                             <span className="text-[10px] font-mono text-slate-600">
-                              Sub-Total: {group.subtotals.present} Present · {group.subtotals.absent} Absent · {group.subtotals.payable} Payable Days
+                              Sub-Total: {group.subtotals.present} Present · {group.subtotals.rest} Rest · {group.subtotals.payable} Payable Days
                             </span>
                           </div>
                         </td>
@@ -1874,15 +1867,10 @@ export const StaffAttendance: React.FC = () => {
                       {/* Staff Rows in this Category */}
                       {group.rows.map((row, rIdx) => (
                         <tr key={row.staff.id} className="hover:bg-slate-50 transition font-sans">
-                          <td className="p-1.5 border border-slate-300 text-slate-500 font-mono text-center">{rIdx + 1}</td>
-                          <td className="p-1.5 border border-slate-300 font-bold text-slate-900">{row.staff.name}</td>
-                          <td className="p-1.5 border border-slate-300 text-slate-700">{row.staff.designation}</td>
-                          <td className="p-1.5 border border-slate-300">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.staff.isPermanent ? "bg-blue-50 text-blue-800" : "bg-amber-50 text-amber-800"}`}>
-                              {row.staff.isPermanent ? "Permanent" : "Outsource"}
-                            </span>
-                          </td>
-                          <td className="p-1.5 border border-slate-300 font-mono text-slate-600">{row.staff.awpoId}</td>
+                          <td className="p-1 border border-slate-300 text-slate-500 font-mono text-center text-xs">{rIdx + 1}</td>
+                          <td className="p-1 border border-slate-300 font-bold text-slate-900 whitespace-nowrap">{row.staff.name}</td>
+                          <td className="p-1 border border-slate-300 text-slate-700 whitespace-nowrap text-xs">{row.staff.designation}</td>
+                          <td className="p-1 border border-slate-300 font-mono text-slate-600 text-xs">{row.staff.awpoId}</td>
                           {monthDates.map(d => {
                             const val = row.dailyMap[d.dayNum] || "P";
                             const badgeStyle = getStatusBadgeStyle(val);
@@ -1896,60 +1884,30 @@ export const StaffAttendance: React.FC = () => {
                               </td>
                             );
                           })}
-                          <td className="p-1.5 border border-slate-300 text-center font-bold text-emerald-800 bg-emerald-50/50">{row.presentCount}</td>
-                          <td className={`p-1.5 border border-slate-300 text-center font-black ${row.absentCount > 0 ? "bg-red-100 text-red-900 font-mono" : "text-slate-400"}`}>
-                            {row.absentCount}
-                          </td>
-                          <td className="p-1.5 border border-slate-300 text-center font-mono text-blue-800">{row.restCount}</td>
-                          <td className="p-1.5 border border-slate-300 text-center font-mono text-purple-800">{row.nhCount}</td>
-                          <td className="p-1.5 border border-slate-300 text-center font-bold text-amber-800 bg-amber-50/50">
-                            {row.totalLeaveDays}
-                          </td>
-                          <td className="p-1.5 border border-slate-300 text-center font-mono font-black text-slate-900 bg-slate-100">
-                            {row.payableDays}
-                          </td>
-                          <td className="p-1.5 border border-slate-300 text-[10px]">
-                            {row.absentDates.length > 0 && (
-                              <div className="text-red-700 font-bold">
-                                Absent: {row.absentDates.join(", ")} ({row.absentDates.length}d)
-                              </div>
-                            )}
-                            {row.leaveBreakdownList.length > 0 && (
-                              <div className="text-amber-800 font-medium">
-                                {row.leaveBreakdownList.join("; ")}
-                              </div>
-                            )}
-                            {row.absentDates.length === 0 && row.leaveBreakdownList.length === 0 && (
-                              <span className="text-emerald-700 font-medium">NIL (Full Attendance)</span>
-                            )}
-                          </td>
+                          <td className="p-1 border border-slate-300 text-center font-bold text-emerald-800 bg-emerald-50/50 font-mono">{row.presentCount}</td>
+                          <td className="p-1 border border-slate-300 text-center font-mono text-blue-800 font-bold">{row.restCount}</td>
+                          <td className="p-1 border border-slate-300 text-center font-mono font-black text-slate-900 bg-slate-100">{row.payableDays}</td>
                         </tr>
                       ))}
 
                       {/* Category Subtotal Row */}
                       <tr className="bg-slate-100 font-bold border-b-2 border-slate-300 text-slate-900">
-                        <td colSpan={5} className="p-1.5 border border-slate-300 text-right pr-3 text-xs">
+                        <td colSpan={4} className="p-1.5 border border-slate-300 text-right pr-3 text-xs">
                           {group.label} Sub-Total:
                         </td>
                         <td colSpan={monthDates.length} className="p-1.5 border border-slate-300 text-center text-slate-400 font-mono">
                           —
                         </td>
                         <td className="p-1.5 border border-slate-300 text-center text-emerald-800 font-mono font-black">{group.subtotals.present}</td>
-                        <td className="p-1.5 border border-slate-300 text-center text-red-800 font-mono font-black">{group.subtotals.absent}</td>
                         <td className="p-1.5 border border-slate-300 text-center text-blue-800 font-mono font-black">{group.subtotals.rest}</td>
-                        <td className="p-1.5 border border-slate-300 text-center text-purple-800 font-mono font-black">{group.subtotals.nh}</td>
-                        <td className="p-1.5 border border-slate-300 text-center text-amber-800 font-mono font-black">{group.subtotals.leaves}</td>
                         <td className="p-1.5 border border-slate-300 text-center text-slate-900 font-mono font-black bg-slate-200">{group.subtotals.payable}</td>
-                        <td className="p-1.5 border border-slate-300 text-[10px] text-slate-600 font-mono">
-                          {group.subtotals.totalStaff} staff in {group.label}
-                        </td>
                       </tr>
                     </React.Fragment>
                   ))}
 
                   {/* Grand Consolidated Total Row */}
                   <tr className="bg-[#123b72] text-white font-black text-xs border-t-2 border-slate-900">
-                    <td colSpan={5} className="p-2 border border-slate-400 text-right pr-3 uppercase">
+                    <td colSpan={4} className="p-2 border border-slate-400 text-right pr-3 uppercase">
                       Grand Total (All Categories):
                     </td>
                     <td colSpan={monthDates.length} className="p-2 border border-slate-400 text-center text-blue-200 font-mono">
@@ -1958,23 +1916,11 @@ export const StaffAttendance: React.FC = () => {
                     <td className="p-2 border border-slate-400 text-center font-mono font-black bg-emerald-800 text-white">
                       {groupedMonthlyData.reduce((a, b) => a + b.subtotals.present, 0)}
                     </td>
-                    <td className="p-2 border border-slate-400 text-center font-mono font-black bg-red-800 text-white">
-                      {groupedMonthlyData.reduce((a, b) => a + b.subtotals.absent, 0)}
-                    </td>
                     <td className="p-2 border border-slate-400 text-center font-mono font-black bg-blue-800 text-white">
                       {groupedMonthlyData.reduce((a, b) => a + b.subtotals.rest, 0)}
                     </td>
-                    <td className="p-2 border border-slate-400 text-center font-mono font-black bg-purple-800 text-white">
-                      {groupedMonthlyData.reduce((a, b) => a + b.subtotals.nh, 0)}
-                    </td>
-                    <td className="p-2 border border-slate-400 text-center font-mono font-black bg-amber-800 text-white">
-                      {groupedMonthlyData.reduce((a, b) => a + b.subtotals.leaves, 0)}
-                    </td>
                     <td className="p-2 border border-slate-400 text-center font-mono font-black bg-slate-900 text-white">
                       {groupedMonthlyData.reduce((a, b) => a + b.subtotals.payable, 0)}
-                    </td>
-                    <td className="p-2 border border-slate-400 text-[10px] text-blue-100">
-                      Total Staff: {groupedMonthlyData.reduce((a, b) => a + b.subtotals.totalStaff, 0)}
                     </td>
                   </tr>
                 </tbody>
@@ -1982,7 +1928,7 @@ export const StaffAttendance: React.FC = () => {
             </div>
 
             {/* ✍️ Official Dual Signature Stamps Block for DFCCIL Record */}
-            <div className="mt-10 pt-6 border-t-2 border-slate-300 dark:border-slate-700 flex items-end justify-between px-8 pb-4">
+            <div className="mt-10 pt-6 border-t-2 border-slate-300 dark:border-slate-700 flex items-end justify-between px-8 pb-4 print-signatures-block">
               <div className="text-center">
                 <div className="w-56 border-b-2 border-slate-800 dark:border-slate-300 mb-2 h-16 flex items-end justify-center">
                   <span className="text-[10px] italic text-slate-400 font-serif">Verified &amp; Submitted</span>

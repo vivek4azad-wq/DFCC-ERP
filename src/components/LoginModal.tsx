@@ -131,21 +131,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleProfileSelect = async (profile: typeof AUTHORIZED_PROFILES[0]) => {
+  const handleProfileSelect = (profile: typeof AUTHORIZED_PROFILES[0]) => {
     setError(null);
-    setIsSubmitting(true);
-    try {
-      const res = await login(profile.userId, profile.pin);
-      if (res.success) {
-        onClose();
-      } else {
-        setError(res.message || 'Login failed.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Login failed.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setIdentifier(profile.userId);
+    setPin('');
+    setActiveTab('pin');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,7 +263,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-white flex items-center justify-between">
                           <span className="truncate">{profile.name}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">PIN: {profile.pin}</span>
+                          <span className="text-[10px] text-cyan-400 font-mono font-bold">Select &amp; Enter PIN ➔</span>
                         </div>
                         <div className="text-[11px] text-slate-300 font-medium truncate mt-0.5">{profile.roleTitle}</div>
                         <div className="text-[10px] text-slate-400 mt-1 truncate">

@@ -139,8 +139,6 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
 }) => {
   const [selectedStationCode, setSelectedStationCode] = useState<string>(defaultStationCode || 'SMUN');
   const [keyPlans, setKeyPlans] = useState<Record<string, StationKeyPlanRecord>>({});
-  const [viewMode, setViewMode] = useState<'XRAY' | 'DOC'>('XRAY');
-  const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [docZoom, setDocZoom] = useState<number>(1);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -314,7 +312,6 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
       // 3. Update React State
       setKeyPlans(prev => ({ ...prev, [selectedStationCode]: planRecord }));
       setUploadSuccess(`✅ Key-Plan for ${currentStation.name} (${finalSizeKb} KB) successfully uploaded & saved!`);
-      setViewMode('DOC');
       setTimeout(() => setUploadSuccess(null), 4000);
     } catch (err: any) {
       console.error('Key-Plan upload error:', err);
@@ -368,28 +365,9 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Mode Switcher */}
-          <div className="bg-slate-950/80 p-1 rounded-xl border border-slate-700 flex items-center gap-1 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('XRAY')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                viewMode === 'XRAY' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>X-Ray Schematic</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('DOC')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                viewMode === 'DOC' ? 'bg-cyan-500 text-slate-950 shadow-md font-black' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Key-Plan Document {activeDocUrl ? '✅' : ''}</span>
-            </button>
+          <div className="bg-slate-950/80 px-3 py-1.5 rounded-xl border border-cyan-500/30 flex items-center gap-1.5 text-xs">
+            <FileText className="w-4 h-4 text-cyan-400" />
+            <span className="font-bold text-cyan-200">Official Blueprints &amp; Approved Drawings</span>
           </div>
 
           <button
@@ -517,298 +495,143 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
           </div>
 
           {/* -----------------------------------------------------------------
-              VIEW 1: CAD / BLUEPRINT X-RAY SCHEMATIC TRACK LAYOUT DIAGRAM
+              OFFICIAL APPROVED STATION ENGINEERING KEY-PLAN BLUEPRINT VIEWER
           ------------------------------------------------------------------ */}
-          {viewMode === 'XRAY' && (
-            <div className="bg-[#050b14] border-2 border-cyan-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-cyan-900/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-cyan-300">
-                    High-Definition X-Ray Track Diagram • {currentStation.code} Yard Topography
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-slate-400">Scale: 1:1000 Schematic</span>
-                  <button
-                    type="button"
-                    onClick={() => setZoomLevel(prev => (prev === 1 ? 1.3 : 1))}
-                    className="p-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs"
-                    title="Toggle Zoom"
-                  >
-                    {zoomLevel === 1 ? <ZoomIn className="w-3.5 h-3.5" /> : <ZoomOut className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Dynamic SVG Schematic Blueprint */}
-              <div className="overflow-x-auto overflow-y-hidden py-4 scrollbar-thin">
-                <div
-                  className="min-w-[850px] transition-transform duration-300 origin-top-left"
-                  style={{ transform: `scale(${zoomLevel})` }}
-                >
-                  <svg viewBox="0 0 1000 320" className="w-full h-auto drop-shadow-lg font-mono select-none">
-                    {/* Background Grid Pattern */}
-                    <defs>
-                      <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0e2238" strokeWidth="0.8" />
-                      </pattern>
-                      <linearGradient id="upLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#06b6d4" />
-                        <stop offset="100%" stopColor="#3b82f6" />
-                      </linearGradient>
-                      <linearGradient id="dnLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#f59e0b" />
-                        <stop offset="100%" stopColor="#ef4444" />
-                      </linearGradient>
-                    </defs>
-
-                    <rect width="1000" height="320" fill="url(#gridPattern)" rx="16" />
-
-                    {/* Yard Boundary & Kilometre Markers */}
-                    <text x="30" y="30" fill="#64748b" fontSize="11" fontWeight="bold">
-                      ◄ To Delhi / Khurja ({currentStation.startKm.toFixed(3)})
-                    </text>
-                    <text x="750" y="30" fill="#64748b" fontSize="11" fontWeight="bold">
-                      To Ludhiana / Sahnewal ({currentStation.endKm.toFixed(3)}) ►
-                    </text>
-
-                    {/* 1. UP Loop Line (Top Line) */}
-                    <path d="M 160 80 L 840 80" stroke="#0ea5e9" strokeWidth="3" fill="none" strokeDasharray="6,2" />
-                    <text x="440" y="70" fill="#38bdf8" fontSize="10" fontWeight="bold">UP GOODS LOOP LINE (750m CSL)</text>
-
-                    {/* 2. UP Main Line */}
-                    <path d="M 40 120 L 960 120" stroke="url(#upLineGrad)" strokeWidth="4.5" fill="none" />
-                    <text x="50" y="110" fill="#22d3ee" fontSize="12" fontWeight="900">UP MAIN LINE (Km 1167.210 → 1249.720)</text>
-
-                    {/* Platform 1 Indicator */}
-                    <rect x="360" y="130" width="280" height="14" fill="#1e293b" stroke="#06b6d4" strokeWidth="1" rx="4" />
-                    <text x="420" y="141" fill="#e2e8f0" fontSize="9" fontWeight="bold">PLATFORM NO. 1 (HIGH LEVEL 600m)</text>
-
-                    {/* 3. DN Main Line */}
-                    <path d="M 40 190 L 960 190" stroke="url(#dnLineGrad)" strokeWidth="4.5" fill="none" />
-                    <text x="50" y="180" fill="#f59e0b" fontSize="12" fontWeight="900">DN MAIN LINE (← Sanahwal to Khurja)</text>
-
-                    {/* Platform 2 Indicator */}
-                    <rect x="360" y="200" width="280" height="14" fill="#1e293b" stroke="#f59e0b" strokeWidth="1" rx="4" />
-                    <text x="420" y="211" fill="#e2e8f0" fontSize="9" fontWeight="bold">PLATFORM NO. 2 (HIGH LEVEL 600m)</text>
-
-                    {/* 4. DN Loop Line (Bottom Line) */}
-                    <path d="M 160 250 L 840 250" stroke="#f97316" strokeWidth="3" fill="none" strokeDasharray="6,2" />
-                    <text x="440" y="270" fill="#fb923c" fontSize="10" fontWeight="bold">DN GOODS LOOP LINE (750m CSL)</text>
-
-                    {/* 5. Depot Siding Line for SMUN */}
-                    {selectedStationCode === 'SMUN' && (
-                      <>
-                        <path d="M 280 250 L 380 290 L 620 290" stroke="#a855f7" strokeWidth="3.5" fill="none" />
-                        <rect x="420" y="282" width="180" height="16" fill="#581c87" stroke="#c084fc" strokeWidth="1" rx="4" />
-                        <text x="435" y="294" fill="#f3e8ff" fontSize="9" fontWeight="bold">IMSD SMUN STORE &amp; P-WAY DEPOT SIDING</text>
-                      </>
-                    )}
-
-                    {/* Turnouts & Crossings */}
-                    {/* UP Loop Lead Switch In */}
-                    <line x1="160" y1="80" x2="220" y2="120" stroke="#38bdf8" strokeWidth="3" />
-                    <circle cx="220" cy="120" r="4" fill="#38bdf8" />
-                    <text x="180" y="105" fill="#bae6fd" fontSize="9" fontWeight="bold">P-101A</text>
-
-                    {/* UP Loop Lead Switch Out */}
-                    <line x1="780" y1="120" x2="840" y2="80" stroke="#38bdf8" strokeWidth="3" />
-                    <circle cx="780" cy="120" r="4" fill="#38bdf8" />
-                    <text x="800" y="105" fill="#bae6fd" fontSize="9" fontWeight="bold">P-101B</text>
-
-                    {/* Main to Main Diamond / Crossover */}
-                    <line x1="300" y1="120" x2="350" y2="190" stroke="#ec4899" strokeWidth="3" />
-                    <text x="325" y="160" fill="#f472b6" fontSize="9" fontWeight="bold">X-103</text>
-
-                    <line x1="650" y1="190" x2="700" y2="120" stroke="#ec4899" strokeWidth="3" />
-                    <text x="675" y="160" fill="#f472b6" fontSize="9" fontWeight="bold">X-104</text>
-
-                    {/* DN Loop Lead Switch In */}
-                    <line x1="160" y1="250" x2="220" y2="190" stroke="#f97316" strokeWidth="3" />
-                    <circle cx="220" cy="190" r="4" fill="#f97316" />
-                    <text x="180" y="225" fill="#fed7aa" fontSize="9" fontWeight="bold">P-102A</text>
-
-                    {/* DN Loop Lead Switch Out */}
-                    <line x1="780" y1="190" x2="840" y2="250" stroke="#f97316" strokeWidth="3" />
-                    <circle cx="780" cy="190" r="4" fill="#f97316" />
-                    <text x="800" y="225" fill="#fed7aa" fontSize="9" fontWeight="bold">P-102B</text>
-
-                    {/* Glued Insulated Joints & SEJ Markers */}
-                    {/* SEJ 1 */}
-                    <rect x="130" y="112" width="6" height="16" fill="#a855f7" />
-                    <text x="110" y="145" fill="#c084fc" fontSize="8" fontWeight="bold">SEJ Km {(currentStation.startKm + 0.5).toFixed(3)}</text>
-
-                    {/* SEJ 2 */}
-                    <rect x="880" y="112" width="6" height="16" fill="#a855f7" />
-                    <text x="860" y="145" fill="#c084fc" fontSize="8" fontWeight="bold">SEJ Km {(currentStation.endKm - 0.5).toFixed(3)}</text>
-
-                    {/* Station Building Block */}
-                    <rect x="440" y="10" width="120" height="28" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" rx="6" />
-                    <text x="455" y="27" fill="#38bdf8" fontSize="10" fontWeight="black">STATION BLDG</text>
-                  </svg>
-                </div>
-              </div>
-
-              {/* Blueprint Legend */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono border-t border-cyan-900/60 pt-3 text-slate-300">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3.5 h-1.5 bg-cyan-400 rounded-full" />
-                  <span>UP Main Line Track</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3.5 h-1.5 bg-amber-400 rounded-full" />
-                  <span>DN Main Line Track</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3.5 h-3 bg-pink-500/30 border border-pink-400 rounded" />
-                  <span>Crossover 1:12 Point</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 bg-purple-600 rounded" />
-                  <span>SEJ (Expansion Joint)</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* -----------------------------------------------------------------
-              VIEW 2: ATTACHED OFFICIAL KEY-PLAN DOCUMENT VIEWER (PDF / DRAWING)
-          ------------------------------------------------------------------ */}
-          {viewMode === 'DOC' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
-              {activeDocUrl ? (
-                <div className="space-y-3">
-                  {/* Document Control Header */}
-                  <div className="flex items-center justify-between bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 bg-slate-900 rounded-xl border border-slate-700">
-                        {isImageDoc ? (
-                          <ImageIcon className="w-5 h-5 text-cyan-400" />
-                        ) : (
-                          <FileText className="w-5 h-5 text-red-400" />
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-bold text-white block truncate">
-                          {currentPlan?.fileName || currentPlan?.pdfFileName || `${currentStation.code}_Key_Plan`}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono flex items-center gap-2 mt-0.5">
-                          <span>{currentPlan?.fileSizeKb || currentPlan?.pdfFileSizeKb || 120} KB</span>
-                          <span>•</span>
-                          <span>{isImageDoc ? 'Drawing Image' : 'PDF Document'}</span>
-                          <span>•</span>
-                          <span>Uploaded {currentPlan?.uploadedAt ? new Date(currentPlan.uploadedAt).toLocaleDateString() : 'Official'}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Zoom Controls for Drawing Images */}
-                      {isImageDoc && (
-                        <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-                          <button
-                            type="button"
-                            onClick={() => setDocZoom(prev => Math.max(0.5, prev - 0.2))}
-                            className="p-1 text-slate-400 hover:text-white rounded"
-                            title="Zoom Out"
-                          >
-                            <ZoomOut className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="text-[10px] font-mono font-bold px-1 text-cyan-300">
-                            {Math.round(docZoom * 100)}%
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setDocZoom(prev => Math.min(3, prev + 0.2))}
-                            className="p-1 text-slate-400 hover:text-white rounded"
-                            title="Zoom In"
-                          >
-                            <ZoomIn className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDocZoom(1)}
-                            className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-300 hover:text-white rounded"
-                          >
-                            Reset
-                          </button>
-                        </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+            {activeDocUrl ? (
+              <div className="space-y-3">
+                {/* Document Control Header */}
+                <div className="flex items-center justify-between bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-slate-900 rounded-xl border border-slate-700">
+                      {isImageDoc ? (
+                        <ImageIcon className="w-5 h-5 text-cyan-400" />
+                      ) : (
+                        <FileText className="w-5 h-5 text-red-400" />
                       )}
+                    </div>
+                    <div>
+                      <span className="font-bold text-white block truncate">
+                        {currentPlan?.fileName || currentPlan?.pdfFileName || `${currentStation.code} Approved Key-Plan Blueprint`}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono flex items-center gap-2 mt-0.5">
+                        <span>{currentPlan?.fileSizeKb || currentPlan?.pdfFileSizeKb || 420} KB</span>
+                        <span>•</span>
+                        <span>{isImageDoc ? 'Drawing Blueprint' : 'Official PDF Document'}</span>
+                        <span>•</span>
+                        <span>DFCCIL Approved Plan</span>
+                      </span>
+                    </div>
+                  </div>
 
-                      <a
-                        href={activeDocUrl}
-                        download={currentPlan?.fileName || currentPlan?.pdfFileName || `${currentStation.code}_Key_Plan`}
-                        className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl font-bold flex items-center gap-1 text-xs shadow"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download</span>
-                      </a>
-
+                  <div className="flex items-center gap-2">
+                    {/* Zoom Controls */}
+                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold flex items-center gap-1 text-xs border border-slate-700"
-                        title="Replace current file"
+                        onClick={() => setDocZoom(prev => Math.max(0.5, prev - 0.2))}
+                        className="p-1 text-slate-400 hover:text-white rounded"
+                        title="Zoom Out"
                       >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Replace</span>
+                        <ZoomOut className="w-3.5 h-3.5" />
                       </button>
+                      <span className="text-[10px] font-mono font-bold px-1 text-cyan-300">
+                        {Math.round(docZoom * 100)}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDocZoom(prev => Math.min(3, prev + 0.2))}
+                        className="p-1 text-slate-400 hover:text-white rounded"
+                        title="Zoom In"
+                      >
+                        <ZoomIn className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDocZoom(1)}
+                        className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-300 hover:text-white rounded"
+                      >
+                        Reset
+                      </button>
+                    </div>
 
+                    <a
+                      href={activeDocUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={currentPlan?.fileName || currentPlan?.pdfFileName || `${currentStation.code}_Key_Plan.pdf`}
+                      className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 rounded-xl font-bold flex items-center gap-1 text-xs shadow cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold flex items-center gap-1 text-xs border border-slate-700"
+                      title="Replace current file"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Replace</span>
+                    </button>
+
+                    {currentPlan && (
                       <button
                         type="button"
                         onClick={handleDeletePlan}
                         className="p-1.5 bg-red-950 hover:bg-red-900 text-red-300 rounded-xl transition border border-red-800"
-                        title="Delete this Key-Plan"
+                        title="Delete custom uploaded Key-Plan"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Viewer Display */}
-                  <div className="w-full min-h-[480px] max-h-[620px] rounded-2xl overflow-auto border border-slate-800 bg-slate-950 shadow-inner flex flex-col items-center justify-center p-3 relative">
-                    {isImageDoc ? (
-                      <div
-                        className="transition-transform duration-200 origin-center max-w-full max-h-full flex items-center justify-center"
-                        style={{ transform: `scale(${docZoom})` }}
-                      >
-                        <img
-                          src={activeDocUrl}
-                          alt={`${currentStation.name} Key Plan Drawing`}
-                          className="max-w-full max-h-[520px] object-contain rounded-lg shadow-xl"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-4 space-y-4">
-                        <iframe
-                          src={activeDocUrl}
-                          title={`${currentStation.name} Key Plan PDF`}
-                          className="w-full h-[480px] border-none rounded-xl hidden sm:block shadow-md bg-slate-900"
-                        />
-                        <div className="w-full text-center space-y-3 p-6 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl max-w-md mx-auto">
-                          <FileText className="w-12 h-12 text-cyan-400 mx-auto animate-bounce" />
-                          <div className="text-base font-extrabold text-white">
-                            {currentStation.name} ({currentStation.code}) Key-Plan PDF
-                          </div>
-                          <p className="text-xs text-slate-400">
-                            Approved DFCCIL Engineering Drawing & Yard Plan:
-                          </p>
-                          <a
-                            href={activeDocUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            download={`${currentStation.code}_Key_Plan.pdf`}
-                            className="inline-flex items-center justify-center gap-2 w-full py-3 px-5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
-                          >
-                            <Download className="w-4 h-4" />
-                            <span>Open / Download PDF ({currentPlan?.fileSizeKb || currentPlan?.pdfFileSizeKb || 420} KB)</span>
-                          </a>
-                        </div>
-                      </div>
                     )}
                   </div>
                 </div>
+
+                {/* Viewer Display */}
+                <div className="w-full min-h-[480px] max-h-[620px] rounded-2xl overflow-auto border border-slate-800 bg-slate-950 shadow-inner flex flex-col items-center justify-center p-3 relative">
+                  {isImageDoc ? (
+                    <div
+                      className="transition-transform duration-200 origin-center max-w-full max-h-full flex items-center justify-center"
+                      style={{ transform: `scale(${docZoom})` }}
+                    >
+                      <img
+                        src={activeDocUrl}
+                        alt={`${currentStation.name} Key Plan Drawing`}
+                        className="max-w-full max-h-[520px] object-contain rounded-lg shadow-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 space-y-4">
+                      <iframe
+                        src={activeDocUrl}
+                        title={`${currentStation.name} Key Plan PDF`}
+                        className="w-full h-[480px] border-none rounded-xl hidden sm:block shadow-md bg-slate-900"
+                      />
+                      <div className="w-full text-center space-y-3 p-6 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl max-w-md mx-auto">
+                        <FileText className="w-12 h-12 text-cyan-400 mx-auto animate-bounce" />
+                        <div className="text-base font-extrabold text-white">
+                          {currentStation.name} ({currentStation.code}) Key-Plan PDF
+                        </div>
+                        <p className="text-xs text-slate-400">
+                          Approved DFCCIL Engineering Drawing & Yard Plan:
+                        </p>
+                        <a
+                          href={activeDocUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={`${currentStation.code}_Key_Plan.pdf`}
+                          className="inline-flex items-center justify-center gap-2 w-full py-3 px-5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>Open / Download PDF ({currentPlan?.fileSizeKb || currentPlan?.pdfFileSizeKb || 420} KB)</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
               ) : (
                 <div className="p-12 text-center space-y-3 bg-slate-950/60 rounded-3xl border border-dashed border-slate-800">
                   <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto border border-slate-800 text-cyan-400">
@@ -832,8 +655,7 @@ export const StationKeyPlanModal: React.FC<StationKeyPlanModalProps> = ({
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
 
         {/* Modal Footer */}
         <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950 text-xs">

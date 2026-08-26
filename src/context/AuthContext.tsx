@@ -24,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  changePin: (currentPin: string, newPin: string) => Promise<{ success: boolean; message?: string }>;
   signUpStaff: (data: { name: string; phoneOrId: string; email?: string; password?: string }) => Promise<{ success: boolean; message?: string }>;
   loginWithOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   loginAsGuest: (data: { name: string; phone: string; purpose?: string }) => Promise<{ success: boolean; message?: string }>;
@@ -223,15 +224,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (matched) {
-        // Ensure user is marked active
         matched.isActive = true;
+        const isSuperAdmin = (matched.role === 'SUPER_ADMIN') || cleanId.includes('vkazad') || cleanId === '101518';
 
-        // Verify PIN: accepts user's pin, 1234 default, or any valid secret
-        const validPins = [matched.pin, '1234', '1015', '1801', '2914', '1804', '1805', '1806', '1807', '1808'];
-        if (matched.pin === cleanSecret || validPins.includes(cleanSecret) || cleanSecret.length >= 4) {
+        // Super Admin strictly accepts "Vivek@101518", or the stored matched.pin (default "1015")
+        if (isSuperAdmin) {
+          if (cleanSecret === 'Vivek@101518' || cleanSecret === (matched.pin || '1015')) {
+            setCurrentUser(matched);
+            safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
+            return { success: true };
+          } else {
+            return { success: false, message: 'Incorrect Password/PIN for APM/Civil. Please enter Vivek@101518 or your 4-digit PIN.' };
+          }
+        }
+
+        // For all other staff: strictly verify matching PIN or stored password (no loose 4-char fallback!)
+        if (matched.pin && cleanSecret === matched.pin) {
           setCurrentUser(matched);
           safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
           return { success: true };
+        } else if ((matched as any).password && cleanSecret === (matched as any).password) {
+          setCurrentUser(matched);
+          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
+          return { success: true };
+        } else {
+          return { success: false, message: 'Incorrect PIN. Please enter your valid 4-digit PIN.' };
         }
       }
 
@@ -247,10 +264,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setAuthToken(token);
           safeStorageSet(AUTH_TOKEN_KEY, token);
 
-          if (matched) {
-            matched.isActive = true;
-            setCurrentUser(matched);
-            safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
+          const existingUser = allUsers.find(u => u.email?.toLowerCase() === cleanId || u.userId?.toLowerCase() === cleanId);
+          if (existingUser) {
+            existingUser.isActive = true;
+            setCurrentUser(existingUser);
+            safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(existingUser));
           } else {
             const newSessionUser: UserAccount = {
               id: fbUser.uid,
@@ -281,13 +299,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
-      if (matched) {
-        return { success: false, message: 'Invalid PIN. Please enter your 4-digit PIN.' };
-      }
-
-      return { success: false, message: 'Invalid Employee ID or PIN. Please select your authorized profile from the list.' };
+      return { success: false, message: 'Invalid Employee ID or PIN. Please enter your registered credentials.' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'Authentication error.' };
+    }
+  };
+
+  /**
+   * Change Current User's PIN
+   */
+  const changePin = async (currentPin: string, newPin: string): Promise<{ success: boolean; message?: string }> => {
+    if (!currentUser) {
+      return { success: false, message: 'No active session. Please log in first.' };
+    }
+
+    const cleanCurrent = currentPin.trim();
+    const cleanNew = newPin.trim();
+
+    if (!cleanCurrent) {
+      return { success: false, message: 'Please enter your current PIN/Password.' };
+    }
+
+    if (!/^\d{4}$/.test(cleanNew)) {
+      return { success: false, message: 'New PIN must be exactly 4 numeric digits (e.g. 1234).' };
+    }
+
+    const isSuperAdmin = currentUser.role === 'SUPER_ADMIN' || (currentUser.email || '').includes('vkazad') || currentUser.userId === '101518';
+
+    // Verify current secret
+    let isCurrentValid = false;
+    if (isSuperAdmin && (cleanCurrent === 'Vivek@101518' || cleanCurrent === '1015')) {
+      isCurrentValid = true;
+    } else if (currentUser.pin && cleanCurrent === currentUser.pin) {
+      isCurrentValid = true;
+    } else if ((currentUser as any).password && cleanCurrent === (currentUser as any).password) {
+      isCurrentValid = true;
+    }
+
+    if (!isCurrentValid) {
+      return { success: false, message: 'Current PIN/Password is incorrect.' };
+    }
+
+    try {
+      const updatedUser: UserAccount = {
+        ...(currentUser as UserAccount),
+        pin: cleanNew,
+        updatedAt: new Date().toISOString()
+      };
+
+      // 1. Update in local DB & Firestore
+      await db.updateDocument('users', currentUser.id, updatedUser).catch(() => {});
+      
+      // 2. Update state and localStorage
+      setCurrentUser(updatedUser);
+      safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+
+      // 3. Update allUsers list
+      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, pin: cleanNew } : u));
+
+      return { success: true, message: 'PIN changed successfully!' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to update PIN.' };
     }
   };
 
@@ -683,6 +755,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!currentUser,
         isLoading,
         login,
+        changePin,
         signUpStaff,
         loginWithOtp,
         loginAsGuest,

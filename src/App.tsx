@@ -23,15 +23,20 @@ import { AdminPanel } from './components/AdminPanel.tsx';
 import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
 import { StaffPublicQRView } from './components/StaffPublicQRView.tsx';
 import { StationKeyPlanModal } from './components/StationKeyPlanModal.tsx';
+import { ChangePinModal } from './components/ChangePinModal.tsx';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import {
   Train,
   ShieldCheck,
+  Shield,
   User,
   Users,
   UserPlus,
   Key,
+  KeyRound,
+  Eye,
+  EyeOff,
   LogIn,
   Scan,
   Sparkles,
@@ -58,6 +63,7 @@ function MainAppShell() {
     isAuthenticated,
     isLoading,
     login,
+    changePin,
     signUpStaff,
     loginWithOtp,
     loginAsGuest,
@@ -100,15 +106,23 @@ function MainAppShell() {
   const [staffDirectoryTab, setStaffDirectoryTab] = useState<'officers' | 'outsourced' | 'keymen' | 'patrol' | 'watchmen'>('officers');
 
   // --- Multi-Mode Authentication States ---
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'otp'>('signin');
+  const [authMode, setAuthMode] = useState<'officer' | 'pin' | 'guest' | 'signup' | 'otp'>('officer');
 
-  // 1. Sign In Form State (Real Firebase Auth)
-  const [loginEmail, setLoginEmail] = useState('');
+  // 1. Officer Sign In Form State (Real Firebase Auth)
+  const [loginEmail, setLoginEmail] = useState('vkazad@dfcc.co.in');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  // 2. Staff Sign Up Form State
+  // 2. Staff PIN Login State
+  const [staffIdentifier, setStaffIdentifier] = useState('');
+  const [staffPin, setStaffPin] = useState('');
+  const [staffPinError, setStaffPinError] = useState<string | null>(null);
+  const [isStaffLoggingIn, setIsStaffLoggingIn] = useState(false);
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+
+  // 3. Staff Sign Up Form State
   const [signUpName, setSignUpName] = useState('');
   const [signUpPhoneOrId, setSignUpPhoneOrId] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
@@ -117,7 +131,7 @@ function MainAppShell() {
   const [signUpSuccess, setSignUpSuccess] = useState<string | null>(null);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
-  // 3. WhatsApp / SMS OTP Form State
+  // 4. WhatsApp / SMS OTP Form State
   const [otpPhone, setOtpPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -127,11 +141,11 @@ function MainAppShell() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
-  // 4. Guest Visitor Modal State
+  // 5. Guest Visitor Modal State
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
-  const [guestPurpose, setGuestPurpose] = useState('General View');
+  const [guestPurpose, setGuestPurpose] = useState('Track Inspection / Viewing');
   const [guestError, setGuestError] = useState<string | null>(null);
   const [isSubmittingGuest, setIsSubmittingGuest] = useState(false);
 
@@ -206,7 +220,33 @@ function MainAppShell() {
     }
   };
 
-  // 2. Handle Official Staff Sign Up (Auto-Verification against Roster)
+  // 2. Handle Staff & MTS 4-Digit PIN Login
+  const handleStaffPinLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffPinError(null);
+    if (!staffIdentifier.trim()) {
+      setStaffPinError('Please enter your Employee ID, Mobile Number or Name.');
+      return;
+    }
+    if (!staffPin.trim() || staffPin.trim().length < 4) {
+      setStaffPinError('Please enter your 4-digit PIN (e.g. 1234).');
+      return;
+    }
+
+    setIsStaffLoggingIn(true);
+    try {
+      const res = await login(staffIdentifier.trim(), staffPin.trim());
+      if (!res.success) {
+        setStaffPinError(res.message || 'Invalid Employee ID/Mobile or 4-digit PIN.');
+      }
+    } catch (err: any) {
+      setStaffPinError(err?.message || 'Authentication error occurred.');
+    } finally {
+      setIsStaffLoggingIn(false);
+    }
+  };
+
+  // 3. Handle Official Staff Sign Up (Auto-Verification against Roster)
   const handleStaffSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpError(null);
@@ -385,113 +425,161 @@ function MainAppShell() {
   }
 
   // -------------------------------------------------------------------------
-  // 2. IF NOT AUTHENTICATED: RENDER FULL-PAGE RAILWAY PHOTO LOGIN SCREEN FIRST
+  // 2. IF NOT AUTHENTICATED: RENDER MODERN IRONLINE INDUSTRIAL LOGIN EXPERIENCE
   // -------------------------------------------------------------------------
   if (!isAuthenticated || !currentUser) {
     return (
       <div
-        className="min-h-screen relative flex flex-col justify-between p-4 antialiased selection:bg-cyan-500 selection:text-slate-950 overflow-x-hidden bg-slate-950 text-white"
+        className="min-h-screen relative flex flex-col justify-between p-4 antialiased selection:bg-cyan-500 selection:text-slate-950 overflow-x-hidden bg-[#0c1324] text-white"
         style={{
-          backgroundImage: `linear-gradient(135deg, rgba(6, 12, 28, 0.82) 0%, rgba(15, 30, 65, 0.76) 50%, rgba(5, 10, 20, 0.92) 100%), url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?q=80&w=2168&auto=format&fit=crop')`,
+          backgroundImage: `radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.18) 0%, rgba(12, 19, 36, 0.95) 75%), linear-gradient(135deg, rgba(6, 12, 28, 0.85) 0%, rgba(17, 24, 39, 0.85) 100%), url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?q=80&w=2168&auto=format&fit=crop')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',
           paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)'
         }}
       >
-        <div className="max-w-md w-full mx-auto my-auto space-y-5 animate-fadeIn py-6 relative z-10">
+        <div className="max-w-md w-full mx-auto my-auto space-y-4 animate-fadeIn py-6 relative z-10">
           {/* Brand Header */}
           <div className="text-center space-y-2">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-2xl border-2 border-cyan-300/50 bg-[#0d234a]/80 backdrop-blur-md flex items-center justify-center">
-              <img src="/logo.png" alt="DFCCIL ERP Logo" className="w-full h-full object-cover" />
+            <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-2xl border-2 border-cyan-400/50 bg-[#0d234a]/90 backdrop-blur-md flex items-center justify-center p-1">
+              <img src="/logo.png" alt="DFCCIL ERP Logo" className="w-full h-full object-contain drop-shadow" />
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
-                DFCCIL ERP
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md flex items-center justify-center gap-2">
+                <span>DFCCIL ERP</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-400 text-slate-950 uppercase tracking-widest shadow-sm">
+                  IMSD SMUN
+                </span>
               </h1>
-              <p className="text-xs font-bold text-cyan-300 uppercase tracking-wider drop-shadow">
-                IMSD-SMUN Unit (Civil) • Km 1167.210 to Km 1249.720
+              <p className="text-xs font-bold text-cyan-300 uppercase tracking-wider drop-shadow mt-0.5">
+                Civil Engineering Unit • Km 1167.210 to Km 1249.720
               </p>
             </div>
           </div>
 
-          {/* Glassmorphic Auth Card */}
-          <div className="bg-slate-950/85 backdrop-blur-xl border border-white/20 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 text-white">
-            {/* Top Navigation Mode Tabs: Sign In / Staff Sign Up / WhatsApp OTP */}
-            <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs font-bold select-none">
+          {/* 🚆 Dynamic Animated Freight & High-Speed Electric Train on Track */}
+          <div className="w-full overflow-hidden relative rounded-2xl bg-gradient-to-r from-[#060e1e] via-[#0b1b36] to-[#060e1e] border border-cyan-500/30 p-2.5 shadow-2xl">
+            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300 mb-1.5 px-1">
+              <span className="flex items-center gap-1.5 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
+                <span>SECTION CLEAR • GREEN SIGNAL</span>
+              </span>
+              <span className="text-slate-400 font-bold">1167.210 ➔ 1249.720</span>
+            </div>
+
+            <div className="relative h-12 w-full overflow-hidden bg-[#040813] rounded-xl border border-slate-800 flex items-center">
+              {/* Overhead Electric Wire (OHE) */}
+              <div className="absolute top-2 left-0 w-full h-[1px] bg-cyan-400/40" />
+
+              {/* Moving Train SVG */}
+              <div className="absolute animate-train-ride flex items-center">
+                {/* Headlight Beam Glow */}
+                <div className="w-20 h-8 bg-gradient-to-r from-cyan-300/40 via-blue-500/10 to-transparent -mr-2 rounded-full blur-[3px] pointer-events-none transform -scale-x-100" />
+
+                {/* Aerodynamic High Speed WAG-12 Electric Locomotive */}
+                <svg className="w-44 h-9 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" viewBox="0 0 200 40" fill="none">
+                  {/* Pantograph with electric spark */}
+                  <path d="M 40 12 L 50 4 L 60 4 L 70 12" stroke="#67e8f9" strokeWidth="1.5" />
+                  <circle cx="55" cy="4" r="1.5" fill="#38bdf8" className="animate-ping" />
+                  {/* Engine Body */}
+                  <path d="M 10 32 L 25 14 C 28 12 35 12 40 12 L 180 12 C 185 12 190 15 190 20 L 190 32 Z" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
+                  {/* Cab Windshield */}
+                  <path d="M 18 30 L 28 16 C 30 15 36 15 45 15 L 45 30 Z" fill="#0f172a" stroke="#67e8f9" strokeWidth="1" />
+                  {/* Headlight */}
+                  <circle cx="12" cy="28" r="3" fill="#ffffff" />
+                  <circle cx="12" cy="28" r="1.5" fill="#67e8f9" />
+                  {/* Side Stripe */}
+                  <line x1="45" y1="22" x2="185" y2="22" stroke="#facc15" strokeWidth="2.5" />
+                  {/* Wheels */}
+                  <circle cx="35" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                  <circle cx="55" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                  <circle cx="145" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                  <circle cx="165" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                </svg>
+              </div>
+
+              {/* Steel Tracks & Sleepers */}
+              <div className="absolute bottom-2 left-0 w-full h-[2.5px] bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-track-pulse" />
+              <div className="absolute bottom-0.5 left-0 w-full h-[1.5px] bg-slate-600" />
+            </div>
+          </div>
+
+          {/* Glassmorphic Ironline Auth Card */}
+          <div className="bg-[#111827]/90 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-white">
+            {/* Top Navigation Mode Tabs: Officer / Staff PIN / Guest */}
+            <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold select-none">
               <button
                 type="button"
                 onClick={() => {
-                  setAuthMode('signin');
+                  setAuthMode('officer');
                   setLoginError(null);
                 }}
                 className={`py-2 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
-                  authMode === 'signin'
+                  authMode === 'officer'
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span className="text-[11px]">Sign In</span>
+                <Shield className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Officer Login</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setAuthMode('signup');
-                  setSignUpError(null);
-                  setSignUpSuccess(null);
+                  setAuthMode('pin');
+                  setStaffPinError(null);
                 }}
                 className={`py-2 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
-                  authMode === 'signup'
-                    ? 'bg-blue-600 text-white shadow-md'
+                  authMode === 'pin'
+                    ? 'bg-cyan-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span className="text-[11px]">Staff Sign Up</span>
+                <KeyRound className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Staff PIN</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setAuthMode('otp');
-                  setOtpError(null);
-                  setOtpSuccess(null);
+                  setAuthMode('guest');
+                  setGuestError(null);
                 }}
                 className={`py-2 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
-                  authMode === 'otp'
+                  authMode === 'guest'
                     ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
-                <span className="text-[11px]">WhatsApp OTP</span>
+                <User className="w-3.5 h-3.5 text-emerald-300" />
+                <span className="text-[11px]">Guest (View)</span>
               </button>
             </div>
 
-            {/* 1. Official Firebase Email Sign In */}
-            {authMode === 'signin' && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            {/* 1. Official Officer Sign In (Strict Check) */}
+            {authMode === 'officer' && (
+              <div className="space-y-3.5 animate-fadeIn">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4 text-blue-400" />
                     <span className="text-xs font-bold text-white uppercase tracking-wider">
-                      Official Firebase Sign In
+                      Official Officer Authentication
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-cyan-300">RAIL-AUTH</span>
+                  <span className="text-[10px] font-mono text-cyan-300">SUPER-ADMIN / APM</span>
                 </div>
 
                 {loginError && (
-                  <div className="p-3 bg-red-950/60 border border-red-800/80 rounded-xl text-red-300 text-xs font-semibold animate-fadeIn flex items-center gap-2">
+                  <div className="p-3 bg-red-950/80 border border-red-800 rounded-xl text-red-200 text-xs font-semibold animate-fadeIn flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
                     <span>{loginError}</span>
                   </div>
                 )}
 
-                <form onSubmit={handleStandaloneLogin} className="space-y-3.5 text-xs">
+                <form onSubmit={handleStandaloneLogin} className="space-y-3 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-300 mb-1">
                       Official Email Address:
@@ -503,7 +591,7 @@ function MainAppShell() {
                         placeholder="vkazad@dfcc.co.in"
                         value={loginEmail}
                         onChange={e => setLoginEmail(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-slate-950 placeholder:text-slate-500"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-medium focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
                       />
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     </div>
@@ -515,31 +603,38 @@ function MainAppShell() {
                     </label>
                     <div className="relative">
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
-                        placeholder="••••••••"
+                        placeholder="Enter password"
                         value={loginPassword}
                         onChange={e => setLoginPassword(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-slate-950 placeholder:text-slate-500"
+                        className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-medium focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
                       />
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoggingIn}
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    className="w-full py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
                     {isLoggingIn ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Verifying Firebase...</span>
+                        <span>Verifying Officer Credentials...</span>
                       </>
                     ) : (
                       <>
                         <LogIn className="w-4 h-4" />
-                        <span>Sign In with Firebase</span>
+                        <span>Sign In as Officer</span>
                       </>
                     )}
                   </button>
@@ -547,288 +642,154 @@ function MainAppShell() {
               </div>
             )}
 
-            {/* 2. Staff Sign Up with Roster Verification */}
-            {authMode === 'signup' && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            {/* 2. Field Staff & MTS PIN Login */}
+            {authMode === 'pin' && (
+              <div className="space-y-3.5 animate-fadeIn">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
-                    <UserPlus className="w-4 h-4 text-blue-400" />
+                    <KeyRound className="w-4 h-4 text-cyan-400" />
                     <span className="text-xs font-bold text-white uppercase tracking-wider">
-                      Staff Registration (स्टाफ सत्यापन)
+                      Staff &amp; MTS PIN Login (पिन लॉगिन)
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-400">ROSTER-MATCH</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePinOpen(true)}
+                    className="text-[10px] font-bold text-cyan-300 hover:text-cyan-200 underline flex items-center gap-1"
+                  >
+                    <span>पिन बदलें</span>
+                  </button>
                 </div>
 
-                <div className="text-[11px] text-slate-400 bg-blue-950/40 p-2.5 rounded-xl border border-blue-800/40">
-                  ℹ️ <strong>DFCCIL Staff Only:</strong> Enter your Name &amp; registered Phone No or Employee ID. The system validates against the IMSD-SMUN official roster.
-                </div>
-
-                {signUpError && (
-                  <div className="p-3 bg-red-950/60 border border-red-800/80 rounded-xl text-red-300 text-xs font-semibold animate-fadeIn flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
-                    <span>{signUpError}</span>
+                {staffPinError && (
+                  <div className="p-3 bg-red-950/80 border border-red-800 rounded-xl text-red-200 text-xs font-semibold animate-fadeIn flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                    <span>{staffPinError}</span>
                   </div>
                 )}
 
-                {signUpSuccess && (
-                  <div className="p-3 bg-emerald-950/60 border border-emerald-800/80 rounded-xl text-emerald-300 text-xs font-semibold animate-fadeIn flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                    <span>{signUpSuccess}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleStaffSignUpSubmit} className="space-y-3 text-xs">
+                <form onSubmit={handleStaffPinLogin} className="space-y-3 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Full Staff Name: *
+                      Employee ID, Mobile Number or Name:
                     </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Arjun Kumar / Ravinder Kumar"
-                      value={signUpName}
-                      onChange={e => setSignUpName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Arjun Kumar / 9876543210 / EMP-100619"
+                        value={staffIdentifier}
+                        onChange={e => setStaffIdentifier(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-medium focus:outline-none focus:border-cyan-500 placeholder:text-slate-500"
+                      />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Official Phone No or Employee ID: *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 9876543210 or EMP-100619"
-                      value={signUpPhoneOrId}
-                      onChange={e => setSignUpPhoneOrId(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Set Password / Security PIN: *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Minimum 4 characters"
-                      value={signUpPassword}
-                      onChange={e => setSignUpPassword(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-blue-500"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-300">
+                        4-Digit PIN (4-अंकीय सुरक्षा पिन):
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsChangePinOpen(true)}
+                        className="text-[10px] text-cyan-400 hover:underline"
+                      >
+                        Change PIN?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        required
+                        maxLength={4}
+                        pattern="\d{4}"
+                        placeholder="••••"
+                        value={staffPin}
+                        onChange={e => setStaffPin(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-base font-mono font-black tracking-widest focus:outline-none focus:border-cyan-500 placeholder:text-slate-500"
+                      />
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+                    </div>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={isSigningUp}
-                    className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    disabled={isStaffLoggingIn}
+                    className="w-full py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
-                    {isSigningUp ? (
+                    {isStaffLoggingIn ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Verifying with Staff Roster...</span>
+                        <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Verifying PIN...</span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Verify Staff Identity &amp; Sign Up</span>
+                        <LogIn className="w-4 h-4" />
+                        <span>Staff Login with PIN</span>
                       </>
                     )}
                   </button>
                 </form>
-              </div>
-            )}
 
-            {/* 3. WhatsApp / SMS OTP Fast Login */}
-            {authMode === 'otp' && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">
-                      WhatsApp &amp; SMS OTP Login
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-emerald-400">INSTANT-OTP</span>
-                </div>
-
-                {otpError && (
-                  <div className="p-3 bg-red-950/60 border border-red-800/80 rounded-xl text-red-300 text-xs font-semibold animate-fadeIn flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-                    <span>{otpError}</span>
-                  </div>
-                )}
-
-                {otpSuccess && (
-                  <div className="p-3 bg-emerald-950/60 border border-emerald-800/80 rounded-xl text-emerald-300 text-xs font-semibold animate-fadeIn">
-                    {otpSuccess}
-                  </div>
-                )}
-
-                {!otpSent ? (
-                  <form onSubmit={handleSendOtp} className="space-y-3.5 text-xs">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        Enter Registered Mobile Number:
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          required
-                          placeholder="e.g. 8872671873 / 9876543210"
-                          value={otpPhone}
-                          onChange={e => setOtpPhone(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500"
-                        />
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSendingOtp}
-                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                      {isSendingOtp ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Sending WhatsApp OTP...</span>
-                        </>
-                      ) : (
-                        <>
-                          <MessageSquare className="w-4 h-4" />
-                          <span>Send OTP via WhatsApp / SMS</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyOtp} className="space-y-3.5 text-xs">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        Enter 6-Digit WhatsApp/SMS Code:
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        placeholder="e.g. 123456"
-                        value={otpCode}
-                        onChange={e => setOtpCode(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-slate-900 border border-emerald-500 rounded-xl text-white text-center text-lg font-mono font-black tracking-widest focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                {/* Quick Staff Roster Roster Links */}
+                <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+                  <div className="font-bold text-slate-300 mb-1.5">Quick Select Staff (Requires PIN):</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { name: 'Arjun Kumar', id: 'EMP-100619', desig: 'Executive' },
+                      { name: 'Pinki Sharma', id: 'EMP-100780', desig: 'MTS' },
+                      { name: 'Sudhir Kumar', id: 'EMP-100892', desig: 'Keyman' },
+                      { name: 'Ranjeet Singh', id: 'EMP-100890', desig: 'Keyman' },
+                      { name: 'Store Keeper', id: 'store@dfcc.co.in', desig: 'Store' }
+                    ].map(p => (
                       <button
+                        key={p.id}
                         type="button"
                         onClick={() => {
-                          setOtpSent(false);
-                          setOtpCode('');
+                          setStaffIdentifier(p.id);
+                          setStaffPin('');
+                          setStaffPinError(null);
                         }}
-                        className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+                        className="px-2 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] text-cyan-200 transition flex items-center gap-1"
                       >
-                        Change No
+                        <span className="font-semibold">{p.name}</span>
+                        <span className="text-slate-500 text-[9px]">({p.desig})</span>
                       </button>
-
-                      <button
-                        type="submit"
-                        disabled={isVerifyingOtp}
-                        className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        {isVerifyingOtp ? (
-                          <span>Verifying...</span>
-                        ) : (
-                          <>
-                            <LogIn className="w-4 h-4" />
-                            <span>Verify &amp; Enter System</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Sub-footer Developer Credits */}
-          <div className="bg-slate-950/70 backdrop-blur-md border border-white/10 rounded-2xl p-3 text-center text-xs space-y-0.5 text-white/90">
-            <div className="font-semibold text-slate-300">
-              Developed by: <span className="font-bold text-white">Shri Vivek Kumar Azad</span>
-            </div>
-            <div className="text-[11px] text-cyan-300 font-medium">
-              Assistant Project Manager / Civil
-            </div>
-            <div className="text-[10px] text-slate-400">
-              Dedicated Freight Corridor Corporation of India Ltd. (IMSD SMUN)
-            </div>
-          </div>
-        </div>
-
-        {/* -----------------------------------------------------------------
-            RIGHT BOTTOM MOST DOWN: "VIEW AS GUEST" FIXED ACTION (Requirement 3)
-        ------------------------------------------------------------------ */}
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
-          <button
-            type="button"
-            onClick={() => {
-              setGuestError(null);
-              setIsGuestModalOpen(true);
-            }}
-            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl border-2 border-emerald-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse-slow"
-            title="Click to view full website as Guest Visitor"
-          >
-            <User className="w-4 h-4 text-emerald-200" />
-            <span>👤 View as a Guest (विज़िटर प्रवेश)</span>
-            <ArrowRight className="w-3.5 h-3.5 text-cyan-200" />
-          </button>
-        </div>
-
-        {/* Guest Visitor Check-In Modal */}
-        {isGuestModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-            <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden text-white">
-              <div className="bg-gradient-to-r from-[#0f2b5c] via-slate-900 to-indigo-950 p-5 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl">
-                    <User className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-white tracking-tight">
-                      Guest Visitor Access (विज़िटर प्रवेश)
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Full Read-Only Access across all Track Telemetry &amp; Maps
-                    </p>
+                    ))}
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsGuestModalOpen(false)}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
-                >
-                  ✕
-                </button>
               </div>
+            )}
 
-              <div className="p-6 space-y-4">
-                <div className="text-xs text-slate-300 bg-emerald-950/40 p-3 rounded-2xl border border-emerald-800/40">
-                  📋 <strong>Visitor Registration:</strong> Please provide your Name and Mobile Number to explore the DFCCIL IMSD-SMUN corridor. Your visit will be logged in the official register.
+            {/* 3. Guest Visitor Access (Strictly Read-Only) */}
+            {authMode === 'guest' && (
+              <div className="space-y-3.5 animate-fadeIn">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      Guest Visitor Access (विज़िटर प्रवेश)
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400">READ-ONLY</span>
+                </div>
+
+                <div className="text-[11px] text-slate-300 bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800/40 leading-relaxed">
+                  👁️ <strong>Read-Only Mode:</strong> Guests can inspect track linear diagrams, bridge inventories, curve telemetry, and staff directories without making any system changes.
                 </div>
 
                 {guestError && (
-                  <div className="p-3 bg-red-950/60 border border-red-800 rounded-xl text-red-300 text-xs font-semibold flex items-center gap-2">
+                  <div className="p-3 bg-red-950/80 border border-red-800 rounded-xl text-red-200 text-xs font-semibold animate-fadeIn flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
                     <span>{guestError}</span>
                   </div>
                 )}
 
-                <form onSubmit={handleGuestLoginSubmit} className="space-y-3.5 text-xs">
+                <form onSubmit={handleGuestLoginSubmit} className="space-y-3 text-xs">
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
                       Visitor Full Name: *
                     </label>
                     <input
@@ -842,60 +803,79 @@ function MainAppShell() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      Mobile Number: *
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      Mobile Number (10 Digits): *
                     </label>
                     <input
                       type="tel"
                       required
-                      placeholder="e.g. 98XXXXXXXX (10 Digits)"
+                      placeholder="e.g. 98XXXXXXXX"
                       value={guestPhone}
                       onChange={e => setGuestPhone(e.target.value)}
                       className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
                     />
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      Purpose / Organization (Optional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Headquarters Inspection / Academic / Vendor"
-                      value={guestPurpose}
-                      onChange={e => setGuestPurpose(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsGuestModalOpen(false)}
-                      className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmittingGuest}
-                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                      {isSubmittingGuest ? (
-                        <span>Checking In...</span>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Grant Guest View Access ➔</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingGuest}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black transition shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingGuest ? (
+                      <span>Recording Guest Visit...</span>
+                    ) : (
+                      <>
+                        <User className="w-4 h-4 text-emerald-200" />
+                        <span>Enter System in Guest Mode ➔</span>
+                      </>
+                    )}
+                  </button>
                 </form>
               </div>
+            )}
+
+            {/* Extra Options: Staff Sign Up / OTP */}
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('signup');
+                  setSignUpError(null);
+                  setSignUpSuccess(null);
+                }}
+                className="hover:text-cyan-300 transition flex items-center gap-1"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>New Staff Registration</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsChangePinOpen(true)}
+                className="hover:text-cyan-300 transition flex items-center gap-1"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Change PIN (पिन बदलें)</span>
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Sub-footer Developer Credits */}
+          <div className="bg-slate-950/80 backdrop-blur-md border border-slate-800 rounded-2xl p-3 text-center text-xs space-y-0.5 text-slate-300">
+            <div>
+              Developed by: <span className="font-bold text-white">Shri Vivek Kumar Azad</span>
+            </div>
+            <div className="text-[11px] text-cyan-300 font-medium">
+              Assistant Project Manager / Civil
+            </div>
+            <div className="text-[10px] text-slate-500">
+              Dedicated Freight Corridor Corporation of India Ltd. (IMSD SMUN)
+            </div>
+          </div>
+        </div>
+
+        {/* Change PIN Modal Component */}
+        <ChangePinModal isOpen={isChangePinOpen} onClose={() => setIsChangePinOpen(false)} />
       </div>
     );
   }

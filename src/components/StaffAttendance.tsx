@@ -1200,19 +1200,6 @@ export const StaffAttendance: React.FC = () => {
       ]);
     });
 
-    // Grand Total Row
-    body.push([
-      {
-        content: `GRAND TOTAL (${groupedMonthlyData.reduce((a, b) => a + b.subtotals.totalStaff, 0)} STAFF):`,
-        colSpan: 4,
-        styles: { fontStyle: 'bold', halign: 'right', fillColor: [18, 59, 114], textColor: [255, 255, 255] }
-      },
-      ...monthDates.map(() => ({ content: `${daysInMonth}d`, styles: { halign: 'center', fillColor: [18, 59, 114], textColor: [200, 220, 255] } })),
-      { content: String(groupedMonthlyData.reduce((a, b) => a + b.subtotals.present, 0)), styles: { fontStyle: 'bold', fillColor: [6, 95, 70], textColor: [255, 255, 255] } },
-      { content: String(groupedMonthlyData.reduce((a, b) => a + b.subtotals.rest, 0)), styles: { fontStyle: 'bold', fillColor: [30, 64, 175], textColor: [255, 255, 255] } },
-      { content: String(groupedMonthlyData.reduce((a, b) => a + b.subtotals.payable, 0)), styles: { fontStyle: 'bold', fillColor: [15, 23, 42], textColor: [255, 255, 255] } }
-    ]);
-
     // Column Sizing
     const columnStyles: any = {
       0: { cellWidth: 6, halign: 'center' },
@@ -2114,25 +2101,6 @@ export const StaffAttendance: React.FC = () => {
                       </tr>
                     </React.Fragment>
                   ))}
-
-                  {/* Grand Consolidated Total Row */}
-                  <tr className="bg-[#123b72] text-white font-black text-xs border-t-2 border-slate-900">
-                    <td colSpan={4} className="p-2 border border-slate-400 text-right pr-3 uppercase">
-                      Grand Total (All Categories):
-                    </td>
-                    <td colSpan={monthDates.length} className="p-2 border border-slate-400 text-center text-blue-200 font-mono">
-                      {daysInMonth} Days in Month
-                    </td>
-                    <td className="p-2 border border-slate-400 text-center font-mono font-black bg-emerald-800 text-white">
-                      {groupedMonthlyData.reduce((a, b) => a + b.subtotals.present, 0)}
-                    </td>
-                    <td className="p-2 border border-slate-400 text-center font-mono font-black bg-blue-800 text-white">
-                      {groupedMonthlyData.reduce((a, b) => a + b.subtotals.rest, 0)}
-                    </td>
-                    <td className="p-2 border border-slate-400 text-center font-mono font-black bg-slate-900 text-white">
-                      {groupedMonthlyData.reduce((a, b) => a + b.subtotals.payable, 0)}
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>

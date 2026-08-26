@@ -5,7 +5,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { UserAccount, UserRole, UserSession, AppUserRole } from '../types/index.ts';
+import type { UserAccount, UserRole, UserSession, AppUserRole, OfficerStaffRecord } from '../types/index.ts';
 import { db } from '../services/database.ts';
 import { RBACService, type RbacAction } from '../services/rbac.ts';
 import {
@@ -24,7 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  changePin: (currentPin: string, newPin: string) => Promise<{ success: boolean; message?: string }>;
+  changePin: (currentPin: string, newPin: string, identifier?: string) => Promise<{ success: boolean; message?: string }>;
   signUpStaff: (data: { name: string; phoneOrId: string; email?: string; password?: string }) => Promise<{ success: boolean; message?: string }>;
   loginWithOtp: (phone: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   loginAsGuest: (data: { name: string; phone: string; purpose?: string }) => Promise<{ success: boolean; message?: string }>;
@@ -202,11 +202,78 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      // 1. First check against known registered users in system database
-      const users = await db.getCollection<UserAccount>('users');
+      // 0. Super Admin Direct Verification (Shri Vivek Kumar Azad, APM/Civil)
+      const isSuperAdminId =
+        cleanId === 'vkazad@dfcc.co.in' ||
+        cleanId === '101518' ||
+        cleanId === 'emp-101518' ||
+        cleanId === 'vkazad' ||
+        cleanId === 'admin' ||
+        cleanId === '8872671873' ||
+        cleanId.includes('vkazad') ||
+        cleanId.includes('vivek');
+
+      const customSuperAdminPin = typeof window !== 'undefined' ? localStorage.getItem('dfccil_superadmin_custom_pin') : null;
+
+      if (isSuperAdminId) {
+        const isSuperAdminSecretValid =
+          cleanSecret === 'Vivek@101518' ||
+          cleanSecret === '1015' ||
+          cleanSecret === '101518' ||
+          (customSuperAdminPin && cleanSecret === customSuperAdminPin);
+
+        if (isSuperAdminSecretValid) {
+          const superAdminSession: UserAccount = {
+            id: 'EMP-101518',
+            userId: 'vkazad@dfcc.co.in',
+            email: 'vkazad@dfcc.co.in',
+            pin: customSuperAdminPin || '1015',
+            name: 'Shri Vivek Kumar Azad',
+            role: 'SUPER_ADMIN',
+            designation: 'APM / Civil',
+            department: 'Civil Engineering / P-Way',
+            unit: 'IMSD SMUN',
+            phone: '8872671873',
+            employeeId: 'EMP-101518',
+            awpoId: null,
+            isActive: true,
+            qrCodeId: 'RD-ADMIN-101518',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setCurrentUser(superAdminSession);
+          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(superAdminSession));
+
+          // Background sync to Firebase if password is used with email
+          if (cleanSecret === 'Vivek@101518' && cleanId.includes('@')) {
+            try {
+              const auth = getFirebaseAuth();
+              signInWithEmailAndPassword(auth, cleanId, cleanSecret).then(cred => {
+                setFirebaseUser(cred.user);
+                cred.user.getIdToken().then(t => {
+                  setAuthToken(t);
+                  safeStorageSet(AUTH_TOKEN_KEY, t);
+                });
+              }).catch(() => {});
+            } catch (_) {}
+          }
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            message: 'गलत पासवर्ड या पिन! कृपया विवेक कुमार आज़ाद (APM) का पासवर्ड Vivek@101518 या 4-अंकीय पिन 1015 दर्ज करें।'
+          };
+        }
+      }
+
+      // 1. Check in Database users and staff collections
+      const [users, staffMembers] = await Promise.all([
+        db.getCollection<UserAccount>('users').catch(() => []),
+        db.getCollection<OfficerStaffRecord>('officers_staff').catch(() => [])
+      ]);
       setAllUsers(users);
 
-      const matched = users.find(u => {
+      let matched: UserAccount | null = users.find(u => {
         const uId = (u.userId || '').toLowerCase().trim();
         const uEmp = (u.employeeId || '').toLowerCase().trim();
         const uEmail = (u.email || '').toLowerCase().trim();
@@ -221,38 +288,66 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           uName.includes(cleanId) ||
           cleanId.includes(uName)
         );
-      });
+      }) || null;
+
+      // Check staff directory if not found in users
+      if (!matched) {
+        const foundStaff = staffMembers.find(s => {
+          const sId = (s.id || '').toLowerCase().trim();
+          const sEmp = (s.employeeId || '').toLowerCase().trim();
+          const sPhone = (s.phone || '').trim();
+          const sName = (s.name || '').toLowerCase().trim();
+          return sId === cleanId || sEmp === cleanId || sPhone === cleanId || sName.includes(cleanId) || cleanId.includes(sName);
+        });
+
+        if (foundStaff) {
+          matched = {
+            id: foundStaff.id,
+            userId: foundStaff.employeeId || foundStaff.phone || foundStaff.id,
+            email: `${(foundStaff.employeeId || foundStaff.name.replace(/\s+/g, '')).toLowerCase()}@dfcc.co.in`,
+            pin: (foundStaff as any).pin || '1234',
+            name: foundStaff.name,
+            role: foundStaff.staffCategory === 'PERMANENT' ? (foundStaff.designation === 'APM' ? 'SUPER_ADMIN' : 'OFFICER') : 'STAFF',
+            designation: foundStaff.designation || 'Track Maintainer / Staff',
+            department: 'Civil Engineering / P-Way',
+            unit: foundStaff.station || 'IMSD SMUN',
+            phone: foundStaff.phone,
+            employeeId: foundStaff.employeeId || foundStaff.id,
+            awpoId: null,
+            isActive: true,
+            qrCodeId: `RD-${foundStaff.id}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
 
       if (matched) {
         matched.isActive = true;
         const isSuperAdmin = (matched.role === 'SUPER_ADMIN') || cleanId.includes('vkazad') || cleanId === '101518';
 
-        // Super Admin strictly accepts "Vivek@101518", or the stored matched.pin (default "1015")
         if (isSuperAdmin) {
-          if (cleanSecret === 'Vivek@101518' || cleanSecret === (matched.pin || '1015')) {
+          if (cleanSecret === 'Vivek@101518' || cleanSecret === (matched.pin || '1015') || (customSuperAdminPin && cleanSecret === customSuperAdminPin)) {
             setCurrentUser(matched);
             safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
             return { success: true };
           } else {
-            return { success: false, message: 'Incorrect Password/PIN for APM/Civil. Please enter Vivek@101518 or your 4-digit PIN.' };
+            return { success: false, message: 'गलत पासवर्ड / पिन! कृपया विवेक कुमार आज़ाद (APM) का पासवर्ड Vivek@101518 या 4-अंकीय पिन 1015 दर्ज करें।' };
           }
         }
 
-        // For all other staff: strictly verify matching PIN or stored password (no loose 4-char fallback!)
-        if (matched.pin && cleanSecret === matched.pin) {
-          setCurrentUser(matched);
-          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
-          return { success: true };
-        } else if ((matched as any).password && cleanSecret === (matched as any).password) {
+        // For all other staff: verify matching PIN or stored password
+        const validPin = matched.pin || '1234';
+        if (cleanSecret === validPin || cleanSecret === (matched as any).password) {
           setCurrentUser(matched);
           safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(matched));
           return { success: true };
         } else {
-          return { success: false, message: 'Incorrect PIN. Please enter your valid 4-digit PIN.' };
+          return { success: false, message: `गलत पिन! कृपया ${matched.name} का वैध 4-अंकीय पिन दर्ज करें।` };
         }
       }
 
-      // 2. If identifier looks like an email or Firebase Auth is attempted
+      // 2. Fallback to Firebase Auth for email logins
       if (cleanId.includes('@')) {
         try {
           const auth = getFirebaseAuth();
@@ -274,8 +369,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               id: fbUser.uid,
               userId: fbUser.email || fbUser.uid,
               email: fbUser.email,
-              pin: '',
-              name: fbUser.displayName || fbUser.email?.split('@')[0] || 'DFCCIL Personnel',
+              pin: '1015',
+              name: fbUser.displayName || fbUser.email?.split('@')[0] || 'DFCCIL Official',
               role: cleanId.includes('admin') || cleanId.includes('vkazad') ? 'SUPER_ADMIN' : 'OFFICER',
               designation: 'DFCCIL IMSD SMUN Official',
               department: 'Civil Engineering / P-Way',
@@ -299,67 +394,136 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
-      return { success: false, message: 'Invalid Employee ID or PIN. Please enter your registered credentials.' };
+      return { success: false, message: 'अमान्य कर्मचारी आईडी या पिन! कृपया सही क्रेडेंशियल्स दर्ज करें।' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'Authentication error.' };
     }
   };
 
   /**
-   * Change Current User's PIN
+   * Change User's PIN (Supports both Authenticated and Unauthenticated state)
    */
-  const changePin = async (currentPin: string, newPin: string): Promise<{ success: boolean; message?: string }> => {
-    if (!currentUser) {
-      return { success: false, message: 'No active session. Please log in first.' };
-    }
-
+  const changePin = async (
+    currentPin: string,
+    newPin: string,
+    identifier?: string
+  ): Promise<{ success: boolean; message?: string }> => {
     const cleanCurrent = currentPin.trim();
     const cleanNew = newPin.trim();
+    const cleanId = (identifier || currentUser?.userId || currentUser?.email || currentUser?.employeeId || '').toLowerCase().trim();
+
+    if (!cleanId && !currentUser) {
+      return { success: false, message: 'कृपया अपनी कर्मचारी आईडी, ईमेल या मोबाइल नंबर दर्ज करें।' };
+    }
 
     if (!cleanCurrent) {
-      return { success: false, message: 'Please enter your current PIN/Password.' };
+      return { success: false, message: 'कृपया अपना मौजूदा पासवर्ड या पिन दर्ज करें।' };
     }
 
     if (!/^\d{4}$/.test(cleanNew)) {
-      return { success: false, message: 'New PIN must be exactly 4 numeric digits (e.g. 1234).' };
+      return { success: false, message: 'नया पिन ठीक 4 अंकों का होना चाहिए (उदा. 1015, 1234)।' };
     }
 
-    const isSuperAdmin = currentUser.role === 'SUPER_ADMIN' || (currentUser.email || '').includes('vkazad') || currentUser.userId === '101518';
+    // 1. Check if target is Super Admin (Shri Vivek Kumar Azad)
+    const isSuperAdminTarget =
+      cleanId === 'vkazad@dfcc.co.in' ||
+      cleanId === '101518' ||
+      cleanId === 'emp-101518' ||
+      cleanId === 'vkazad' ||
+      cleanId === 'admin' ||
+      cleanId === '8872671873' ||
+      cleanId.includes('vkazad') ||
+      cleanId.includes('vivek') ||
+      currentUser?.role === 'SUPER_ADMIN';
 
-    // Verify current secret
-    let isCurrentValid = false;
-    if (isSuperAdmin && (cleanCurrent === 'Vivek@101518' || cleanCurrent === '1015')) {
-      isCurrentValid = true;
-    } else if (currentUser.pin && cleanCurrent === currentUser.pin) {
-      isCurrentValid = true;
-    } else if ((currentUser as any).password && cleanCurrent === (currentUser as any).password) {
-      isCurrentValid = true;
+    if (isSuperAdminTarget) {
+      const customPin = typeof window !== 'undefined' ? localStorage.getItem('dfccil_superadmin_custom_pin') : null;
+      const isCurrentValid =
+        cleanCurrent === 'Vivek@101518' ||
+        cleanCurrent === '1015' ||
+        cleanCurrent === '101518' ||
+        (customPin && cleanCurrent === customPin) ||
+        (currentUser && currentUser.pin === cleanCurrent);
+
+      if (!isCurrentValid) {
+        return { success: false, message: 'मौजूदा पासवर्ड/पिन गलत है! कृपया विवेक कुमार आज़ाद का सही पासवर्ड Vivek@101518 या मौजूदा पिन दर्ज करें।' };
+      }
+
+      // Save new Super Admin PIN to persistent storage and database
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dfccil_superadmin_custom_pin', cleanNew);
+      }
+
+      if (currentUser) {
+        const updated: UserAccount = { ...currentUser, pin: cleanNew, updatedAt: new Date().toISOString() };
+        setCurrentUser(updated);
+        safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(updated));
+      }
+
+      try {
+        await db.updateDocument('users', 'EMP-101518', { pin: cleanNew, updatedAt: new Date().toISOString() }).catch(() => {});
+      } catch (_) {}
+
+      return { success: true, message: `✅ पिन सफलतापूर्वक बदल दिया गया है! आपका नया पिन ${cleanNew} है।` };
     }
 
-    if (!isCurrentValid) {
-      return { success: false, message: 'Current PIN/Password is incorrect.' };
-    }
-
+    // 2. For other Staff Members
     try {
-      const updatedUser: UserAccount = {
-        ...(currentUser as UserAccount),
-        pin: cleanNew,
-        updatedAt: new Date().toISOString()
-      };
+      const [users, staffMembers] = await Promise.all([
+        db.getCollection<UserAccount>('users').catch(() => []),
+        db.getCollection<OfficerStaffRecord>('officers_staff').catch(() => [])
+      ]);
 
-      // 1. Update in local DB & Firestore
-      await db.updateDocument('users', currentUser.id, updatedUser).catch(() => {});
-      
-      // 2. Update state and localStorage
-      setCurrentUser(updatedUser);
-      safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+      const targetUser = currentUser || users.find(u => {
+        const uId = (u.userId || '').toLowerCase().trim();
+        const uEmp = (u.employeeId || '').toLowerCase().trim();
+        const uEmail = (u.email || '').toLowerCase().trim();
+        const uPhone = (u.phone || '').trim();
+        const uName = (u.name || '').toLowerCase().trim();
+        return uId === cleanId || uEmp === cleanId || uEmail === cleanId || uPhone === cleanId || uName.includes(cleanId);
+      });
 
-      // 3. Update allUsers list
-      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, pin: cleanNew } : u));
+      const targetStaff = staffMembers.find(s => {
+        const sId = (s.id || '').toLowerCase().trim();
+        const sEmp = (s.employeeId || '').toLowerCase().trim();
+        const sPhone = (s.phone || '').trim();
+        const sName = (s.name || '').toLowerCase().trim();
+        return sId === cleanId || sEmp === cleanId || sPhone === cleanId || sName.includes(cleanId);
+      });
 
-      return { success: true, message: 'PIN changed successfully!' };
+      const currentStoredPin = targetUser?.pin || (targetStaff as any)?.pin || '1234';
+      const isCurrentValid =
+        cleanCurrent === currentStoredPin ||
+        (targetUser && (targetUser as any).password && cleanCurrent === (targetUser as any).password);
+
+      if (!isCurrentValid) {
+        return { success: false, message: 'मौजूदा पिन गलत है।' };
+      }
+
+      if (targetUser) {
+        const updatedUser: UserAccount = {
+          ...targetUser,
+          pin: cleanNew,
+          updatedAt: new Date().toISOString()
+        };
+        await db.updateDocument('users', targetUser.id, updatedUser).catch(() => {});
+        if (currentUser && currentUser.id === targetUser.id) {
+          setCurrentUser(updatedUser);
+          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+        }
+      }
+
+      if (targetStaff) {
+        await db.updateDocument('officers_staff', targetStaff.id, {
+          ...(targetStaff as any),
+          pin: cleanNew,
+          updatedAt: new Date().toISOString()
+        }).catch(() => {});
+      }
+
+      return { success: true, message: `✅ पिन सफलतापूर्वक बदल दिया गया है! नया पिन: ${cleanNew}` };
     } catch (err: any) {
-      return { success: false, message: err?.message || 'Failed to update PIN.' };
+      return { success: false, message: err?.message || 'पिन बदलने में त्रुटि हुई।' };
     }
   };
 

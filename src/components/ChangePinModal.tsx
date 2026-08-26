@@ -1,20 +1,22 @@
 /**
  * Change PIN Modal Component
- * Allows authenticated personnel to safely update their 4-digit PIN
+ * Allows authenticated personnel and users on login screen to safely update their 4-digit PIN
  * DFCCIL IMSD SMUN Unit
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { KeyRound, Lock, CheckCircle2, AlertCircle, X, ShieldCheck } from 'lucide-react';
+import { KeyRound, Lock, CheckCircle2, AlertCircle, X, ShieldCheck, User } from 'lucide-react';
 
 interface ChangePinModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialIdentifier?: string;
 }
 
-export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose }) => {
+export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose, initialIdentifier }) => {
   const { currentUser, changePin } = useAuth();
+  const [identifier, setIdentifier] = useState(initialIdentifier || currentUser?.userId || currentUser?.email || '101518');
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -22,44 +24,65 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen || !currentUser) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+      setSuccess(null);
+      setCurrentPin('');
+      setNewPin('');
+      setConfirmPin('');
+      if (currentUser) {
+        setIdentifier(currentUser.userId || currentUser.email || currentUser.employeeId || '');
+      } else if (initialIdentifier) {
+        setIdentifier(initialIdentifier);
+      }
+    }
+  }, [isOpen, currentUser, initialIdentifier]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    const cleanId = identifier.trim();
+    if (!currentUser && !cleanId) {
+      setError('कृपया अपनी कर्मचारी आईडी (101518), ईमेल या मोबाइल नंबर दर्ज करें।');
+      return;
+    }
+
     if (!currentPin.trim()) {
-      setError('Please enter your current PIN or Password.');
+      setError('कृपया अपना मौजूदा पासवर्ड (Vivek@101518) या पुराना पिन दर्ज करें।');
       return;
     }
 
     if (!/^\d{4}$/.test(newPin.trim())) {
-      setError('New PIN must be exactly 4 numeric digits (e.g. 1234, 5678).');
+      setError('नया पिन ठीक 4 अंकों का होना चाहिए (उदा. 1015, 1234)।');
       return;
     }
 
     if (newPin.trim() !== confirmPin.trim()) {
-      setError('New PIN and Confirm PIN do not match.');
+      setError('नया पिन और कन्फर्म पिन मेल नहीं खाते।');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await changePin(currentPin, newPin);
+      const res = await changePin(currentPin, newPin, cleanId);
       if (res.success) {
-        setSuccess(res.message || '✅ PIN updated successfully!');
+        setSuccess(res.message || '✅ पिन सफलतापूर्वक बदल दिया गया है!');
         setCurrentPin('');
         setNewPin('');
         setConfirmPin('');
         setTimeout(() => {
           onClose();
-        }, 1800);
+        }, 2200);
       } else {
-        setError(res.message || 'Failed to update PIN. Please verify your current PIN.');
+        setError(res.message || 'पिन बदलने में विफलता। कृपया अपने क्रेडेंशियल्स की जांच करें।');
       }
     } catch (err: any) {
-      setError(err?.message || 'An error occurred while updating PIN.');
+      setError(err?.message || 'पिन अपडेट करते समय त्रुटि हुई।');
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +105,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
                 </span>
               </h3>
               <p className="text-xs text-cyan-200/80">
-                {currentUser.name} ({currentUser.role})
+                {currentUser ? `${currentUser.name} (${currentUser.designation || currentUser.role})` : 'DFCCIL Security PIN Update'}
               </p>
             </div>
           </div>
@@ -100,7 +123,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
           <div className="text-xs text-slate-300 bg-blue-950/40 p-3 rounded-2xl border border-blue-800/40 flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
             <span>
-              Enter your current PIN/Password, then create a new 4-digit numeric PIN for fast &amp; secure mobile login.
+              अपना मौजूदा पासवर्ड (उदा. <code className="text-cyan-300 font-mono font-bold">Vivek@101518</code>) या पुराना पिन दर्ज करके नया 4-अंकीय पिन सेट करें।
             </span>
           </div>
 
@@ -118,16 +141,36 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+            {/* User Identifier (Shown if unauthenticated) */}
+            {!currentUser && (
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">
+                  Employee ID / Official Email / Phone: *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 101518 or vkazad@dfcc.co.in"
+                    value={identifier}
+                    onChange={e => setIdentifier(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-cyan-500 placeholder:text-slate-500"
+                  />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block font-bold text-slate-300 mb-1">
-                Current PIN or Password: *
+                Current Password or Old PIN: *
               </label>
               <div className="relative">
                 <input
                   type="password"
                   required
-                  placeholder="Enter current PIN / Password"
+                  placeholder="Enter Vivek@101518 or Old PIN"
                   value={currentPin}
                   onChange={e => setCurrentPin(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-cyan-500 placeholder:text-slate-500"
@@ -138,7 +181,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
 
             <div>
               <label className="block font-bold text-slate-300 mb-1">
-                New 4-Digit PIN: *
+                New 4-Digit Security PIN: *
               </label>
               <div className="relative">
                 <input
@@ -146,7 +189,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
                   required
                   maxLength={4}
                   pattern="\d{4}"
-                  placeholder="e.g. 1234"
+                  placeholder="e.g. 1015"
                   value={newPin}
                   onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold text-base tracking-widest focus:outline-none focus:border-cyan-500 placeholder:text-slate-500"
@@ -157,7 +200,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({ isOpen, onClose 
 
             <div>
               <label className="block font-bold text-slate-300 mb-1">
-                Confirm New PIN: *
+                Confirm New 4-Digit PIN: *
               </label>
               <div className="relative">
                 <input

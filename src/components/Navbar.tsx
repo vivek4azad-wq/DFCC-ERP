@@ -21,11 +21,13 @@ import {
   Sparkles,
   Bot,
   Package,
-  ShieldAlert
+  ShieldAlert,
+  KeyRound
 } from 'lucide-react';
 import { AboutModal } from './AboutModal.tsx';
 import { GuestLogsModal } from './GuestLogsModal.tsx';
 import { StationKeyPlanModal } from './StationKeyPlanModal.tsx';
+import { ChangePinModal } from './ChangePinModal.tsx';
 import type { AppUserRole } from '../types/index.ts';
 
 interface NavbarProps {
@@ -53,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   // 3-Dot Dropdown Menu State
   const [isThreeDotMenuOpen, setIsThreeDotMenuOpen] = useState(false);
   const [isGuestLogsOpen, setIsGuestLogsOpen] = useState(false);
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isGuest = role === 'GUEST' || currentUser?.role === 'GUEST' || currentUser?.name?.toLowerCase().includes('guest');
@@ -437,6 +440,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <Users className="w-4 h-4 text-emerald-400" />
                           <span>Guest Visitor Logs (विज़िटर रिकॉर्ड)</span>
                         </button>
+
+                        <button
+                          onClick={() => {
+                            setIsChangePinOpen(true);
+                            setIsThreeDotMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs rounded-xl hover:bg-blue-900/60 text-amber-300 flex items-center gap-2 transition font-bold"
+                        >
+                          <KeyRound className="w-4 h-4 text-amber-400" />
+                          <span>Change Security PIN (पिन बदलें)</span>
+                        </button>
                       </div>
                     </>
                   )}
@@ -501,6 +515,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Station Key-Plans & Interactive X-Ray Diagram Modal */}
       <StationKeyPlanModal isOpen={isKeyPlanOpen} onClose={() => setIsKeyPlanOpen(false)} />
+
+      {/* Change Security PIN Modal */}
+      <ChangePinModal isOpen={isChangePinOpen} onClose={() => setIsChangePinOpen(false)} />
     </>
   );
 };

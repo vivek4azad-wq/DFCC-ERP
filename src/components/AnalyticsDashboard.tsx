@@ -597,7 +597,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* -----------------------------------------------------------------
           FULLY DYNAMIC & CLICKABLE KPI CARDS GRID (Requirement 2)
       ------------------------------------------------------------------ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
         {/* 1. Section Range Card */}
         <div
           onClick={() => onNavigateToTab?.('kmfinder')}
@@ -686,6 +686,22 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             {summary.keymenCount} <span className="text-xs font-bold text-slate-600 dark:text-slate-400">/ {summary.patrolShiftStatus.total}</span>
           </div>
           <div className="text-[10px] text-slate-700 dark:text-slate-400 font-semibold mt-1">14 Officers &amp; Staff in unit</div>
+        </div>
+
+        {/* 7. Store & Tool Depot Card */}
+        <div
+          onClick={() => onNavigateToTab?.('store')}
+          className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 p-4 rounded-2xl shadow-sm dark:shadow-md border-l-4 border-l-indigo-500 cursor-pointer transition hover:scale-[1.02] active:scale-95 group col-span-2 sm:col-span-1"
+          title="Click to view Store & Tool Depot"
+        >
+          <div className="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-black tracking-wider mb-1 flex items-center justify-between">
+            <span>Store ERP</span>
+            <ChevronRight className="w-3 h-3 text-indigo-500 opacity-0 group-hover:opacity-100 transition" />
+          </div>
+          <div className="text-xl font-black text-slate-950 dark:text-white font-mono">
+            148+ <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Items</span>
+          </div>
+          <div className="text-[10px] text-slate-700 dark:text-slate-400 font-semibold mt-1">T&amp;P, C&amp;P, P.Way Depot</div>
         </div>
       </div>
 

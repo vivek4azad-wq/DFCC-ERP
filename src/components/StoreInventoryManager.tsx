@@ -75,7 +75,8 @@ const DEFAULT_STORE_CATEGORIES = [
 export const StoreInventoryManager: React.FC = () => {
   const { currentUser, role } = useAuth();
   const isSuperAdmin = role === 'SUPER_ADMIN';
-  const isStoreKeeper = role === 'STORE_KEEPER' || role === 'SUPER_ADMIN';
+  const isOfficerOrAdmin = role === 'SUPER_ADMIN' || role === 'OFFICER';
+  const isStoreKeeper = role === 'STORE_KEEPER' || role === 'SUPER_ADMIN' || role === 'OFFICER';
 
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock' | 'negative_stock'>('inventory');
   const [items, setItems] = useState<StoreItemRecord[]>([]);

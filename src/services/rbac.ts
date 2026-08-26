@@ -69,9 +69,13 @@ export class RBACService {
           'pway_monthly_program',
           'pway_inspections',
           'staff_attendance',
-          'attendance_holidays'
+          'attendance_holidays',
+          'store_items',
+          'store_transactions',
+          'store_categories',
+          'store_inventory'
         ];
-        return allowedMutationResources.includes(resource);
+        return allowedMutationResources.includes(resource) || resource.startsWith('store_');
       }
 
       // Deletion is strictly blocked for Executive / Officer - must go through APM approval

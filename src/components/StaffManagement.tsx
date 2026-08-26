@@ -130,6 +130,7 @@ export const StaffManagement: React.FC = () => {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
   const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
+  const isOfficerOrAdmin = role === 'SUPER_ADMIN' || role === 'OFFICER' || currentAppRole === 'APM' || currentAppRole === 'Executive';
 
   // ---------------------------------------------------------------------------
   // Load Data
@@ -494,8 +495,8 @@ export const StaffManagement: React.FC = () => {
             <span>Verify QR Badge</span>
           </button>
 
-          {/* Admin Add Staff Dropdown Button */}
-          {isSuperAdmin && (
+          {/* Admin & Officer Add Staff Dropdown Button */}
+          {isOfficerOrAdmin && (
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => handleOpenAddModal('PERMANENT')}
@@ -909,25 +910,26 @@ export const StaffManagement: React.FC = () => {
                         <Camera className="w-3.5 h-3.5" />
                       </button>
 
-                      {/* Admin Edit & Delete */}
-                      {isSuperAdmin && (
-                        <>
-                          <button
-                            onClick={() => handleOpenEditModal(staff)}
-                            className="p-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 rounded-xl border border-amber-500/30 text-xs"
-                            title="Edit Staff Record"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
+                      {/* Admin & Officer Edit */}
+                      {isOfficerOrAdmin && (
+                        <button
+                          onClick={() => handleOpenEditModal(staff)}
+                          className="p-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 rounded-xl border border-amber-500/30 text-xs"
+                          title="Edit Staff Record"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                      )}
 
-                          <button
-                            onClick={() => handleDeleteStaff(staff)}
-                            className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl border border-red-500/30 text-xs"
-                            title="Delete Staff Member"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </>
+                      {/* Super Admin Delete */}
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => handleDeleteStaff(staff)}
+                          className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-xl border border-red-500/30 text-xs"
+                          title="Delete Staff Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
                   </div>

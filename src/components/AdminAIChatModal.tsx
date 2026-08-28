@@ -144,7 +144,7 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
         suggestedAction = { label: 'Open KM Quick Finder', tab: 'km_finder' };
       }
 
-      // Query Vivek AI Engine (Cloud Function + Central Key Fallback)
+      // Query Vivek AI Engine (In-Memory Deterministic Agent + Gemini)
       const aiResponse = await askVivekAi(q);
 
       const aiMsg: ChatMessage = {
@@ -152,11 +152,11 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
         sender: 'ai',
         text: aiResponse.answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggestedAction,
+        suggestedAction: aiResponse.suggestedAction || suggestedAction,
         sources: aiResponse.sources
       };
 
-      setMessages(prev => [...prev.slice(-4), aiMsg]);
+      setMessages(prev => [...prev.slice(-6), aiMsg]);
     } catch (err: any) {
       console.error('Vivek AI query processing error:', err);
       const errMsg: ChatMessage = {

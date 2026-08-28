@@ -1049,7 +1049,6 @@ export const StaffAttendance: React.FC = () => {
       "PL",
       "MED",
       "Leave (L)",
-      "Payable Days",
       "Absent Dates List",
       "Leave Dates List"
     ];
@@ -1062,7 +1061,7 @@ export const StaffAttendance: React.FC = () => {
         `*** CATEGORY: ${group.label.toUpperCase()} (${group.subtotals.totalStaff} STAFF) ***`,
         "", "", "", "", "", "", "", "",
         ...monthDates.map(() => ""),
-        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
       ]);
 
       group.rows.forEach((row, rIdx) => {
@@ -1092,7 +1091,6 @@ export const StaffAttendance: React.FC = () => {
           row.plCount,
           row.medCount,
           row.generalLeaveCount,
-          row.payableDays,
           `"${row.absentDates.join(", ") || "NIL"}"`,
           `"${row.leaveBreakdownList.join(", ") || "NIL"}"`
         ]);
@@ -1111,7 +1109,6 @@ export const StaffAttendance: React.FC = () => {
         group.subtotals.nh,
         "-", "-", "-", "-", "-", "-", "-", "-",
         group.subtotals.leaves,
-        group.subtotals.payable,
         "-", "-"
       ]);
     });
@@ -1156,8 +1153,7 @@ export const StaffAttendance: React.FC = () => {
       'AWPO/ID',
       ...monthDates.map(d => `${d.dayNum}\n${d.dayName[0]}`),
       'P',
-      'REST',
-      'Payable'
+      'REST'
     ];
 
     const body: any[] = [];
@@ -1166,7 +1162,7 @@ export const StaffAttendance: React.FC = () => {
       // Category Group Banner Row
       body.push([
         {
-          content: `${gIdx + 1}. ${group.label.toUpperCase()} (${group.subtotals.totalStaff} Personnel)  |  Sub-Total: ${group.subtotals.present} Present, ${group.subtotals.rest} Rest, ${group.subtotals.payable} Payable Days`,
+          content: `${gIdx + 1}. ${group.label.toUpperCase()} (${group.subtotals.totalStaff} Personnel)  |  Sub-Total: ${group.subtotals.present} Present, ${group.subtotals.rest} Rest Days`,
           colSpan: headers.length,
           styles: { fillColor: [220, 230, 245], fontStyle: 'bold', textColor: [15, 35, 75], halign: 'left' }
         }
@@ -1181,8 +1177,7 @@ export const StaffAttendance: React.FC = () => {
           row.staff.awpoId || '-',
           ...monthDates.map(d => row.dailyMap[d.dayNum] || 'P'),
           row.presentCount,
-          row.restCount,
-          row.payableDays
+          row.restCount
         ]);
       });
 
@@ -1195,20 +1190,19 @@ export const StaffAttendance: React.FC = () => {
         },
         ...monthDates.map(() => ({ content: '—', styles: { halign: 'center', fillColor: [240, 243, 248], textColor: [120, 120, 120] } })),
         { content: String(group.subtotals.present), styles: { fontStyle: 'bold', fillColor: [209, 250, 229], textColor: [6, 95, 70] } },
-        { content: String(group.subtotals.rest), styles: { fontStyle: 'bold', fillColor: [219, 234, 254], textColor: [30, 64, 175] } },
-        { content: String(group.subtotals.payable), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42] } }
+        { content: String(group.subtotals.rest), styles: { fontStyle: 'bold', fillColor: [219, 234, 254], textColor: [30, 64, 175] } }
       ]);
     });
 
     // Column Sizing
     const columnStyles: any = {
       0: { cellWidth: 6, halign: 'center' },
-      1: { cellWidth: 26, fontStyle: 'bold' },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 14, halign: 'center' }
+      1: { cellWidth: 28, fontStyle: 'bold' },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 15, halign: 'center' }
     };
 
-    const dateColWidth = daysInMonth === 31 ? 5.8 : daysInMonth === 30 ? 6.0 : 6.3;
+    const dateColWidth = daysInMonth === 31 ? 6.0 : daysInMonth === 30 ? 6.2 : 6.5;
     for (let i = 0; i < monthDates.length; i++) {
       const colIdx = 4 + i;
       columnStyles[colIdx] = { cellWidth: dateColWidth, halign: 'center' };
@@ -1216,11 +1210,9 @@ export const StaffAttendance: React.FC = () => {
 
     const pIdx = 4 + monthDates.length;
     const restIdx = pIdx + 1;
-    const payableIdx = restIdx + 1;
 
-    columnStyles[pIdx] = { cellWidth: 8, halign: 'center', fontStyle: 'bold' };
-    columnStyles[restIdx] = { cellWidth: 8, halign: 'center', fontStyle: 'bold' };
-    columnStyles[payableIdx] = { cellWidth: 10, halign: 'center', fontStyle: 'bold' };
+    columnStyles[pIdx] = { cellWidth: 9, halign: 'center', fontStyle: 'bold' };
+    columnStyles[restIdx] = { cellWidth: 9, halign: 'center', fontStyle: 'bold' };
 
     autoTable(doc, {
       head: [headers],
@@ -1916,7 +1908,7 @@ export const StaffAttendance: React.FC = () => {
           </div>
 
           {/* Category Summary KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-sm">
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Total Staff</span>
               <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
@@ -1935,13 +1927,6 @@ export const StaffAttendance: React.FC = () => {
               <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold block uppercase">Rest / Off (REST)</span>
               <span className="text-lg font-black text-blue-800 dark:text-blue-300 font-mono">
                 {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.rest, 0)} Days
-              </span>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800/60 p-3 rounded-xl shadow-sm">
-              <span className="text-[10px] text-purple-700 dark:text-purple-400 font-bold block uppercase">Total Payable Days</span>
-              <span className="text-lg font-black text-purple-900 dark:text-purple-300 font-mono">
-                {groupedMonthlyData.reduce((acc, g) => acc + g.subtotals.payable, 0)} Days
               </span>
             </div>
           </div>
@@ -2037,7 +2022,6 @@ export const StaffAttendance: React.FC = () => {
                     ))}
                     <th className="p-1.5 border border-slate-300 text-center bg-emerald-50 text-emerald-900 font-bold w-9">P</th>
                     <th className="p-1.5 border border-slate-300 text-center bg-blue-50 text-blue-900 font-bold w-9">REST</th>
-                    <th className="p-1.5 border border-slate-300 text-center bg-slate-200 text-slate-900 font-black w-12">Payable</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2045,7 +2029,7 @@ export const StaffAttendance: React.FC = () => {
                     <React.Fragment key={group.key}>
                       {/* Category Header Row */}
                       <tr className="bg-slate-200/90 text-slate-900 font-black border-y-2 border-slate-400">
-                        <td colSpan={monthDates.length + 7} className="p-2">
+                        <td colSpan={monthDates.length + 6} className="p-2">
                           <div className="flex items-center justify-between">
                             <span className="flex items-center gap-2 text-xs uppercase tracking-wide">
                               <span>{group.icon}</span>
@@ -2055,7 +2039,7 @@ export const StaffAttendance: React.FC = () => {
                               </span>
                             </span>
                             <span className="text-[10px] font-mono text-slate-600">
-                              Sub-Total: {group.subtotals.present} Present · {group.subtotals.rest} Rest · {group.subtotals.payable} Payable Days
+                              Sub-Total: {group.subtotals.present} Present · {group.subtotals.rest} Rest Days
                             </span>
                           </div>
                         </td>
@@ -2083,7 +2067,6 @@ export const StaffAttendance: React.FC = () => {
                           })}
                           <td className="p-1 border border-slate-300 text-center font-bold text-emerald-800 bg-emerald-50/50 font-mono">{row.presentCount}</td>
                           <td className="p-1 border border-slate-300 text-center font-mono text-blue-800 font-bold">{row.restCount}</td>
-                          <td className="p-1 border border-slate-300 text-center font-mono font-black text-slate-900 bg-slate-100">{row.payableDays}</td>
                         </tr>
                       ))}
 
@@ -2097,7 +2080,6 @@ export const StaffAttendance: React.FC = () => {
                         </td>
                         <td className="p-1.5 border border-slate-300 text-center text-emerald-800 font-mono font-black">{group.subtotals.present}</td>
                         <td className="p-1.5 border border-slate-300 text-center text-blue-800 font-mono font-black">{group.subtotals.rest}</td>
-                        <td className="p-1.5 border border-slate-300 text-center text-slate-900 font-mono font-black bg-slate-200">{group.subtotals.payable}</td>
                       </tr>
                     </React.Fragment>
                   ))}

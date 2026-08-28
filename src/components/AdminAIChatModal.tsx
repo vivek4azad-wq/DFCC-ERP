@@ -186,11 +186,11 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
                   🤖 Vivek AI • DFCCIL Smart Assistant
                 </h3>
                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${geminiApiKey ? 'bg-emerald-400 text-slate-950' : 'bg-cyan-400 text-slate-950'}`}>
-                  {geminiApiKey ? '✨ LIVE AI ACTIVE' : 'EXACT MATCH'}
+                  {geminiApiKey?.startsWith('nvapi-') ? '⚡ NVIDIA NIM ACTIVE' : (geminiApiKey ? '✨ GEMINI ACTIVE' : '⚡ NVIDIA NIM ACTIVE')}
                 </span>
               </div>
               <p className="text-[11px] text-blue-200 font-mono">
-                {geminiApiKey ? 'Universal Multi-Device Sync • Google Gemini & Live Firestore' : 'Real-time Deterministic Search on ERP Databases'}
+                {geminiApiKey?.startsWith('nvapi-') ? 'NVIDIA NIM (Meta Llama 3.2 11B Vision) • Live DFCCIL Firestore Data' : 'Universal Multi-Device Sync • NVIDIA NIM / Gemini & Live Firestore'}
               </p>
             </div>
           </div>
@@ -199,10 +199,10 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
             <button
               onClick={() => setIsApiKeyModalOpen(true)}
               className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white transition text-xs font-bold flex items-center gap-1"
-              title="Configure Global Gemini API Key (Synchronized Across All Devices)"
+              title="Configure Global NVIDIA / Gemini API Key (Synchronized Across All Devices)"
             >
               <span>🔑</span>
-              <span>{geminiApiKey ? 'API Key Active' : 'Set API Key'}</span>
+              <span>{geminiApiKey ? (geminiApiKey.startsWith('nvapi-') ? 'NVIDIA Key Active' : 'API Key Active') : 'Set API Key'}</span>
             </button>
             <button
               onClick={onClose}
@@ -213,23 +213,23 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
           </div>
         </div>
 
-        {/* Gemini API Key Modal */}
+        {/* AI API Key Modal (NVIDIA / Gemini) */}
         {isApiKeyModalOpen && (
           <div className="p-4 bg-gradient-to-r from-blue-900/90 to-indigo-950/90 border-b border-blue-400/30 text-white text-xs space-y-2 animate-fadeIn">
             <div className="flex items-center justify-between">
               <div className="font-bold flex items-center gap-1.5 text-cyan-300">
-                <span>✨</span>
-                <span>Configure Universal Gemini API Key for Vivek AI:</span>
+                <span>⚡</span>
+                <span>Configure Universal NVIDIA NIM / Gemini API Key for Vivek AI:</span>
               </div>
               <button onClick={() => setIsApiKeyModalOpen(false)} className="text-slate-300 hover:text-white">✕</button>
             </div>
             <p className="text-[11px] text-blue-200">
-              यह API Key Firestore में सुरक्षित सेव होगी। एक बार सेव करने के बाद आप किसी भी लैपटॉप या मोबाइल से लॉगिन करेंगे, <strong>Vivek AI बिना दोबारा key मांगे तुरंत उत्तर देगा</strong>।
+              यह API Key Firestore में सुरक्षित सेव होगी। NVIDIA NIM (<code>nvapi-...</code>) और Google Gemini (<code>AIzaSy...</code>) दोनों पूरी तरह सपोर्टेड हैं।
             </p>
             <div className="flex gap-2">
               <input
                 type="password"
-                placeholder="AIzaSy..."
+                placeholder="nvapi-... or AIzaSy..."
                 value={apiKeyInput}
                 onChange={e => setApiKeyInput(e.target.value)}
                 className="flex-1 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-blue-400/40 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"

@@ -430,172 +430,95 @@ function MainAppShell() {
   if (!isAuthenticated || !currentUser) {
     return (
       <div
-        className="min-h-screen relative flex flex-col justify-between p-4 antialiased selection:bg-cyan-500 selection:text-slate-950 overflow-x-hidden bg-[#051424] text-white mission-control-bg"
+        className="min-h-screen relative flex flex-col justify-between p-4 antialiased selection:bg-cyan-500 selection:text-slate-950 overflow-x-hidden bg-[#0c1324] text-white"
         style={{
+          backgroundImage: `radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.18) 0%, rgba(12, 19, 36, 0.95) 75%), linear-gradient(135deg, rgba(6, 12, 28, 0.85) 0%, rgba(17, 24, 39, 0.85) 100%), url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?q=80&w=2168&auto=format&fit=crop')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
           paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)'
         }}
       >
-        {/* 🚂 PANORAMIC FULL-SCREEN BACKGROUND RAILWAY CORRIDOR (Visible in side spaces & behind card) */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none">
-          {/* Subtle Atmospheric Mist & Spotlight Radial Glow */}
-          <div className="absolute inset-0 bg-radial-gradient from-blue-600/10 via-transparent to-[#051424]/90" />
-
-          {/* Upper High-Voltage OHE Catenary Wire spanning 100vw */}
-          <div className="absolute top-[28%] left-0 right-0 w-full h-[1px] bg-cyan-400/30 animate-catenary-pulse" />
-          <div className="absolute top-[29%] left-0 right-0 w-full h-[0.5px] bg-blue-500/20" />
-
-          {/* Catenary Support Masts & Railway Signals in Wide Side Spaces */}
-          <div className="absolute top-[20%] left-[6%] flex flex-col items-center opacity-70">
-            <div className="w-1.5 h-36 bg-gradient-to-b from-slate-700 via-slate-600 to-slate-800 rounded-t" />
-            <div className="w-6 h-3 bg-slate-900 border border-slate-700 rounded-sm -mt-36 flex items-center justify-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-            </div>
-            <span className="text-[8px] font-mono text-slate-500 mt-1">KM 1170</span>
-          </div>
-
-          <div className="absolute top-[20%] left-[22%] flex flex-col items-center opacity-40">
-            <div className="w-1 h-36 bg-slate-700/60 rounded-t" />
-            <div className="w-5 h-2.5 bg-slate-900 border border-slate-700 rounded-sm -mt-36 flex items-center justify-center">
-              <span className="w-1 h-1 rounded-full bg-amber-400/80" />
-            </div>
-          </div>
-
-          <div className="absolute top-[20%] right-[22%] flex flex-col items-center opacity-40">
-            <div className="w-1 h-36 bg-slate-700/60 rounded-t" />
-            <div className="w-5 h-2.5 bg-slate-900 border border-slate-700 rounded-sm -mt-36 flex items-center justify-center">
-              <span className="w-1 h-1 rounded-full bg-emerald-400/80" />
-            </div>
-          </div>
-
-          <div className="absolute top-[20%] right-[6%] flex flex-col items-center opacity-70">
-            <div className="w-1.5 h-36 bg-gradient-to-b from-slate-700 via-slate-600 to-slate-800 rounded-t" />
-            <div className="w-6 h-3 bg-slate-900 border border-slate-700 rounded-sm -mt-36 flex items-center justify-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-            </div>
-            <span className="text-[8px] font-mono text-slate-500 mt-1">KM 1245</span>
-          </div>
-
-          {/* Moving Freight Train with Locomotive & Cargo Wagons running across the screen */}
-          <div className="absolute top-[32%] left-0 w-full">
-            <div className="animate-fullscreen-train flex items-center">
-              {/* High-Intensity Forward Headlight Beam Glow */}
-              <div className="w-80 h-28 bg-gradient-to-r from-cyan-300/40 via-blue-500/10 to-transparent -mr-4 rounded-full blur-[6px] pointer-events-none transform -scale-x-100" />
-
-              {/* High-Speed WAG-12 Twin Electric Locomotive */}
-              <svg className="w-52 h-14 shrink-0 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" viewBox="0 0 240 50" fill="none">
-                {/* Dual Pantographs with Electric Sparks */}
-                <path d="M 45 15 L 55 5 L 68 5 L 78 15" stroke="#67e8f9" strokeWidth="2" />
-                <circle cx="62" cy="5" r="2.5" fill="#38bdf8" className="animate-spark-glow" />
-                <path d="M 160 15 L 170 5 L 183 5 L 193 15" stroke="#67e8f9" strokeWidth="2" />
-                <circle cx="177" cy="5" r="2.5" fill="#38bdf8" className="animate-spark-glow" />
-
-                {/* Locomotive Aerodynamic Cab */}
-                <path d="M 12 40 L 28 17 C 32 15 40 15 46 15 L 225 15 C 232 15 236 19 236 26 L 236 40 Z" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
-                {/* DFCCIL Front Windshield */}
-                <path d="M 20 37 L 31 20 C 33 19 40 19 48 19 L 48 37 Z" fill="#030712" stroke="#67e8f9" strokeWidth="1" />
-                {/* Twin Projector Headlights */}
-                <circle cx="15" cy="34" r="3.5" fill="#ffffff" />
-                <circle cx="15" cy="34" r="2" fill="#67e8f9" />
-                <circle cx="24" cy="36" r="2" fill="#ffffff" />
-                {/* Yellow Safety Speed Band */}
-                <line x1="48" y1="28" x2="230" y2="28" stroke="#facc15" strokeWidth="3" />
-                {/* DFCCIL Logo on Engine */}
-                <rect x="100" y="20" width="40" height="7" rx="1.5" fill="#0f172a" stroke="#67e8f9" strokeWidth="0.8" />
-                <text x="104" y="25.5" fill="#38bdf8" fontSize="5" fontWeight="bold" fontFamily="monospace">DFCCIL</text>
-                {/* Heavy Cast Steel Bogies & Wheels */}
-                <circle cx="42" cy="42" r="4.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
-                <circle cx="68" cy="42" r="4.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
-                <circle cx="170" cy="42" r="4.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
-                <circle cx="196" cy="42" r="4.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.5" />
-              </svg>
-
-              {/* Cargo Wagon 1 (DFCCIL Heavy Container) */}
-              <svg className="w-36 h-14 shrink-0 -ml-1 drop-shadow-md" viewBox="0 0 160 50" fill="none">
-                <rect x="5" y="16" width="150" height="24" rx="2" fill="#1e3a8a" stroke="#60a5fa" strokeWidth="1" />
-                <line x1="10" y1="20" x2="150" y2="20" stroke="#3b82f6" strokeWidth="0.5" strokeDasharray="3 3" />
-                <text x="50" y="31" fill="#93c5fd" fontSize="7" fontWeight="bold" fontFamily="monospace">DFCC CONTAINER</text>
-                <circle cx="28" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="50" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="110" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="132" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-              </svg>
-
-              {/* Cargo Wagon 2 (DFCCIL Heavy Container - Teal) */}
-              <svg className="w-36 h-14 shrink-0 -ml-1 drop-shadow-md" viewBox="0 0 160 50" fill="none">
-                <rect x="5" y="16" width="150" height="24" rx="2" fill="#065f46" stroke="#34d399" strokeWidth="1" />
-                <text x="55" y="31" fill="#a7f3d0" fontSize="7" fontWeight="bold" fontFamily="monospace">SMUN FREIGHT</text>
-                <circle cx="28" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="50" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="110" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="132" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-              </svg>
-
-              {/* Guard / Brake Van */}
-              <svg className="w-28 h-14 shrink-0 -ml-1 drop-shadow-md" viewBox="0 0 120 50" fill="none">
-                <path d="M 5 40 L 5 20 L 105 20 L 115 28 L 115 40 Z" fill="#78350f" stroke="#f59e0b" strokeWidth="1" />
-                <circle cx="110" cy="30" r="2.5" fill="#ef4444" className="animate-signal-blink" />
-                <circle cx="30" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-                <circle cx="85" cy="42" r="4" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Heavy Duty 60kg Steel Rails & Sleepers across 100vw */}
-          <div className="absolute top-[39%] left-0 right-0 w-full">
-            <div className="w-full h-[3px] bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-track-pulse" />
-            <div className="w-full h-[1.5px] bg-slate-600 mt-[3px]" />
-          </div>
-        </div>
-
-        {/* 🌟 ELEVATED MISSION CONTROL AUTHENTICATION CONTAINER (Center Focus) */}
-        <div className="max-w-lg w-full mx-auto my-auto space-y-4 animate-fadeIn py-6 relative z-10">
+        <div className="max-w-md w-full mx-auto my-auto space-y-4 animate-fadeIn py-6 relative z-10">
           {/* Brand Header */}
           <div className="text-center space-y-2">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-[0_0_25px_rgba(5,102,217,0.4)] border border-cyan-400/50 bg-[#0d234a]/90 backdrop-blur-md flex items-center justify-center p-1">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-2xl border-2 border-cyan-400/50 bg-[#0d234a]/90 backdrop-blur-md flex items-center justify-center p-1">
               <img src="/logo.png" alt="DFCCIL ERP Logo" className="w-full h-full object-contain drop-shadow" />
             </div>
 
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md flex items-center justify-center gap-2">
                 <span>DFCCIL ERP</span>
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#0566d9] text-white uppercase tracking-widest shadow-sm border border-cyan-300/40">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-400 text-slate-950 uppercase tracking-widest shadow-sm">
                   IMSD SMUN
                 </span>
               </h1>
-              <p className="text-xs font-bold text-cyan-300 uppercase tracking-widest neon-glow mt-1">
-                CIVIL ENGINEERING UNIT • KM 1167.210 TO KM 1249.720
+              <p className="text-xs font-bold text-cyan-300 uppercase tracking-wider drop-shadow mt-0.5">
+                Civil Engineering Unit • Km 1167.210 to Km 1249.720
               </p>
             </div>
           </div>
 
-          {/* Status Banner from Stitch */}
-          <div className="w-full glass-card rounded-2xl p-1 shadow-2xl">
-            <div className="bg-[#051424]/80 rounded-xl p-3 flex justify-between items-center border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.08)]">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-                <span className="font-mono text-emerald-300 text-xs font-bold uppercase tracking-wider">
-                  SECTION CLEAR • GREEN SIGNAL
-                </span>
+          {/* 🚆 Dynamic Animated Freight & High-Speed Electric Train on Track */}
+          <div className="w-full overflow-hidden relative rounded-2xl bg-gradient-to-r from-[#060e1e] via-[#0b1b36] to-[#060e1e] border border-cyan-500/30 p-2.5 shadow-2xl">
+            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300 mb-1.5 px-1">
+              <span className="flex items-center gap-1.5 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
+                <span>SECTION CLEAR • GREEN SIGNAL</span>
+              </span>
+              <span className="text-slate-400 font-bold">1167.210 ➔ 1249.720</span>
+            </div>
+
+            <div className="relative h-12 w-full overflow-hidden bg-[#040813] rounded-xl border border-slate-800 flex items-center">
+              {/* Overhead Electric Wire (OHE) */}
+              <div className="absolute top-2 left-0 w-full h-[1px] bg-cyan-400/40" />
+
+              {/* Moving Train SVG */}
+              <div className="absolute animate-train-ride flex items-center">
+                {/* Headlight Beam Glow */}
+                <div className="w-20 h-8 bg-gradient-to-r from-cyan-300/40 via-blue-500/10 to-transparent -mr-2 rounded-full blur-[3px] pointer-events-none transform -scale-x-100" />
+
+                {/* Aerodynamic High Speed WAG-12 Electric Locomotive */}
+                <svg className="w-44 h-9 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" viewBox="0 0 200 40" fill="none">
+                  {/* Pantograph with electric spark */}
+                  <path d="M 40 12 L 50 4 L 60 4 L 70 12" stroke="#67e8f9" strokeWidth="1.5" />
+                  <circle cx="55" cy="4" r="1.5" fill="#38bdf8" className="animate-ping" />
+                  {/* Engine Body */}
+                  <path d="M 10 32 L 25 14 C 28 12 35 12 40 12 L 180 12 C 185 12 190 15 190 20 L 190 32 Z" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
+                  {/* Cab Windshield */}
+                  <path d="M 18 30 L 28 16 C 30 15 36 15 45 15 L 45 30 Z" fill="#0f172a" stroke="#67e8f9" strokeWidth="1" />
+                  {/* Headlight */}
+                  <circle cx="12" cy="28" r="3" fill="#ffffff" />
+                  <circle cx="12" cy="28" r="1.5" fill="#67e8f9" />
+                  {/* Side Stripe */}
+                  <line x1="45" y1="22" x2="185" y2="22" stroke="#facc15" strokeWidth="2.5" />
+                  {/* Wheels */}
+                  <circle cx="35" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                  <circle cx="55" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                  <circle cx="145" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                  <circle cx="165" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
+                </svg>
               </div>
-              <span className="font-mono text-slate-300 text-xs font-semibold">1167.210 → 1249.720</span>
+
+              {/* Steel Tracks & Sleepers */}
+              <div className="absolute bottom-2 left-0 w-full h-[2.5px] bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-track-pulse" />
+              <div className="absolute bottom-0.5 left-0 w-full h-[1.5px] bg-slate-600" />
             </div>
           </div>
 
           {/* Glassmorphic Ironline Auth Card */}
-          <div className="glass-card rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-white border border-slate-700/80">
+          <div className="bg-[#111827]/90 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-white">
             {/* Top Navigation Mode Tabs: Officer / Staff PIN / Guest */}
-            <div className="grid grid-cols-3 gap-1 bg-[#020617] p-1.5 rounded-2xl border border-slate-800 text-xs font-bold select-none">
+            <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold select-none">
               <button
                 type="button"
                 onClick={() => {
                   setAuthMode('officer');
                   setLoginError(null);
                 }}
-                className={`py-2.5 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
                   authMode === 'officer'
-                    ? 'bg-[#0566d9] text-white shadow-[0_0_15px_rgba(5,102,217,0.5)] border border-cyan-400/30'
+                    ? 'bg-blue-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -609,9 +532,9 @@ function MainAppShell() {
                   setAuthMode('pin');
                   setStaffPinError(null);
                 }}
-                className={`py-2.5 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
                   authMode === 'pin'
-                    ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)] border border-cyan-300/40'
+                    ? 'bg-cyan-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -625,9 +548,9 @@ function MainAppShell() {
                   setAuthMode('guest');
                   setGuestError(null);
                 }}
-                className={`py-2.5 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-1 rounded-xl transition flex items-center justify-center gap-1.5 ${
                   authMode === 'guest'
-                    ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] border border-emerald-400/30'
+                    ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >

@@ -133,27 +133,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <header
-        className="sticky top-0 z-40 bg-white/95 dark:bg-[#071324]/95 text-slate-800 dark:text-white shadow-md dark:shadow-2xl border-b border-slate-200 dark:border-[#1e2f47] backdrop-blur-xl transition-all select-none w-full max-w-[100vw] overflow-visible"
+        className="sticky top-0 z-40 bg-[#0f2b5c] text-white shadow-xl border-b border-[#1b3d75] transition-all select-none w-full max-w-[100vw] overflow-visible"
         style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)' }}
       >
         {/* Top Brand & Actions Row */}
         <div className="max-w-[1780px] mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 w-full">
           {/* Left Hand: Logo + Brand Title */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-black text-white shadow-md border border-cyan-300/40 shrink-0 text-sm">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center font-black text-white shadow-md border border-cyan-300/40 shrink-0 text-sm">
               DF
             </div>
             <div className="min-w-0 leading-tight">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-black text-sm sm:text-base tracking-tight text-slate-900 dark:text-white truncate">
-                  DFCCIL ERP
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white truncate font-mono">
+                  smun.firebase.com
                 </span>
-                <span className="px-1.5 py-0.2 bg-blue-100 dark:bg-[#0566d9]/30 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-cyan-400/30 rounded text-[9px] font-mono font-bold uppercase">
+                <span className="px-1.5 py-0.2 bg-cyan-400/20 text-cyan-300 border border-cyan-300/40 rounded text-[9px] font-mono font-bold uppercase">
                   IMSD SMUN
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate hidden sm:block">
-                Km 1167.210 – 1249.720 • Shri Vivek Kumar Azad ({currentUser?.designation || 'APM/Civil'})
+              <p className="text-[10px] text-blue-200 truncate hidden sm:block">
+                Km 1167.210 – 1249.720 • Shri Vivek Kumar Azad (APM/Civil)
               </p>
             </div>
           </div>
@@ -171,10 +171,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     window.dispatchEvent(new Event('raildiary_open_inspections_popup'));
                   }
                 }}
-                className="p-2 bg-amber-50 dark:bg-[#1a1c12] hover:bg-amber-100 dark:hover:bg-[#282a17] active:scale-95 text-amber-600 dark:text-amber-300 rounded-xl border border-amber-300/60 dark:border-amber-500/30 shadow-sm transition flex items-center justify-center"
+                className="p-2 bg-[#173a72] hover:bg-[#1f488a] active:scale-95 text-amber-300 rounded-xl border border-amber-400/30 shadow-md transition flex items-center justify-center"
                 title="Scheduled Inspections Alert (P&C, Curves, SEJ)"
               >
-                <ShieldAlert className="w-4 h-4" />
+                <ShieldAlert className="w-4 h-4 text-amber-300" />
               </button>
             )}
 
@@ -188,10 +188,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setActiveTab('kmfinder');
                 }
               }}
-              className="px-2.5 sm:px-3 py-1.5 bg-slate-100 dark:bg-[#0d1d31] hover:bg-slate-200 dark:hover:bg-[#162e4c] active:scale-95 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold border border-slate-300 dark:border-[#223957] shadow-sm flex items-center gap-1.5 transition"
+              className="px-2.5 sm:px-3 py-1.5 bg-[#173a72] hover:bg-[#1f488a] active:scale-95 text-white rounded-xl text-xs font-bold border border-white/20 shadow-md flex items-center gap-1.5 transition"
               title="Search Assets & Km Finder"
             >
-              <Search className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-300" />
+              <Search className="w-3.5 h-3.5 text-cyan-300" />
               <span className="hidden sm:inline">Search / Km</span>
             </button>
 
@@ -199,42 +199,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 bg-slate-100 dark:bg-[#0d1d31] hover:bg-slate-200 dark:hover:bg-[#162e4c] active:scale-95 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-300 dark:border-[#223957] shadow-sm transition flex items-center justify-center"
+              className="p-2 bg-[#173a72] hover:bg-[#1f488a] active:scale-95 text-white rounded-xl border border-white/20 shadow-md transition flex items-center justify-center"
               title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
             >
               {isDark ? (
                 <Sun className="w-4 h-4 text-amber-300" />
               ) : (
-                <Moon className="w-4 h-4 text-blue-600" />
+                <Moon className="w-4 h-4 text-cyan-300" />
               )}
             </button>
-
-            {/* User Profile Tag */}
-            <div
-              className="h-8 px-2 rounded-xl bg-blue-50 dark:bg-[#0d1d31] border border-blue-200 dark:border-[#223957] hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-cyan-300 cursor-pointer"
-              onClick={() => setIsThreeDotMenuOpen(!isThreeDotMenuOpen)}
-              title={`${currentUser?.name || 'Vivek Kumar Azad'} (${currentUser?.designation || 'APM/Civil'})`}
-            >
-              <div className="w-5 h-5 rounded-md bg-blue-600 text-white font-mono text-[10px] font-bold flex items-center justify-center">
-                VA
-              </div>
-              <span className="text-[11px] truncate max-w-[80px]">{currentUser?.name?.split(' ')[0] || 'Vivek'}</span>
-            </div>
 
             {/* ⠇ 3-Dot System Menu */}
             <div className="relative shrink-0" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setIsThreeDotMenuOpen(!isThreeDotMenuOpen)}
-                className="p-2 bg-slate-100 dark:bg-[#0d1d31] hover:bg-slate-200 dark:hover:bg-[#162e4c] active:scale-95 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-300 dark:border-[#223957] shadow-sm transition flex items-center justify-center"
+                className="p-2 bg-[#173a72] hover:bg-[#1f488a] active:scale-95 text-white rounded-xl border border-white/20 shadow-md transition flex items-center justify-center"
                 title="System Menu"
               >
-                <MoreVertical className="w-4 h-4 text-blue-600 dark:text-cyan-300" />
+                <MoreVertical className="w-4 h-4 text-cyan-300" />
               </button>
 
               {/* 3-Dot Dropdown Menu Popover with High z-index & clean absolute positioning */}
               {isThreeDotMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-[#0a1e40] border-2 border-slate-200 dark:border-blue-600/80 rounded-2xl shadow-2xl p-3 z-[9999] animate-fadeIn space-y-2 text-slate-800 dark:text-slate-100 backdrop-blur-2xl">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-[#0a1e40] border-2 border-blue-600/80 rounded-2xl shadow-2xl p-3 z-[9999] animate-fadeIn space-y-2 text-slate-100 backdrop-blur-2xl">
                   {/* User Profile Summary */}
                   <div className="p-3 bg-[#0d2652] rounded-xl border border-blue-900/60">
                     <div className="text-[10px] uppercase font-bold text-blue-300 tracking-wider">

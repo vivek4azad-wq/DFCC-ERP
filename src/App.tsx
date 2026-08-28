@@ -459,53 +459,6 @@ function MainAppShell() {
             </div>
           </div>
 
-          {/* 🚆 Dynamic Animated Freight & High-Speed Electric Train on Track */}
-          <div className="w-full overflow-hidden relative rounded-2xl bg-gradient-to-r from-[#060e1e] via-[#0b1b36] to-[#060e1e] border border-cyan-500/30 p-2.5 shadow-2xl">
-            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300 mb-1.5 px-1">
-              <span className="flex items-center gap-1.5 font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
-                <span>SECTION CLEAR • GREEN SIGNAL</span>
-              </span>
-              <span className="text-slate-400 font-bold">1167.210 ➔ 1249.720</span>
-            </div>
-
-            <div className="relative h-12 w-full overflow-hidden bg-[#040813] rounded-xl border border-slate-800 flex items-center">
-              {/* Overhead Electric Wire (OHE) */}
-              <div className="absolute top-2 left-0 w-full h-[1px] bg-cyan-400/40" />
-
-              {/* Moving Train SVG */}
-              <div className="absolute animate-train-ride flex items-center">
-                {/* Headlight Beam Glow */}
-                <div className="w-20 h-8 bg-gradient-to-r from-cyan-300/40 via-blue-500/10 to-transparent -mr-2 rounded-full blur-[3px] pointer-events-none transform -scale-x-100" />
-
-                {/* Aerodynamic High Speed WAG-12 Electric Locomotive */}
-                <svg className="w-44 h-9 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" viewBox="0 0 200 40" fill="none">
-                  {/* Pantograph with electric spark */}
-                  <path d="M 40 12 L 50 4 L 60 4 L 70 12" stroke="#67e8f9" strokeWidth="1.5" />
-                  <circle cx="55" cy="4" r="1.5" fill="#38bdf8" className="animate-ping" />
-                  {/* Engine Body */}
-                  <path d="M 10 32 L 25 14 C 28 12 35 12 40 12 L 180 12 C 185 12 190 15 190 20 L 190 32 Z" fill="#0284c7" stroke="#38bdf8" strokeWidth="1.5" />
-                  {/* Cab Windshield */}
-                  <path d="M 18 30 L 28 16 C 30 15 36 15 45 15 L 45 30 Z" fill="#0f172a" stroke="#67e8f9" strokeWidth="1" />
-                  {/* Headlight */}
-                  <circle cx="12" cy="28" r="3" fill="#ffffff" />
-                  <circle cx="12" cy="28" r="1.5" fill="#67e8f9" />
-                  {/* Side Stripe */}
-                  <line x1="45" y1="22" x2="185" y2="22" stroke="#facc15" strokeWidth="2.5" />
-                  {/* Wheels */}
-                  <circle cx="35" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
-                  <circle cx="55" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
-                  <circle cx="145" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
-                  <circle cx="165" cy="34" r="3.5" fill="#334155" stroke="#94a3b8" strokeWidth="1" />
-                </svg>
-              </div>
-
-              {/* Steel Tracks & Sleepers */}
-              <div className="absolute bottom-2 left-0 w-full h-[2.5px] bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-track-pulse" />
-              <div className="absolute bottom-0.5 left-0 w-full h-[1.5px] bg-slate-600" />
-            </div>
-          </div>
-
           {/* Glassmorphic Ironline Auth Card */}
           <div className="bg-[#111827]/90 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-white">
             {/* Top Navigation Mode Tabs: Officer / Staff PIN / Guest */}
@@ -871,6 +824,193 @@ function MainAppShell() {
             <div className="text-[10px] text-slate-500">
               Dedicated Freight Corridor Corporation of India Ltd. (IMSD SMUN)
             </div>
+          </div>
+        </div>
+
+        {/* 🚆 FULL-SCREEN REALISTIC FREIGHT CORRIDOR RUNWAY & MOVING TRAIN */}
+        <div className="fixed bottom-0 left-0 right-0 w-full pointer-events-none z-0 overflow-hidden select-none">
+          {/* Top Status HUD / Mileposts bar */}
+          <div className="w-full flex items-center justify-between px-4 py-1 text-[10px] font-mono text-cyan-300/80 bg-gradient-to-r from-slate-950/80 via-slate-900/60 to-slate-950/80 border-t border-cyan-500/20 backdrop-blur-[2px]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
+              <span className="font-bold text-emerald-300">EASTERN DFC AUTOMATIC BLOCK TERRITORY • GREEN SIGNAL</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-4 text-slate-400 font-bold">
+              <span>📍 KRJN 1167.210</span>
+              <span>➔</span>
+              <span className="text-cyan-300">⚡ SMUN YARD 1170.435</span>
+              <span>➔</span>
+              <span>SBJN 1188.575</span>
+              <span>➔</span>
+              <span>NSIR 1202.015</span>
+              <span>➔</span>
+              <span className="text-emerald-400">🏁 SNL 1249.720</span>
+            </div>
+          </div>
+
+          {/* Realistic High-Speed Track Bed (100vw width) */}
+          <div className="relative h-20 sm:h-24 w-full overflow-hidden bg-gradient-to-b from-[#060c1c]/90 via-[#030712] to-[#010409]">
+            {/* OHE High Voltage Catenary Wire & Droppers */}
+            <div className="absolute top-4 left-0 w-full h-[1.5px] bg-gradient-to-r from-cyan-400/40 via-cyan-300/70 to-cyan-400/40" />
+            <div className="absolute top-2 left-0 w-full h-[1px] bg-cyan-500/20" />
+            
+            {/* OHE Steel Mast Poles every 25% */}
+            <div className="absolute top-0 bottom-6 left-[10%] w-[3px] bg-slate-600/40" />
+            <div className="absolute top-0 bottom-6 left-[35%] w-[3px] bg-slate-600/40" />
+            <div className="absolute top-0 bottom-6 left-[60%] w-[3px] bg-slate-600/40" />
+            <div className="absolute top-0 bottom-6 left-[85%] w-[3px] bg-slate-600/40" />
+
+            {/* Signal Light Posts */}
+            <div className="absolute bottom-6 left-6 flex flex-col items-center">
+              <div className="w-3.5 h-7 bg-slate-900 border border-slate-700 rounded-md flex flex-col items-center justify-around py-0.5 shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-signal-blink shadow-[0_0_8px_#34d399]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500/30" />
+              </div>
+              <div className="w-1 h-5 bg-slate-700" />
+            </div>
+
+            {/* FULL-LENGTH REALISTIC WAG-12B TWIN ELECTRIC + CONTAINER FREIGHT TRAIN */}
+            <div className="absolute bottom-5 animate-freight-train flex items-end">
+              {/* Headlight Atmospheric Light Cone (Sweeps across the track) */}
+              <div className="w-64 h-16 bg-gradient-to-r from-cyan-200/50 via-blue-400/20 to-transparent -mr-4 mb-2 rounded-full blur-[6px] pointer-events-none transform -scale-x-100 origin-right" />
+
+              {/* Realistic SVG Train: WAG-12 Twin Loco + Double Stack Containers */}
+              <svg className="h-14 sm:h-16 w-[780px] drop-shadow-[0_0_12px_rgba(6,182,212,0.4)] shrink-0" viewBox="0 0 1100 80" fill="none">
+                {/* ---------------- WAG-12B LOCOMOTIVE SECTION 1 ---------------- */}
+                {/* Pantograph 1 */}
+                <path d="M 55 24 L 75 8 L 95 8 L 115 24" stroke="#67e8f9" strokeWidth="2.5" />
+                <circle cx="85" cy="8" r="3" fill="#38bdf8" className="animate-ohe-spark" />
+                
+                {/* Loco 1 Body */}
+                <path d="M 15 62 L 35 26 C 40 24 50 24 60 24 L 230 24 C 235 24 240 28 240 35 L 240 62 Z" fill="#0284c7" stroke="#38bdf8" strokeWidth="2" />
+                {/* Loco 1 White Livery Center Band */}
+                <path d="M 30 42 L 240 42 L 240 52 L 25 52 Z" fill="#f8fafc" />
+                <text x="75" y="50" fill="#0369a1" fontSize="9" fontWeight="900" fontFamily="sans-serif">DFCCIL • WAG-12B #60142</text>
+                
+                {/* Aerodynamic Windshield */}
+                <path d="M 28 40 L 42 27 C 45 26 55 26 68 26 L 68 40 Z" fill="#0f172a" stroke="#67e8f9" strokeWidth="1.5" />
+                
+                {/* Dual Headlights */}
+                <circle cx="18" cy="54" r="4.5" fill="#ffffff" />
+                <circle cx="18" cy="54" r="2.5" fill="#67e8f9" />
+                <circle cx="22" cy="46" r="3" fill="#fef08a" />
+                
+                {/* Safety Chevron on Nose */}
+                <polygon points="17,58 28,48 32,48 21,58" fill="#eab308" />
+                <polygon points="23,58 34,48 38,48 27,58" fill="#eab308" />
+                
+                {/* Wheels & Bogie 1 */}
+                <rect x="40" y="60" width="70" height="8" rx="2" fill="#1e293b" />
+                <circle cx="50" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="75" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="100" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                
+                <rect x="155" y="60" width="70" height="8" rx="2" fill="#1e293b" />
+                <circle cx="165" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="190" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="215" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+
+                {/* Articulation Gangway */}
+                <rect x="240" y="32" width="12" height="30" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+
+                {/* ---------------- WAG-12B LOCOMOTIVE SECTION 2 ---------------- */}
+                {/* Pantograph 2 */}
+                <path d="M 370 24 L 390 8 L 410 8 L 430 24" stroke="#67e8f9" strokeWidth="2.5" />
+                <circle cx="400" cy="8" r="3" fill="#38bdf8" className="animate-ohe-spark" />
+
+                <rect x="252" y="24" width="190" height="38" rx="3" fill="#0284c7" stroke="#38bdf8" strokeWidth="2" />
+                <path d="M 252 42 L 442 42 L 442 52 L 252 52 Z" fill="#f8fafc" />
+                <text x="290" y="50" fill="#0369a1" fontSize="9" fontWeight="900" fontFamily="sans-serif">12,000 HP • TWIN Bo-Bo</text>
+                
+                {/* Bogies Section 2 */}
+                <rect x="265" y="60" width="70" height="8" rx="2" fill="#1e293b" />
+                <circle cx="275" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="300" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="325" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                
+                <rect x="365" y="60" width="70" height="8" rx="2" fill="#1e293b" />
+                <circle cx="375" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="400" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="425" cy="68" r="6" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+
+                {/* Coupler */}
+                <rect x="442" y="50" width="14" height="6" fill="#0f172a" stroke="#64748b" strokeWidth="1" />
+
+                {/* ---------------- WAGON 1: DOUBLE STACK CONTAINER (BLC) ---------------- */}
+                {/* Lower Container (DFCCIL Blue) */}
+                <rect x="458" y="38" width="180" height="24" rx="2" fill="#0369a1" stroke="#0ea5e9" strokeWidth="1.5" />
+                <line x1="480" y1="38" x2="480" y2="62" stroke="#0284c7" strokeWidth="1" />
+                <line x1="530" y1="38" x2="530" y2="62" stroke="#0284c7" strokeWidth="1" />
+                <line x1="580" y1="38" x2="580" y2="62" stroke="#0284c7" strokeWidth="1" />
+                <text x="500" y="53" fill="#ffffff" fontSize="9" fontWeight="900">DFCCIL FREIGHT</text>
+
+                {/* Upper Container (Evergreen Emerald) */}
+                <rect x="458" y="14" width="180" height="23" rx="2" fill="#047857" stroke="#10b981" strokeWidth="1.5" />
+                <text x="510" y="29" fill="#ffffff" fontSize="9" fontWeight="900">EVERGREEN</text>
+
+                {/* Wagon 1 Wheels */}
+                <rect x="470" y="60" width="45" height="6" fill="#1e293b" />
+                <circle cx="480" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="505" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <rect x="580" y="60" width="45" height="6" fill="#1e293b" />
+                <circle cx="590" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="615" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+
+                {/* Coupler */}
+                <rect x="638" y="50" width="14" height="6" fill="#0f172a" />
+
+                {/* ---------------- WAGON 2: DOUBLE STACK CONTAINER (CONCOR / MAERSK) ---------------- */}
+                {/* Lower Container (CONCOR Rust) */}
+                <rect x="654" y="38" width="180" height="24" rx="2" fill="#991b1b" stroke="#ef4444" strokeWidth="1.5" />
+                <text x="715" y="53" fill="#fef2f2" fontSize="9" fontWeight="900">CONCOR</text>
+
+                {/* Upper Container (Maersk Grey) */}
+                <rect x="654" y="14" width="180" height="23" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1.5" />
+                <text x="710" y="29" fill="#38bdf8" fontSize="9" fontWeight="900">MAERSK LINE</text>
+
+                {/* Wagon 2 Wheels */}
+                <rect x="665" y="60" width="45" height="6" fill="#1e293b" />
+                <circle cx="675" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="700" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <rect x="775" y="60" width="45" height="6" fill="#1e293b" />
+                <circle cx="785" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="810" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+
+                {/* Coupler */}
+                <rect x="834" y="50" width="14" height="6" fill="#0f172a" />
+
+                {/* ---------------- WAGON 3: DOUBLE STACK CONTAINER (ORANGE / GOLD) + EOTD ---------------- */}
+                {/* Lower Container (Orange) */}
+                <rect x="850" y="38" width="180" height="24" rx="2" fill="#c2410c" stroke="#f97316" strokeWidth="1.5" />
+                <text x="895" y="53" fill="#ffffff" fontSize="9" fontWeight="900">HAPAG-LLOYD</text>
+
+                {/* Upper Container (Gold) */}
+                <rect x="850" y="14" width="180" height="23" rx="2" fill="#854d0e" stroke="#eab308" strokeWidth="1.5" />
+                <text x="915" y="29" fill="#fef08a" fontSize="9" fontWeight="900">TRITON</text>
+
+                {/* Wagon 3 Wheels */}
+                <rect x="860" y="60" width="45" height="6" fill="#1e293b" />
+                <circle cx="870" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="895" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <rect x="970" y="60" width="45" height="6" fill="#1e293b" />
+                <circle cx="980" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="1005" cy="68" r="6" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
+
+                {/* Red Flashing EOTD (End of Train Device) */}
+                <circle cx="1032" cy="46" r="4" fill="#ef4444" className="animate-ping" />
+                <circle cx="1032" cy="46" r="3" fill="#ef4444" />
+              </svg>
+            </div>
+
+            {/* Permanent Way Rails & Sleepers Track Bed */}
+            <div className="absolute bottom-4 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 animate-track-pulse" />
+            <div className="absolute bottom-1.5 left-0 w-full h-[3px] bg-slate-600" />
+            <div
+              className="absolute bottom-0 left-0 w-full h-2.5 opacity-60"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(90deg, #334155 0px, #334155 8px, transparent 8px, transparent 20px)'
+              }}
+            />
           </div>
         </div>
 

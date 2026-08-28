@@ -190,12 +190,74 @@ export async function askVivekAi(question: string): Promise<AiAnswer> {
   }
 
   // =========================================================================
-  // 4. BRIDGE SEARCH (e.g. "KM 1204 se 1206", "bridge 189", "br 204")
+  // 4. BRIDGE SEARCH (e.g. "1210/2", "br 170", "bridge 189", "KM 1204 se 1206")
   // =========================================================================
-  const kmRangeMatch = qClean.match(/(?:km\s*)?(\d{4}(?:\.\d+)?)\s*(?:se|to|-)\s*(?:km\s*)?(\d{4}(?:\.\d+)?)/i);
-  const brMatch = qClean.match(/bridge\s*(\d+)/i) || qClean.match(/br\s*(\d+)/i);
   const bridgesList = (SEED_DATA.bridges || []) as any[];
 
+  // A. Check for Slash Notation Bridge No (e.g. "1210/2", "1170/1", "1244/2")
+  const slashMatch = q.match(/(\d{3,4}\s*\/\s*\d+)/i);
+  let matchedBridge: any = null;
+
+  if (slashMatch) {
+    const rawSlash = slashMatch[1].replace(/\s+/g, '');
+    matchedBridge = bridgesList.find(b =>
+      (b.bridgeNo || '').toLowerCase() === rawSlash.toLowerCase()
+    );
+  }
+
+  // B. Check for Bridge Keyword + Number (e.g. "br 170", "bridge 170", "br. 170", "bridge no 170")
+  const brKeywordMatch = q.match(/(?:bridge|br\.?|brg|pool)\s*(?:no\.?|number)?\s*(\d+(?:\/\d+)?)/i);
+  if (!matchedBridge && brKeywordMatch) {
+    const brNum = brKeywordMatch[1].trim();
+
+    // Priority 1: Match Exact Old Bridge Number (e.g. Old 170 -> Bridge 1210/2)
+    matchedBridge = bridgesList.find(b =>
+      (b.oldBridgeNo && b.oldBridgeNo.toString() === brNum) ||
+      (b.old_no && b.old_no.toString() === brNum) ||
+      (b.remarks && b.remarks.toLowerCase().includes(`old: ${brNum}`))
+    );
+
+    // Priority 2: Match Exact Current Bridge Number (e.g. "1210/2" or "170")
+    if (!matchedBridge) {
+      matchedBridge = bridgesList.find(b =>
+        (b.bridgeNo || '').toString().toLowerCase() === brNum.toLowerCase()
+      );
+    }
+
+    // Priority 3: Match Bridge Serial Number or ID
+    if (!matchedBridge && parseInt(brNum, 10)) {
+      const numVal = parseInt(brNum, 10);
+      matchedBridge = bridgesList.find(b => b.sn === numVal || b.id === `BRG-${String(numVal).padStart(3, '0')}`);
+    }
+  }
+
+  // C. Direct Old Bridge Number scan if query contains 2-3 digit number with "170", "165", etc.
+  if (!matchedBridge) {
+    const standaloneNumMatch = q.match(/\b(\d{2,3})\b/);
+    if (standaloneNumMatch && (qClean.includes('span') || qClean.includes('bridge') || qClean.includes('br') || qClean.includes('pool') || qClean.includes('girder'))) {
+      const targetNum = standaloneNumMatch[1];
+      matchedBridge = bridgesList.find(b =>
+        (b.oldBridgeNo && b.oldBridgeNo.toString() === targetNum) ||
+        (b.old_no && b.old_no.toString() === targetNum) ||
+        (b.remarks && b.remarks.toLowerCase().includes(`old: ${targetNum}`)) ||
+        (b.bridgeNo && b.bridgeNo.toString() === targetNum)
+      );
+    }
+  }
+
+  if (matchedBridge) {
+    const b = matchedBridge;
+    const oldTag = b.oldBridgeNo || b.old_no ? ` (Old Bridge No: ${b.oldBridgeNo || b.old_no})` : '';
+    return {
+      answer: `🌉 **Bridge No. ${b.bridgeNo}${oldTag} का तकनीकी विवरण:**\n\n- **चेनेज (Chainage)**: **Km ${b.km?.toFixed ? b.km.toFixed(3) : b.km}**\n- **सेक्शन (Section)**: **${b.section || b.sectionCode || 'IMSD SMUN Section'}**\n- **स्पैन कॉन्फ़िगरेशन (Span)**: **${b.span || b.spanConfiguration || 'Standard Span'}**\n- **स्ट्रक्चर टाइप (Type)**: ${b.structureType || b.bridgeType || 'Major / Minor Bridge'}\n- **कुल लंबाई (Total Length)**: ${b.totalLengthMeters || b.length || '64'} m\n- **स्ट्रक्चरल हेल्थ / स्थिति**: 🟢 सुरक्षित, कोई क्रिटिकल डिफेक्ट नहीं।`,
+      suggestedAction: { label: `Locate Bridge ${b.bridgeNo} in KM Finder ➔`, tab: "kmfinder" },
+      sources: [{ collection: "bridges", id: b.id }],
+      mode: "agent-db"
+    };
+  }
+
+  // D. KM Range Filter (e.g. "KM 1204 se 1206")
+  const kmRangeMatch = qClean.match(/(?:km\s*)?(\d{4}(?:\.\d+)?)\s*(?:se|to|-)\s*(?:km\s*)?(\d{4}(?:\.\d+)?)/i);
   if (kmRangeMatch) {
     const minKm = Math.min(parseFloat(kmRangeMatch[1]), parseFloat(kmRangeMatch[2]));
     const maxKm = Math.max(parseFloat(kmRangeMatch[1]), parseFloat(kmRangeMatch[2]));
@@ -203,26 +265,13 @@ export async function askVivekAi(question: string): Promise<AiAnswer> {
 
     if (filteredBridges.length > 0) {
       const brSummary = filteredBridges.slice(0, 8).map(b =>
-        `• **Bridge No. ${b.bridgeNo}** (Km ${b.km.toFixed(3)}) — ${b.span || 'Span'} (${b.structureType || 'Bridge'})`
+        `• **Bridge No. ${b.bridgeNo}${b.oldBridgeNo ? ` (Old: ${b.oldBridgeNo})` : ''}** (Km ${b.km?.toFixed ? b.km.toFixed(3) : b.km}) — ${b.span || 'Span'} (${b.structureType || 'Bridge'})`
       ).join('\n');
 
       return {
         answer: `🌉 **Km ${minKm.toFixed(3)} से Km ${maxKm.toFixed(3)} के बीच स्थित ब्रिजेस (कुल ${filteredBridges.length}):**\n\n${brSummary}${filteredBridges.length > 8 ? `\n...और ${filteredBridges.length - 8} अन्य ब्रिजेस।` : ''}`,
         suggestedAction: { label: `View Km ${minKm}–${maxKm} on Linear Diagram ➔`, tab: "linear" },
         sources: filteredBridges.slice(0, 8).map(b => ({ collection: "bridges", id: b.id })),
-        mode: "agent-db"
-      };
-    }
-  }
-
-  if (brMatch) {
-    const brNum = brMatch[1];
-    const b = bridgesList.find(br => (br.bridgeNo || '').toString() === brNum || (br.bridgeNo || '').toString().includes(brNum));
-    if (b) {
-      return {
-        answer: `🌉 **Bridge No. ${b.bridgeNo} का तकनीकी विवरण:**\n\n- **चेनेज (Chainage)**: **Km ${b.km.toFixed(3)}**\n- **सेक्शन (Section)**: ${b.section || 'IMSD SMUN'}\n- **स्पैन (Span)**: **${b.span || 'Standard Span'}**\n- **स्ट्रक्चर टाइप**: ${b.structureType || 'Major / Minor Bridge'}\n- **स्ट्रक्चरल हेल्थ**: सुरक्षित, कोई क्रिटिकल डिफेक्ट नहीं।`,
-        suggestedAction: { label: `Locate Bridge ${b.bridgeNo} in KM Finder ➔`, tab: "kmfinder" },
-        sources: [{ collection: "bridges", id: b.id }],
         mode: "agent-db"
       };
     }

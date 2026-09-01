@@ -25,7 +25,8 @@ import {
   Package,
   FileText,
   Activity,
-  Wrench
+  Wrench,
+  BookOpen
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -59,6 +60,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       shortLabel: 'Key-Plans',
       icon: FileText,
       badge: 'PDF / CAD'
+    },
+    {
+      id: 'manuals',
+      label: '3D Manuals & ACS Slips',
+      shortLabel: '3D Manuals',
+      icon: BookOpen,
+      badge: '3D Flip'
     },
     {
       id: 'categories',

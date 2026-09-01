@@ -76,6 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const allTabs = [
     { id: 'analytics', label: 'Dashboard', icon: '📊', count: null },
     { id: 'categories', label: 'Assets', icon: '🗂️', count: null },
+    { id: 'manuals', label: '3D Manuals', icon: '📖', count: null },
     { id: 'staff', label: 'Staff', icon: '👥', count: null },
     { id: 'pway_work', label: 'P.way', icon: '⚡', count: null },
     { id: 'maintenance', label: 'Maintenance', icon: '🛠️', count: null },

@@ -23,6 +23,7 @@ import { AdminPanel } from './components/AdminPanel.tsx';
 import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
 import { StaffPublicQRView } from './components/StaffPublicQRView.tsx';
 import { StationKeyPlanModal } from './components/StationKeyPlanModal.tsx';
+import { EBookManualsViewer } from './components/EBookManualsViewer.tsx';
 import { ChangePinModal } from './components/ChangePinModal.tsx';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -1075,6 +1076,8 @@ function MainAppShell() {
             <StationKeyPlanModal isOpen={true} isInline={true} onClose={() => setActiveTab('analytics')} />
           </div>
         );
+      case 'manuals':
+        return <EBookManualsViewer />;
       case 'categories':
         return (
           <AssetCategories

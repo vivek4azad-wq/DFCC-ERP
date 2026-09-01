@@ -170,25 +170,25 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
             </button>
           </div>
 
-          {/* Modal Body & Printable Badge Canvas with Horizontal Scroll on Small Screens */}
-          <div className="p-3 sm:p-5 bg-slate-50 dark:bg-slate-950 flex flex-col items-center overflow-x-auto w-full">
+          {/* Modal Body & Printable Badge Canvas with Mobile-First Responsive Layout */}
+          <div className="p-3 sm:p-5 bg-slate-50 dark:bg-slate-950 flex flex-col items-center w-full max-w-full overflow-y-auto max-h-[80vh]">
             
             {/* The Landscape ID Card Canvas */}
             <div
               id="dfccil-staff-id-print-area"
-              className="w-full min-w-[560px] sm:min-w-[640px] max-w-[700px] bg-white border-2 border-[#0f2b5c] rounded-2xl shadow-md overflow-hidden text-slate-900 p-3.5 sm:p-4.5"
+              className="w-full max-w-[700px] bg-white border-2 border-[#0f2b5c] rounded-2xl shadow-md overflow-hidden text-slate-900 p-3.5 sm:p-4.5"
             >
               {/* Card Header: DFCCIL Branding */}
-              <div className="flex items-center justify-between border-b-2 border-[#0f2b5c] pb-2 mb-2.5">
-                <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center justify-between border-b-2 border-[#0f2b5c] pb-2 mb-2.5 gap-2">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-sm">
                     dfc
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-[#0f2b5c] uppercase tracking-tight leading-none">
+                  <div className="min-w-0">
+                    <h3 className="text-[11px] sm:text-xs font-black text-[#0f2b5c] uppercase tracking-tight leading-tight break-words">
                       Dedicated Freight Corridor Corporation of India Ltd.
                     </h3>
-                    <p className="text-[10px] text-slate-600 font-bold mt-0.5">
+                    <p className="text-[9px] sm:text-[10px] text-slate-600 font-bold mt-0.5">
                       IMSD-SMUN • Ambala Unit (P-Way Civil Department)
                     </p>
                   </div>
@@ -199,12 +199,12 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
                 </div>
               </div>
 
-              {/* Landscape Card Body: 3 Horizontal Columns */}
-              <div className="flex flex-row items-stretch gap-3">
+              {/* Responsive Card Body */}
+              <div className="flex flex-col sm:flex-row items-stretch gap-3">
                 
-                {/* 1. Left Column: Profile Photo */}
-                <div className="w-24 sm:w-28 shrink-0 flex flex-col items-center justify-between border-r border-slate-200 pr-2">
-                  <div className="w-24 h-32 rounded-lg overflow-hidden border-2 border-slate-300 bg-slate-100 shadow-inner flex items-center justify-center">
+                {/* 1. Left Column / Top Section on Mobile: Photo & Badge */}
+                <div className="flex sm:flex-col items-center justify-between sm:justify-start gap-3 sm:gap-1.5 sm:w-28 shrink-0 sm:border-r border-slate-200 sm:pr-2 pb-2 sm:pb-0 border-b sm:border-b-0">
+                  <div className="w-20 h-28 sm:w-24 sm:h-32 rounded-lg overflow-hidden border-2 border-slate-300 bg-slate-100 shadow-inner flex items-center justify-center shrink-0">
                     {staff.photoUrl ? (
                       <img
                         src={staff.photoUrl}
@@ -213,26 +213,47 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#0f2b5c] to-blue-800 text-white p-1 text-center">
-                        <span className="text-2xl font-black">
+                        <span className="text-xl sm:text-2xl font-black">
                           {displayName.replace('Shri ', '').substring(0, 2).toUpperCase()}
                         </span>
-                        <span className="text-[9px] uppercase font-bold tracking-wider mt-1 opacity-90">
+                        <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider mt-1 opacity-90">
                           DFCCIL
                         </span>
                       </div>
                     )}
                   </div>
-                  <div className="w-full text-center mt-1">
+
+                  {/* QR Code on Mobile (Displayed side-by-side with photo for compact mobile view) */}
+                  <div className="sm:hidden flex flex-col items-center justify-center">
+                    <div className="p-1 bg-white rounded-lg border border-[#0f2b5c] shadow-xs">
+                      {qrDataUrl ? (
+                        <img
+                          src={qrDataUrl}
+                          alt={`QR for ${displayName}`}
+                          className="w-16 h-16 object-contain"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 flex items-center justify-center text-[7px] text-slate-400">
+                          QR...
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[7px] font-mono font-bold text-[#0f2b5c] mt-0.5 uppercase tracking-wider">
+                      SCAN TO VERIFY
+                    </span>
+                  </div>
+
+                  <div className="hidden sm:block w-full text-center mt-1">
                     <span className="text-[8px] font-mono text-slate-600 font-bold uppercase block px-1 py-0.5 bg-slate-100 rounded border border-slate-200 truncate">
                       {displayCategory}
                     </span>
                   </div>
                 </div>
 
-                {/* 2. Middle Column: Flexible Details Grid (Landscape) */}
-                <div className="flex-1 min-w-0 space-y-1.5">
+                {/* 2. Middle Column: Flexible Details Grid with clean wrapping */}
+                <div className="flex-1 min-w-0 space-y-2">
                   {/* Name & Hindi Subtitle */}
-                  <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                  <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
                     <div className="font-black text-slate-900 text-sm sm:text-base leading-tight break-words">
                       {displayName}
                     </div>
@@ -243,75 +264,75 @@ export const StaffIdModal: React.FC<StaffIdModalProps> = ({ staff, isOpen, onClo
                     )}
                   </div>
 
-                  {/* 2-Column Info Grid */}
-                  <div className="grid grid-cols-2 gap-x-2.5 gap-y-1 text-[11px] leading-tight">
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                  {/* Responsive Info Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2.5 gap-y-1.5 text-xs sm:text-[11px] leading-tight">
+                    <div className="break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         EMP / AWPO ID:
                       </span>
-                      <span className="font-black text-[#0f2b5c] font-mono text-xs block truncate">
+                      <span className="font-black text-[#0f2b5c] font-mono text-xs block">
                         {displayId}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                    <div className="break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         DESIGNATION:
                       </span>
-                      <span className="font-bold text-slate-900 text-xs block truncate">
+                      <span className="font-bold text-slate-900 text-xs block">
                         {displayDesignation}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                    <div className="break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         FATHER'S NAME:
                       </span>
-                      <span className="font-semibold text-slate-800 block truncate">
+                      <span className="font-semibold text-slate-800 block">
                         {displayFatherName}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                    <div className="break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         BEAT / POSTING:
                       </span>
-                      <span className="font-semibold text-slate-800 block truncate">
+                      <span className="font-semibold text-slate-800 block">
                         {displayBeat}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                    <div className="break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         SECTION / KM:
                       </span>
-                      <span className="font-mono font-semibold text-slate-800 text-[10px] block truncate">
+                      <span className="font-mono font-semibold text-slate-800 text-[10px] sm:text-[11px] block">
                         {displayKmRange}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                    <div className="break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         MOBILE:
                       </span>
-                      <span className="font-mono font-bold text-blue-700 block truncate">
+                      <span className="font-mono font-bold text-blue-700 block">
                         {rawPhone || '—'}
                       </span>
                     </div>
 
-                    <div className="col-span-2">
-                      <span className="text-[8px] font-bold uppercase text-slate-500 block">
+                    <div className="sm:col-span-2 break-words">
+                      <span className="text-[8px] sm:text-[9px] font-bold uppercase text-slate-500 block">
                         RESIDENCE / HQ:
                       </span>
-                      <span className="text-slate-800 text-[10px] block truncate">
+                      <span className="text-slate-800 text-[10px] sm:text-[11px] block">
                         {displayResidence}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* 3. Right Column: High-Contrast QR Code */}
-                <div className="w-24 sm:w-28 shrink-0 flex flex-col items-center justify-center border-l border-slate-200 pl-2">
+                {/* 3. Right Column: High-Contrast QR Code on Desktop */}
+                <div className="hidden sm:flex w-24 sm:w-28 shrink-0 flex-col items-center justify-center border-l border-slate-200 pl-2">
                   <div className="p-1 bg-white rounded-lg border-2 border-[#0f2b5c] shadow-sm">
                     {qrDataUrl ? (
                       <img

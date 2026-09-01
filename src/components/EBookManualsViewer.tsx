@@ -60,14 +60,6 @@ const MANUAL_CATALOG: ManualItem[] = [
     url: '/manuals/DFC_Track_manual_2025_Final.pdf'
   },
   {
-    id: 'vossloh_manual',
-    title: 'Vossloh Turnout Maintenance Manual',
-    category: 'Turnout',
-    badge: 'Vossloh Manual',
-    date: '2025',
-    url: '/manuals/Vossloh_TO_Maintenance_Manual.pdf'
-  },
-  {
     id: 'lt_wdfc_manual',
     title: 'L&T Track Manual Applicable for WDFC',
     category: 'Track',
@@ -82,14 +74,6 @@ const MANUAL_CATALOG: ManualItem[] = [
     badge: 'Installation Manual',
     date: 'APL-01 (R03)',
     url: '/manuals/Installation_Manual_EDFCC_APL_01.pdf'
-  },
-  {
-    id: 'mm_steel_reconditioning',
-    title: 'Manual for Reconditioning MM Steel Points & Crossings',
-    category: 'Maintenance',
-    badge: 'P&C Manual',
-    date: 'IRICEN / RDSO',
-    url: '/manuals/Manual_for_Reconditioning_of_MM_Steel_Points_and_Crossings.pdf'
   }
 ];
 
@@ -177,19 +161,19 @@ export const EBookManualsViewer: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                3D Track & Railroad Manuals
+                3D Track &amp; Railroad Manuals
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold uppercase tracking-wider">
-                  6 Manuals
+                  4 Official Manuals
                 </span>
               </h1>
             </div>
             <p className="text-xs text-amber-200/80 font-medium">
-              Realistic Page-Turn Physics • Audio Turn Sound • Search & Zoom
+              Realistic Page-Turn Physics • Audio Turn Sound • Search &amp; Zoom
             </p>
           </div>
         </div>
 
-        {/* Action Buttons: Fast Manuals, ACS Slips Download & Calculator */}
+        {/* Action Buttons: Fast Manuals & ACS Slips Download */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Quick Manual Selector Chips */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -216,16 +200,6 @@ export const EBookManualsViewer: React.FC = () => {
           >
             <Download className="w-3.5 h-3.5" />
             <span>ACS Slips (1-5) ⬇</span>
-          </button>
-
-          {/* Dedicated Calculator Button */}
-          <button
-            onClick={handleOpenCalculator}
-            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 border border-cyan-300/40 flex items-center gap-1.5 transition-all hover:scale-105"
-            title="Open DFCCIL Railway Curve Calculator in New Window"
-          >
-            <Calculator className="w-3.5 h-3.5" />
-            <span>Curve Calculator ↗</span>
           </button>
         </div>
       </div>
@@ -276,30 +250,9 @@ export const EBookManualsViewer: React.FC = () => {
             </div>
           </div>
 
-          {/* Software Tools Card */}
-          <div
-            onClick={handleOpenCalculator}
-            className="mb-2.5 p-2.5 rounded-xl bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40 border border-sky-200 dark:border-sky-800/80 cursor-pointer hover:border-sky-400 transition-all flex items-center justify-between gap-2 shadow-xs group"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                <Calculator className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-sky-900 dark:text-sky-200 truncate">
-                  DFCCIL Curve Calculator
-                </div>
-                <div className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">
-                  By V K Azad • Click to Open Software
-                </div>
-              </div>
-            </div>
-            <ExternalLink className="w-3.5 h-3.5 text-sky-500 flex-shrink-0" />
-          </div>
-
           {/* Category Filter Pills */}
           <div className="flex gap-1 overflow-x-auto pb-2 mb-2 scrollbar-none">
-            {['ALL', 'Core', 'Track', 'Turnout', 'Installation', 'Maintenance'].map(cat => (
+            {['ALL', 'Core', 'Track', 'Installation'].map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}

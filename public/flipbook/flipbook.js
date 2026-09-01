@@ -1,6 +1,7 @@
 /**
  * DFCCIL 3D HTML5 Flipbook Engine - Full-Scale Viewport Edition
  * Powered by StPageFlip & PDF.js
+ * High-Performance Progressive Rendering (Instant First-Page Display)
  * DFCCIL IMSD SMUN Unit
  */
 
@@ -20,13 +21,6 @@ const BOOKS = [
     url: '/manuals/DFC_Track_manual_2025_Final.pdf'
   },
   {
-    id: 'vossloh_manual',
-    title: 'Vossloh Turnout Maintenance Manual',
-    category: 'Turnout',
-    badge: 'Vossloh',
-    url: '/manuals/Vossloh_TO_Maintenance_Manual.pdf'
-  },
-  {
     id: 'lt_wdfc_manual',
     title: 'L&T Track Manual Applicable for WDFC',
     category: 'Track',
@@ -39,13 +33,6 @@ const BOOKS = [
     category: 'Installation',
     badge: 'EDFCC APL-01',
     url: '/manuals/Installation_Manual_EDFCC_APL_01.pdf'
-  },
-  {
-    id: 'mm_steel_reconditioning',
-    title: 'Manual for Reconditioning MM Steel Points & Crossings',
-    category: 'Maintenance',
-    badge: 'P&C Reconditioning',
-    url: '/manuals/Manual_for_Reconditioning_of_MM_Steel_Points_and_Crossings.pdf'
   }
 ];
 
@@ -60,8 +47,9 @@ class FlipBookApp {
     this.pdfDoc = null;
     this.pageFlip = null;
     this.totalPages = 0;
-    this.currentPage = 0;
-    this.renderedPages = new Map();
+    this.currentPage = 1;
+    this.renderedPages = new Set();
+    this.renderingPages = new Set();
     this.soundEnabled = true;
     this.zoomLevel = 1;
     this.thumbnailsOpen = false;
@@ -71,29 +59,27 @@ class FlipBookApp {
     this.initBookSelector();
     this.bindEvents();
 
+    // Check URL query param for initial book
     const urlParams = new URLSearchParams(window.location.search);
     const bookParam = urlParams.get('book');
-    if (bookParam) {
-      const found = BOOKS.find(b => b.id === bookParam);
-      if (found) this.currentBook = found;
-    }
-
-    this.loadBook(this.currentBook);
+    const initialBook = BOOKS.find(b => b.id === bookParam) || BOOKS[0];
+    this.loadBook(initialBook);
   }
 
   initElements() {
-    this.bookSelect = document.getElementById('bookSelect');
-    this.manualChips = document.querySelectorAll('.manual-chip');
     this.bookContainer = document.getElementById('book');
     this.bookWrapper = document.getElementById('bookWrapper');
+    this.stage = document.getElementById('stage');
+    this.bookSelect = document.getElementById('bookSelect');
+    this.manualChips = document.querySelectorAll('.manual-chip');
     this.loadingOverlay = document.getElementById('loadingOverlay');
     this.loadingText = document.getElementById('loadingText');
     this.loadingBar = document.getElementById('loadingBar');
-    this.pageInfo = document.getElementById('pageInfo');
-    this.pageInput = document.getElementById('pageInput');
-    this.pageSlider = document.getElementById('pageSlider');
     this.prevBtn = document.getElementById('prevBtn');
     this.nextBtn = document.getElementById('nextBtn');
+    this.pageIndicator = document.getElementById('pageIndicator');
+    this.pageInput = document.getElementById('pageInput');
+    this.pageSlider = document.getElementById('pageSlider');
     this.thumbnailsDrawer = document.getElementById('thumbnailsDrawer');
     this.searchModal = document.getElementById('searchModal');
     this.searchInput = document.getElementById('searchInput');
@@ -254,7 +240,7 @@ class FlipBookApp {
           const currentPageNum = this.currentPage || 1;
           this.rebuildFlipbook(currentPageNum);
         }
-      }, 250);
+      }, 200);
     });
 
     document.addEventListener('fullscreenchange', () => {
@@ -263,7 +249,7 @@ class FlipBookApp {
           const currentPageNum = this.currentPage || 1;
           this.rebuildFlipbook(currentPageNum);
         }
-      }, 150);
+      }, 100);
     });
   }
 
@@ -285,7 +271,7 @@ class FlipBookApp {
     this.loadingOverlay.style.opacity = '0';
     setTimeout(() => {
       this.loadingOverlay.style.display = 'none';
-    }, 300);
+    }, 200);
   }
 
   async loadBook(book) {
@@ -293,7 +279,7 @@ class FlipBookApp {
     this.updateManualChips();
     document.getElementById('headerTitle').textContent = book.title;
 
-    this.showLoading(`Loading ${book.title}...`, 15);
+    this.showLoading(`Loading ${book.title}...`, 25);
 
     try {
       if (this.pageFlip) {
@@ -305,17 +291,20 @@ class FlipBookApp {
 
       this.bookContainer.innerHTML = '';
       this.renderedPages.clear();
+      this.renderingPages.clear();
 
       const loadingTask = window.pdfjsLib.getDocument({
         url: book.url,
         cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-        cMapPacked: true
+        cMapPacked: true,
+        disableAutoFetch: false,
+        disableStream: false
       });
 
       loadingTask.onProgress = (progress) => {
         if (progress.total > 0) {
-          const percent = Math.round((progress.loaded / progress.total) * 60);
-          this.showLoading(`Downloading Manual (${percent}%)...`, percent);
+          const percent = Math.min(80, Math.round((progress.loaded / progress.total) * 80));
+          this.showLoading(`Loading Pages (${percent}%)...`, percent);
         }
       };
 
@@ -328,12 +317,17 @@ class FlipBookApp {
       this.pageInput.value = 1;
       this.updatePageCounter(1);
 
-      this.showLoading('Setting up High-Res 3D Viewport...', 80);
+      this.showLoading('Rendering Initial Pages...', 90);
 
       this.rebuildFlipbook(1);
 
-      this.showLoading('Ready!', 100);
-      setTimeout(() => this.hideLoading(), 250);
+      // Render front pages immediately so the user can read right away without waiting!
+      await this.renderPage(1);
+      this.renderPage(2);
+      this.renderPage(3);
+      this.renderPage(4);
+
+      this.hideLoading();
 
     } catch (err) {
       console.error('Error loading PDF manual:', err);
@@ -351,6 +345,7 @@ class FlipBookApp {
 
     this.bookContainer.innerHTML = '';
     this.renderedPages.clear();
+    this.renderingPages.clear();
 
     const dims = this.calculateDimensions();
 
@@ -388,9 +383,9 @@ class FlipBookApp {
       height: dims.height,
       size: 'fixed',
       minWidth: 280,
-      maxWidth: 2000,
+      maxWidth: 2400,
       minHeight: 400,
-      maxHeight: 2500,
+      maxHeight: 2800,
       maxShadowOpacity: 0.55,
       showCover: false,
       mobileScrollSupport: false,
@@ -423,17 +418,25 @@ class FlipBookApp {
   }
 
   async renderPage(pageNum) {
-    if (pageNum < 1 || pageNum > this.totalPages || this.renderedPages.has(pageNum)) {
+    if (
+      pageNum < 1 ||
+      pageNum > this.totalPages ||
+      this.renderedPages.has(pageNum) ||
+      this.renderingPages.has(pageNum)
+    ) {
       return;
     }
 
     try {
-      this.renderedPages.set(pageNum, true);
+      this.renderingPages.add(pageNum);
       const page = await this.pdfDoc.getPage(pageNum);
       const canvas = document.getElementById(`canvas-page-${pageNum}`);
-      if (!canvas) return;
+      if (!canvas) {
+        this.renderingPages.delete(pageNum);
+        return;
+      }
 
-      const viewport = page.getViewport({ scale: 2.2 });
+      const viewport = page.getViewport({ scale: 2.0 });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
@@ -444,59 +447,57 @@ class FlipBookApp {
       };
 
       await page.render(renderContext).promise;
+      this.renderedPages.add(pageNum);
+      this.renderingPages.delete(pageNum);
     } catch (err) {
       console.warn(`Failed to render page ${pageNum}:`, err);
-      this.renderedPages.delete(pageNum);
+      this.renderingPages.delete(pageNum);
     }
   }
 
-  async renderSurroundingPages(currentPage) {
+  renderSurroundingPages(centerPage) {
+    // Priority: immediate current page spread, then surrounding pages (+/- 2)
     const pagesToRender = [
-      currentPage - 2,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      currentPage + 2,
-      currentPage + 3
-    ].filter(p => p >= 1 && p <= this.totalPages);
+      centerPage,
+      centerPage + 1,
+      centerPage - 1,
+      centerPage + 2,
+      centerPage + 3,
+      centerPage - 2
+    ];
 
-    for (const p of pagesToRender) {
-      this.renderPage(p);
-    }
+    pagesToRender.forEach(p => {
+      if (p >= 1 && p <= this.totalPages) {
+        this.renderPage(p);
+      }
+    });
   }
 
   updatePageCounter(page) {
-    this.pageInfo.textContent = `Page ${page} of ${this.totalPages}`;
+    this.currentPage = page;
     this.pageInput.value = page;
     this.pageSlider.value = page;
-    this.prevBtn.disabled = page <= 1;
-    this.nextBtn.disabled = page >= this.totalPages;
+    document.getElementById('currentPageText').textContent = page;
+    document.getElementById('totalPagesText').textContent = this.totalPages;
   }
 
   playPageSound() {
     if (!this.soundEnabled) return;
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-
-      const bufferSize = ctx.sampleRate * 0.09;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const bufferSize = ctx.sampleRate * 0.08;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
-
       for (let i = 0; i < bufferSize; i++) {
-        const decay = Math.exp(-i / (bufferSize * 0.22));
-        data[i] = (Math.random() * 2 - 1) * decay * 0.35;
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
       }
-
       const noise = ctx.createBufferSource();
       noise.buffer = buffer;
-
       const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(650, ctx.currentTime);
-      filter.Q.setValueAtTime(1.5, ctx.currentTime);
-
+      filter.type = 'lowpass';
+      filter.frequency.value = 1400;
       noise.connect(filter);
       filter.connect(ctx.destination);
       noise.start();
@@ -573,40 +574,46 @@ class FlipBookApp {
       try {
         const page = await this.pdfDoc.getPage(i);
         const textContent = await page.getTextContent();
-        const text = textContent.items.map(item => item.str).join(' ');
+        const fullText = textContent.items.map(item => item.str).join(' ');
 
-        const index = text.toLowerCase().indexOf(q);
-        if (index !== -1) {
-          const snippetStart = Math.max(0, index - 30);
-          const snippetEnd = Math.min(text.length, index + q.length + 40);
-          const snippet = text.substring(snippetStart, snippetEnd);
+        if (fullText.toLowerCase().includes(q)) {
+          const idx = fullText.toLowerCase().indexOf(q);
+          const start = Math.max(0, idx - 40);
+          const end = Math.min(fullText.length, idx + q.length + 40);
+          const snippet = fullText.substring(start, end);
 
-          matches.push({ page: i, snippet: snippet });
-          if (matches.length >= 25) break;
+          matches.push({
+            page: i,
+            snippet: snippet.replace(new RegExp(q, 'gi'), match => `<mark style="background:#f59e0b; color:#000; border-radius:2px; padding:0 2px;">${match}</mark>`)
+          });
         }
-      } catch (e) {}
+      } catch (err) {}
     }
 
     if (matches.length === 0) {
-      this.searchResults.innerHTML = '<div style="color:#ef4444; font-size:12px; text-align:center; padding:10px;">No occurrences found.</div>';
+      this.searchResults.innerHTML = `<div style="color:#ef4444; font-size:12px; text-align:center; padding:10px;">No matches found for "${query}".</div>`;
       return;
     }
 
     this.searchResults.innerHTML = '';
     matches.forEach(m => {
-      const item = document.createElement('div');
-      item.className = 'search-result-item';
-      item.innerHTML = `<span class="search-page-badge">Page ${m.page}:</span> ...${m.snippet}...`;
-      item.addEventListener('click', () => {
+      const card = document.createElement('div');
+      card.className = 'search-result-item';
+      card.innerHTML = `
+        <div class="search-result-page">Page ${m.page}</div>
+        <div class="search-result-text">...${m.snippet}...</div>
+      `;
+      card.addEventListener('click', () => {
         this.pageFlip?.flip(m.page - 1);
         this.searchModal.classList.remove('open');
         this.searchOpen = false;
       });
-      this.searchResults.appendChild(item);
+      this.searchResults.appendChild(card);
     });
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  window.flipbookApp = new FlipBookApp();
+// Boot application when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  window.flipBookApp = new FlipBookApp();
 });

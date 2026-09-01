@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ThemeProvider, useTheme } from './context/ThemeContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
-import { Sidebar } from './components/Sidebar.tsx';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard.tsx';
 import { AssetCategories, type AssetCategoryKey } from './components/AssetCategories.tsx';
 import { KmQuickFinder } from './components/KmQuickFinder.tsx';
@@ -1130,13 +1129,10 @@ function MainAppShell() {
         onOpenInspectionsAlert={() => setIsInspectionPopupOpen(true)}
       />
 
-      {/* Main Layout Container */}
-      <div className="flex-1 flex max-w-[1780px] w-full mx-auto pb-20 md:pb-8 overflow-x-hidden">
-        {/* Desktop / Tablet Sidebar */}
-        <Sidebar activeTab={currentTab} setActiveTab={setActiveTab} />
-
+      {/* Main Layout Container: Full-Width Clean Modern View */}
+      <div className="flex-1 w-full max-w-[1780px] mx-auto pb-20 md:pb-8 overflow-x-hidden">
         {/* Dynamic Content View Area */}
-        <main className="flex-1 p-2.5 sm:p-5 lg:p-6 min-w-0 w-full overflow-x-hidden overflow-y-auto">
+        <main className="w-full p-2.5 sm:p-5 lg:p-6 min-w-0 overflow-x-hidden overflow-y-auto">
           {renderActiveScreen()}
         </main>
       </div>

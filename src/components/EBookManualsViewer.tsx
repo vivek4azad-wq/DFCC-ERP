@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   Zap,
   Bookmark,
-  Calculator
+  Calculator,
+  FileCheck,
+  X
 } from 'lucide-react';
 
 interface ManualItem {
@@ -29,6 +31,15 @@ interface ManualItem {
   date?: string;
   url: string;
   isExternal?: boolean;
+}
+
+interface ACSCorrectionSlip {
+  id: string;
+  title: string;
+  shortTitle: string;
+  date: string;
+  size: string;
+  url: string;
 }
 
 const MANUAL_CATALOG: ManualItem[] = [
@@ -82,11 +93,55 @@ const MANUAL_CATALOG: ManualItem[] = [
   }
 ];
 
+const ACS_SLIPS_LIST: ACSCorrectionSlip[] = [
+  {
+    id: 'acs-01',
+    title: 'ACS-01: DFC Railroad Manual (dt. 25.06.2025)',
+    shortTitle: 'ACS 01',
+    date: '25-Jun-2025',
+    size: '790 KB',
+    url: '/manuals/ACS_01_DFC_RRM_25.06.2025.pdf'
+  },
+  {
+    id: 'acs-02',
+    title: 'ACS-02: DFC Railroad Manual',
+    shortTitle: 'ACS 02',
+    date: '2025',
+    size: '2.1 MB',
+    url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf'
+  },
+  {
+    id: 'acs-03',
+    title: 'ACS-03: Addendum & Correction Slip to DFC RRM',
+    shortTitle: 'ACS 03',
+    date: '2025',
+    size: '812 KB',
+    url: '/manuals/ACS_03_to_DFC_RRM.pdf'
+  },
+  {
+    id: 'acs-04',
+    title: 'ACS-04: DFC Railroad Manual (dt. 16.10.2025)',
+    shortTitle: 'ACS 04',
+    date: '16-Oct-2025',
+    size: '3.0 MB',
+    url: '/manuals/ACS_04_dt_16.10.2025.pdf'
+  },
+  {
+    id: 'acs-05',
+    title: 'ACS-05: DFC Railroad Manual (dt. 02.12.2025)',
+    shortTitle: 'ACS 05',
+    date: '02-Dec-2025',
+    size: '795 KB',
+    url: '/manuals/ACS_05_dt_02.12.25_RRM.pdf'
+  }
+];
+
 export const EBookManualsViewer: React.FC = () => {
   const [selectedBook, setSelectedBook] = useState<ManualItem>(MANUAL_CATALOG[0]);
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [iframeKey, setIframeKey] = useState(0);
+  const [isAcsModalOpen, setIsAcsModalOpen] = useState(false);
 
   const filteredBooks = MANUAL_CATALOG.filter(book => {
     const matchesCat = activeCategory === 'ALL' || book.category === activeCategory;
@@ -134,8 +189,9 @@ export const EBookManualsViewer: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Manual Selector Chips & Curve Calculator Launcher */}
+        {/* Action Buttons: Fast Manuals, ACS Slips Download & Calculator */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Quick Manual Selector Chips */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {MANUAL_CATALOG.map(manual => (
               <button
@@ -151,6 +207,16 @@ export const EBookManualsViewer: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {/* Direct ACS Download Modal Trigger */}
+          <button
+            onClick={() => setIsAcsModalOpen(true)}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 border border-emerald-400/40 flex items-center gap-1.5 transition-all hover:scale-105"
+            title="Download Correction Slips (ACS 1 to 5)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>ACS Slips (1-5) ⬇</span>
+          </button>
 
           {/* Dedicated Calculator Button */}
           <button
@@ -178,6 +244,36 @@ export const EBookManualsViewer: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dfccil-500"
             />
+          </div>
+
+          {/* Correction Slips Quick Download Card */}
+          <div className="mb-2.5 p-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800/80 shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Correction Slips (ACS)</span>
+              </div>
+              <span className="text-[10px] bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 font-bold px-1.5 py-0.5 rounded">
+                Direct PDF
+              </span>
+            </div>
+            <p className="text-[10px] text-emerald-700 dark:text-emerald-300/90 mb-2 leading-relaxed">
+              Click any slip below to download original PDF directly:
+            </p>
+            <div className="grid grid-cols-5 gap-1">
+              {ACS_SLIPS_LIST.map(acs => (
+                <a
+                  key={acs.id}
+                  href={acs.url}
+                  download
+                  className="px-1 py-1 rounded bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-[10px] font-bold text-center text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-all flex flex-col items-center justify-center shadow-2xs"
+                  title={`${acs.title} (${acs.size}) - Click to Download`}
+                >
+                  <span>{acs.shortTitle}</span>
+                  <span className="text-[8px] opacity-75 font-normal">PDF ⬇</span>
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Software Tools Card */}
@@ -277,6 +373,14 @@ export const EBookManualsViewer: React.FC = () => {
 
             <div className="flex items-center gap-1.5">
               <button
+                onClick={() => setIsAcsModalOpen(true)}
+                className="px-2 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-600/40"
+                title="Download Correction Slips"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ACS Slips</span>
+              </button>
+              <button
                 onClick={handleOpenCalculator}
                 className="px-2 py-1 rounded-lg bg-sky-900/60 hover:bg-sky-800 text-sky-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-sky-600/40"
                 title="Open Curve Calculator"
@@ -327,6 +431,88 @@ export const EBookManualsViewer: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ACS Correction Slips Direct Download Modal */}
+      {isAcsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <FileCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">DFC Railroad Manual Correction Slips</h3>
+                  <p className="text-xs text-slate-400">Direct 1-Click PDF Downloads (ACS 01 to 05)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAcsModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+              {ACS_SLIPS_LIST.map((acs, idx) => (
+                <div
+                  key={acs.id}
+                  className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        {acs.shortTitle}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-300">
+                        {acs.date}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        ({acs.size})
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-slate-200 truncate">
+                      {acs.title}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={acs.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors flex items-center gap-1"
+                      title="Open PDF in browser"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">View</span>
+                    </a>
+                    <a
+                      href={acs.url}
+                      download
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors flex items-center gap-1.5 shadow-sm"
+                      title="Download PDF directly"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setIsAcsModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -220,6 +220,16 @@ class FlipBookApp {
 
     this.searchInput?.addEventListener('input', (e) => this.debounceSearch(e.target.value));
 
+    // ACS Slips Modal toggle
+    const acsModal = document.getElementById('acsDownloadModal');
+    document.getElementById('acsModalBtn')?.addEventListener('click', () => {
+      acsModal?.classList.toggle('open');
+    });
+
+    document.getElementById('acsModalCloseBtn')?.addEventListener('click', () => {
+      acsModal?.classList.remove('open');
+    });
+
     // Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
@@ -232,6 +242,7 @@ class FlipBookApp {
       } else if (e.key === 'Escape') {
         this.thumbnailsDrawer.classList.remove('open');
         this.searchModal.classList.remove('open');
+        acsModal?.classList.remove('open');
         this.thumbnailsOpen = false;
         this.searchOpen = false;
       }

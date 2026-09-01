@@ -550,6 +550,109 @@ html, body {
   margin-right: 4px;
 }
 
+/* ACS Launcher Button */
+.btn-acs-launcher {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border: 1px solid #34d399;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+  white-space: nowrap;
+}
+
+.btn-acs-launcher:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.5);
+}
+
+/* ACS Download Modal */
+.acs-download-modal {
+  position: absolute;
+  top: 68px;
+  left: 280px;
+  width: 360px;
+  max-width: 90vw;
+  background: rgba(10, 18, 36, 0.96);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  z-index: 190;
+  display: none;
+  flex-direction: column;
+}
+
+.acs-download-modal.open {
+  display: flex;
+}
+
+.acs-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 10px;
+}
+
+.acs-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.acs-download-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  text-decoration: none;
+  color: #e2e8f0;
+  transition: all 0.15s;
+}
+
+.acs-download-row:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+}
+
+.acs-row-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.acs-row-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.acs-dl-pill {
+  font-size: 10px;
+  font-weight: 800;
+  background: #10b981;
+  color: #022c22;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
 /* Responsive Rules */
 @media (max-width: 768px) {
   .flipbook-header {
@@ -566,6 +669,11 @@ html, body {
   .acs-chip-group {
     display: none;
   }
+  .acs-download-modal {
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
   .nav-arrow {
     width: 38px;
     height: 50px;
@@ -580,3 +688,4 @@ html, body {
     display: none;
   }
 }
+

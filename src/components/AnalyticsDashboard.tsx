@@ -87,6 +87,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const [jurisdictionLine, setJurisdictionLine] = useState<'main' | 'loop' | 'crossover'>('main');
   const [isAiSummaryModalOpen, setIsAiSummaryModalOpen] = useState(false);
   const [copiedSummary, setCopiedSummary] = useState(false);
+  const [activeDashboardMode, setActiveDashboardMode] = useState<'infographic' | 'detailed'>('infographic');
 
   const fetchAnalytics = async () => {
     try {
@@ -266,8 +267,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     },
     cutout: '65%'
   };
-
-  const [activeDashboardMode, setActiveDashboardMode] = useState<'infographic' | 'detailed'>('infographic');
 
   const handleQuickJumpClick = (km: number) => {
     if (onQuickJump) {

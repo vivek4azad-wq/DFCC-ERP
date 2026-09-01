@@ -1,5 +1,5 @@
 /**
- * 3D E-Manuals & Advance Correction Slips (ACS) Interactive Flipbook
+ * 3D Track & Railroad Manuals Library (Interactive Flipbook)
  * DFCCIL IMSD SMUN Unit
  */
 
@@ -23,7 +23,7 @@ import {
 interface ManualItem {
   id: string;
   title: string;
-  category: 'Manual' | 'ACS' | 'Turnout' | 'P&C' | 'Online';
+  category: 'Core' | 'Track' | 'Turnout' | 'Installation' | 'Maintenance';
   badge: string;
   date?: string;
   url: string;
@@ -34,56 +34,16 @@ const MANUAL_CATALOG: ManualItem[] = [
   {
     id: 'dfc_rrm_final',
     title: 'DFC Railroad Manual (Final Official)',
-    category: 'Manual',
-    badge: 'Core Manual',
-    date: '2025',
+    category: 'Core',
+    badge: 'Railroad Manual',
+    date: 'Final Edition',
     url: '/manuals/DFC_RAILROAD_MANUAL_Final.pdf'
-  },
-  {
-    id: 'acs_01',
-    title: 'ACS-01 DFC Railroad Manual',
-    category: 'ACS',
-    badge: 'ACS 01',
-    date: '25.06.2025',
-    url: '/manuals/ACS_01_DFC_RRM_25.06.2025.pdf'
-  },
-  {
-    id: 'acs_02',
-    title: 'ACS-02 DFC Railroad Manual',
-    category: 'ACS',
-    badge: 'ACS 02',
-    date: '08.08.2025',
-    url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf'
-  },
-  {
-    id: 'acs_03',
-    title: 'ACS-03 to DFC Railroad Manual',
-    category: 'ACS',
-    badge: 'ACS 03',
-    date: '2025',
-    url: '/manuals/ACS_03_to_DFC_RRM.pdf'
-  },
-  {
-    id: 'acs_04',
-    title: 'ACS-04 to DFC Railroad Manual',
-    category: 'ACS',
-    badge: 'ACS 04',
-    date: '16.10.2025',
-    url: '/manuals/ACS_04_dt_16.10.2025.pdf'
-  },
-  {
-    id: 'acs_05',
-    title: 'ACS-05 to DFC Railroad Manual',
-    category: 'ACS',
-    badge: 'ACS 05',
-    date: '02.12.2025',
-    url: '/manuals/ACS_05_dt_02.12.25_RRM.pdf'
   },
   {
     id: 'dfc_track_manual_2025',
     title: 'DFC Track Manual 2025 (Final)',
-    category: 'Manual',
-    badge: 'Track 2025',
+    category: 'Track',
+    badge: 'Track Manual 2025',
     date: '2025',
     url: '/manuals/DFC_Track_manual_2025_Final.pdf'
   },
@@ -91,34 +51,33 @@ const MANUAL_CATALOG: ManualItem[] = [
     id: 'vossloh_manual',
     title: 'Vossloh Turnout Maintenance Manual',
     category: 'Turnout',
-    badge: 'Turnout',
-    date: 'Feb 2025',
+    badge: 'Vossloh Manual',
+    date: '2025',
     url: '/manuals/Vossloh_TO_Maintenance_Manual.pdf'
   },
   {
-    id: 'reconditioning_booklet',
-    title: 'Booklet on Reconditioning of Points & Crossing',
-    category: 'P&C',
-    badge: 'P&C',
-    date: 'Feb 2025',
-    url: '/manuals/Booklet_on_Reconditioning_of_Points_and_Crossing.pdf'
+    id: 'lt_wdfc_manual',
+    title: 'L&T Track Manual Applicable for WDFC',
+    category: 'Track',
+    badge: 'L&T Manual',
+    date: 'WDFC Applicable',
+    url: '/manuals/LT_Track_Manual_Applicable_for_WDFC.pdf'
+  },
+  {
+    id: 'edfcc_installation_manual',
+    title: 'Installation Manual EDFCC APL-01 (R03)',
+    category: 'Installation',
+    badge: 'Installation Manual',
+    date: 'APL-01 (R03)',
+    url: '/manuals/Installation_Manual_EDFCC_APL_01.pdf'
   },
   {
     id: 'mm_steel_reconditioning',
     title: 'Manual for Reconditioning MM Steel Points & Crossings',
-    category: 'P&C',
-    badge: 'Welding',
-    date: 'IRICEN/RDSO',
+    category: 'Maintenance',
+    badge: 'P&C Manual',
+    date: 'IRICEN / RDSO',
     url: '/manuals/Manual_for_Reconditioning_of_MM_Steel_Points_and_Crossings.pdf'
-  },
-  {
-    id: 'iricen_turnout_online',
-    title: 'IRICEN Turnout 2025 (Official Online Flipbook)',
-    category: 'Online',
-    badge: 'IRICEN Live',
-    date: 'Dec 2025',
-    url: 'https://www.iricen.gov.in/iricen/books_jquery/Turnout%202025/index.html',
-    isExternal: true
   }
 ];
 
@@ -149,7 +108,7 @@ export const EBookManualsViewer: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] w-full gap-3 animate-in fade-in duration-300">
-      {/* Top Banner & Fast ACS Selector */}
+      {/* Top Banner & Fast Manual Selector */}
       <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-4 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
@@ -158,40 +117,34 @@ export const EBookManualsViewer: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                3D HTML5 E-Manuals & Correction Slips
+                3D Track & Railroad Manuals E-Library
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold uppercase tracking-wider">
-                  3D Flip
+                  6 Manuals
                 </span>
               </h1>
             </div>
             <p className="text-xs text-amber-200/80 font-medium">
-              Realistic Page-Turn Physics • Audio Feedback • Instant Clause & Table Search
+              Realistic Page-Turn Physics • Web Audio Turn Sound • Search & Zoom
             </p>
           </div>
         </div>
 
-        {/* Quick ACS Chips */}
+        {/* Quick Manual Selector Chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-semibold text-slate-300 mr-1 hidden sm:inline">ACS Fast Jump:</span>
-          {MANUAL_CATALOG.filter(b => b.category === 'ACS').map(acs => (
+          <span className="text-xs font-semibold text-slate-300 mr-1 hidden sm:inline">Jump to Manual:</span>
+          {MANUAL_CATALOG.map(manual => (
             <button
-              key={acs.id}
-              onClick={() => handleSelectBook(acs)}
+              key={manual.id}
+              onClick={() => handleSelectBook(manual)}
               className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all shadow-sm ${
-                selectedBook.id === acs.id
+                selectedBook.id === manual.id
                   ? 'bg-amber-400 text-slate-950 shadow-amber-400/40 ring-2 ring-amber-300'
                   : 'bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10'
               }`}
             >
-              {acs.badge}
+              {manual.badge}
             </button>
           ))}
-          <button
-            onClick={() => handleSelectBook(MANUAL_CATALOG.find(b => b.id === 'iricen_turnout_online')!)}
-            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white transition-all border border-emerald-400/30 flex items-center gap-1"
-          >
-            <Sparkles className="w-3 h-3" /> IRICEN 2025
-          </button>
         </div>
       </div>
 
@@ -204,7 +157,7 @@ export const EBookManualsViewer: React.FC = () => {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Filter manuals & slips..."
+              placeholder="Filter manuals..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dfccil-500"
@@ -213,7 +166,7 @@ export const EBookManualsViewer: React.FC = () => {
 
           {/* Category Filter Pills */}
           <div className="flex gap-1 overflow-x-auto pb-2 mb-2 scrollbar-none">
-            {['ALL', 'Manual', 'ACS', 'Turnout', 'P&C'].map(cat => (
+            {['ALL', 'Core', 'Track', 'Turnout', 'Installation', 'Maintenance'].map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
@@ -245,11 +198,11 @@ export const EBookManualsViewer: React.FC = () => {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        book.category === 'ACS'
-                          ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
-                          : book.category === 'Manual'
+                        book.category === 'Core'
                           ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300'
-                          : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300'
+                          : book.category === 'Track'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300'
                       }`}>
                         {book.badge}
                       </span>
@@ -299,7 +252,7 @@ export const EBookManualsViewer: React.FC = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium flex items-center gap-1"
-                title="Download Original PDF"
+                title="Download Original PDF Manual"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">PDF</span>

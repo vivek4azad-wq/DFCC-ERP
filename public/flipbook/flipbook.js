@@ -1,5 +1,5 @@
 /**
- * DFCCIL 3D HTML5 Flipbook Engine
+ * DFCCIL 3D HTML5 Flipbook Engine - Manuals Only Edition
  * Powered by StPageFlip & PDF.js
  * DFCCIL IMSD SMUN Unit
  */
@@ -7,69 +7,45 @@
 const BOOKS = [
   {
     id: 'dfc_rrm_final',
-    title: 'DFC Railroad Manual (Final)',
-    category: 'Manual',
+    title: 'DFC Railroad Manual (Final Official)',
+    category: 'Core',
+    badge: 'Railroad',
     url: '/manuals/DFC_RAILROAD_MANUAL_Final.pdf'
-  },
-  {
-    id: 'acs_01',
-    title: 'ACS-01 DFC RRM (25.06.2025)',
-    category: 'ACS',
-    url: '/manuals/ACS_01_DFC_RRM_25.06.2025.pdf'
-  },
-  {
-    id: 'acs_02',
-    title: 'ACS-02 DFC RRM (08.08.2025)',
-    category: 'ACS',
-    url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf'
-  },
-  {
-    id: 'acs_03',
-    title: 'ACS-03 DFC RRM (2025)',
-    category: 'ACS',
-    url: '/manuals/ACS_03_to_DFC_RRM.pdf'
-  },
-  {
-    id: 'acs_04',
-    title: 'ACS-04 DFC RRM (16.10.2025)',
-    category: 'ACS',
-    url: '/manuals/ACS_04_dt_16.10.2025.pdf'
-  },
-  {
-    id: 'acs_05',
-    title: 'ACS-05 DFC RRM (02.12.2025)',
-    category: 'ACS',
-    url: '/manuals/ACS_05_dt_02.12.25_RRM.pdf'
   },
   {
     id: 'dfc_track_manual_2025',
     title: 'DFC Track Manual 2025 (Final)',
-    category: 'Manual',
+    category: 'Track',
+    badge: 'Track 2025',
     url: '/manuals/DFC_Track_manual_2025_Final.pdf'
   },
   {
     id: 'vossloh_manual',
     title: 'Vossloh Turnout Maintenance Manual',
     category: 'Turnout',
+    badge: 'Vossloh',
     url: '/manuals/Vossloh_TO_Maintenance_Manual.pdf'
   },
   {
-    id: 'reconditioning_booklet',
-    title: 'Booklet on Reconditioning of Points & Crossing',
-    category: 'P&C',
-    url: '/manuals/Booklet_on_Reconditioning_of_Points_and_Crossing.pdf'
+    id: 'lt_wdfc_manual',
+    title: 'L&T Track Manual Applicable for WDFC',
+    category: 'Track',
+    badge: 'L&T WDFC',
+    url: '/manuals/LT_Track_Manual_Applicable_for_WDFC.pdf'
+  },
+  {
+    id: 'edfcc_installation_manual',
+    title: 'Installation Manual EDFCC APL-01 (R03)',
+    category: 'Installation',
+    badge: 'EDFCC APL-01',
+    url: '/manuals/Installation_Manual_EDFCC_APL_01.pdf'
   },
   {
     id: 'mm_steel_reconditioning',
-    title: 'Reconditioning of MM Steel Points & Crossings',
-    category: 'P&C',
+    title: 'Manual for Reconditioning MM Steel Points & Crossings',
+    category: 'Maintenance',
+    badge: 'P&C Reconditioning',
     url: '/manuals/Manual_for_Reconditioning_of_MM_Steel_Points_and_Crossings.pdf'
-  },
-  {
-    id: 'crossing_inspection_proforma',
-    title: 'Proforma of Crossing Inspection',
-    category: 'Proforma',
-    url: '/manuals/Performa_of_crossing_inspection_of_railway.pdf'
   }
 ];
 
@@ -110,7 +86,7 @@ class FlipBookApp {
 
   initElements() {
     this.bookSelect = document.getElementById('bookSelect');
-    this.acsChips = document.querySelectorAll('.acs-chip');
+    this.manualChips = document.querySelectorAll('.manual-chip');
     this.bookContainer = document.getElementById('book');
     this.bookWrapper = document.getElementById('bookWrapper');
     this.loadingOverlay = document.getElementById('loadingOverlay');
@@ -137,7 +113,7 @@ class FlipBookApp {
 
     for (const [category, items] of Object.entries(groups)) {
       const optgroup = document.createElement('optgroup');
-      optgroup.label = category;
+      optgroup.label = `${category} Manuals`;
       items.forEach(b => {
         const opt = document.createElement('option');
         opt.value = b.id;
@@ -155,7 +131,7 @@ class FlipBookApp {
       if (book) this.loadBook(book);
     });
 
-    this.acsChips.forEach(chip => {
+    this.manualChips.forEach(chip => {
       chip.addEventListener('click', () => {
         const bookId = chip.dataset.book;
         const book = BOOKS.find(b => b.id === bookId);
@@ -243,8 +219,8 @@ class FlipBookApp {
     });
   }
 
-  updateAcsChips() {
-    this.acsChips.forEach(chip => {
+  updateManualChips() {
+    this.manualChips.forEach(chip => {
       chip.classList.toggle('active', chip.dataset.book === this.currentBook.id);
     });
     this.bookSelect.value = this.currentBook.id;
@@ -266,7 +242,7 @@ class FlipBookApp {
 
   async loadBook(book) {
     this.currentBook = book;
-    this.updateAcsChips();
+    this.updateManualChips();
     document.getElementById('headerTitle').textContent = book.title;
 
     this.showLoading(`Loading ${book.title}...`, 15);
@@ -494,7 +470,6 @@ class FlipBookApp {
         this.thumbnailsOpen = false;
       });
 
-      // Render thumbnail in background
       this.pdfDoc.getPage(i).then(page => {
         const viewport = page.getViewport({ scale: 0.25 });
         canvas.width = viewport.width;
@@ -519,7 +494,7 @@ class FlipBookApp {
     }
 
     const q = query.toLowerCase().trim();
-    this.searchResults.innerHTML = '<div style="color:#d4af37; font-size:12px; text-align:center; padding:10px;">Searching in document...</div>';
+    this.searchResults.innerHTML = '<div style="color:#d4af37; font-size:12px; text-align:center; padding:10px;">Searching in manual...</div>';
 
     const matches = [];
     const maxSearchPages = Math.min(this.totalPages, 150);
@@ -562,7 +537,6 @@ class FlipBookApp {
   }
 }
 
-// Boot up once DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
   window.flipbookApp = new FlipBookApp();
 });

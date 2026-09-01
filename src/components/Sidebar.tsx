@@ -63,10 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     },
     {
       id: 'manuals',
-      label: '3D Manuals & ACS Slips',
+      label: '3D Track & Railroad Manuals',
       shortLabel: '3D Manuals',
       icon: BookOpen,
-      badge: '3D Flip'
+      badge: '6 Manuals'
     },
     {
       id: 'categories',

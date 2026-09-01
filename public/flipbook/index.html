@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DFCCIL 3D E-Manuals & Correction Slips Reader</title>
+  <title>DFCCIL 3D Track & Railroad Manuals Library</title>
   <link rel="icon" type="image/png" href="/logo.png" />
   
   <!-- PDF.js Library -->
@@ -21,7 +21,7 @@
       <div class="header-left">
         <div class="header-title-box">
           <span class="header-title" id="headerTitle">DFC Railroad Manual (Final)</span>
-          <span class="header-subtitle">DFCCIL IMSD SMUN • 3D E-Library</span>
+          <span class="header-subtitle">DFCCIL IMSD SMUN • 3D E-Manuals</span>
         </div>
         
         <!-- Book Selector -->
@@ -32,13 +32,14 @@
           <span class="select-arrow">▼</span>
         </div>
 
-        <!-- Quick ACS Badges -->
+        <!-- Quick Manual Badges -->
         <div class="acs-chip-group">
-          <button class="acs-chip" data-book="acs_01">ACS 01</button>
-          <button class="acs-chip" data-book="acs_02">ACS 02</button>
-          <button class="acs-chip" data-book="acs_03">ACS 03</button>
-          <button class="acs-chip" data-book="acs_04">ACS 04</button>
-          <button class="acs-chip" data-book="acs_05">ACS 05</button>
+          <button class="manual-chip acs-chip" data-book="dfc_rrm_final">Railroad Manual</button>
+          <button class="manual-chip acs-chip" data-book="dfc_track_manual_2025">Track Manual 2025</button>
+          <button class="manual-chip acs-chip" data-book="vossloh_manual">Vossloh Manual</button>
+          <button class="manual-chip acs-chip" data-book="lt_wdfc_manual">L&T Manual</button>
+          <button class="manual-chip acs-chip" data-book="edfcc_installation_manual">Installation Manual</button>
+          <button class="manual-chip acs-chip" data-book="mm_steel_reconditioning">P&C Manual</button>
         </div>
       </div>
 
@@ -76,7 +77,7 @@
       <!-- Loading Overlay -->
       <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner"></div>
-        <div id="loadingText" class="loading-text">Loading 3D E-Book...</div>
+        <div id="loadingText" class="loading-text">Loading 3D E-Manual...</div>
         <div class="loading-bar-wrapper">
           <div id="loadingBar" class="loading-bar-fill"></div>
         </div>
@@ -123,7 +124,7 @@
     <!-- Search Modal -->
     <div id="searchModal" class="search-modal">
       <div class="search-input-box">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search keywords (e.g. Turnout, LWR, Axle)...">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search in manual (e.g. Turnout, LWR, Axle)...">
         <button id="searchCloseBtn" class="btn-icon" style="flex: 0 0 34px;">✕</button>
       </div>
       <div id="searchResults" class="search-results-list"></div>

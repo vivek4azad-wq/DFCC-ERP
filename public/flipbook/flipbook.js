@@ -1,7 +1,7 @@
 /**
  * DFCCIL 3D HTML5 Flipbook Engine - Full-Scale Viewport Edition
  * Powered by StPageFlip & PDF.js
- * High-Performance Progressive Rendering (Instant First-Page Display)
+ * Instant First-Page Progressive Rendering
  * DFCCIL IMSD SMUN Unit
  */
 
@@ -77,7 +77,6 @@ class FlipBookApp {
     this.loadingBar = document.getElementById('loadingBar');
     this.prevBtn = document.getElementById('prevBtn');
     this.nextBtn = document.getElementById('nextBtn');
-    this.pageIndicator = document.getElementById('pageIndicator');
     this.pageInput = document.getElementById('pageInput');
     this.pageSlider = document.getElementById('pageSlider');
     this.thumbnailsDrawer = document.getElementById('thumbnailsDrawer');
@@ -114,9 +113,9 @@ class FlipBookApp {
     const headerH = document.querySelector('.flipbook-header')?.offsetHeight || 56;
     const toolbarH = document.querySelector('.flipbook-toolbar')?.offsetHeight || 52;
     const availableH = window.innerHeight - headerH - toolbarH - 24;
-    const availableW = window.innerWidth - (isMobile ? 24 : 120);
+    const availableW = window.innerWidth - (isMobile ? 24 : 100);
 
-    const aspect = 0.707;
+    const aspect = 0.707; // A4 aspect ratio (width / height)
     let pageH = Math.max(450, Math.floor(availableH));
     let pageW = Math.round(pageH * aspect);
 
@@ -171,8 +170,8 @@ class FlipBookApp {
     document.getElementById('soundBtn')?.addEventListener('click', (e) => {
       this.soundEnabled = !this.soundEnabled;
       const btn = e.currentTarget;
-      btn.classList.toggle('active', this.soundEnabled);
-      btn.title = this.soundEnabled ? 'Sound: ON' : 'Sound: OFF';
+      btn?.classList.toggle('active', this.soundEnabled);
+      if (btn) btn.title = this.soundEnabled ? 'Sound: ON' : 'Sound: OFF';
     });
 
     // Zoom controls
@@ -237,7 +236,7 @@ class FlipBookApp {
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        if (this.pageFlip && this.pdfDoc) {
+        if (this.pdfDoc) {
           const currentPageNum = this.currentPage || 1;
           this.rebuildFlipbook(currentPageNum);
         }
@@ -247,7 +246,7 @@ class FlipBookApp {
     ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
       document.addEventListener(evt, () => {
         setTimeout(() => {
-          if (this.pageFlip && this.pdfDoc) {
+          if (this.pdfDoc) {
             const currentPageNum = this.currentPage || 1;
             this.rebuildFlipbook(currentPageNum);
           }
@@ -295,7 +294,11 @@ class FlipBookApp {
         this.pageFlip = null;
       }
 
-      if (this.bookContainer) this.bookContainer.innerHTML = '';
+      if (this.bookWrapper) {
+        this.bookWrapper.innerHTML = '<div id="book" class="st-page-flip"></div>';
+        this.bookContainer = document.getElementById('book');
+      }
+
       this.renderedPages.clear();
       this.renderingPages.clear();
 
@@ -331,11 +334,13 @@ class FlipBookApp {
 
       this.rebuildFlipbook(1);
 
-      // Render front pages immediately so the user can read right away without waiting!
-      await this.renderPage(1);
-      this.renderPage(2);
-      this.renderPage(3);
-      this.renderPage(4);
+      // Render first 4 pages immediately so reading begins instantly
+      await Promise.all([
+        this.renderPage(1),
+        this.renderPage(2),
+        this.renderPage(3),
+        this.renderPage(4)
+      ]);
 
       this.hideLoading();
 
@@ -353,15 +358,22 @@ class FlipBookApp {
       this.pageFlip = null;
     }
 
-    if (!this.bookContainer) return;
+    if (this.bookWrapper) {
+      this.bookWrapper.innerHTML = '<div id="book" class="st-page-flip"></div>';
+      this.bookContainer = document.getElementById('book');
+    }
 
-    this.bookContainer.innerHTML = '';
-    this.renderedPages.clear();
-    this.renderingPages.clear();
+    if (!this.bookContainer) return;
 
     const dims = this.calculateDimensions();
 
-    // Create page DOM nodes with explicit soft density to avoid StPageFlip density crashes
+    const containerWidth = dims.isMobile ? dims.width : (dims.width * 2);
+    this.bookWrapper.style.width = `${containerWidth}px`;
+    this.bookWrapper.style.height = `${dims.height}px`;
+    this.bookContainer.style.width = `${containerWidth}px`;
+    this.bookContainer.style.height = `${dims.height}px`;
+
+    // Create page DOM nodes
     for (let i = 1; i <= this.totalPages; i++) {
       const pageDiv = document.createElement('div');
       pageDiv.className = 'page';
@@ -376,6 +388,15 @@ class FlipBookApp {
       const canvas = document.createElement('canvas');
       canvas.className = 'page-canvas';
       canvas.id = `canvas-page-${i}`;
+      canvas.width = dims.width * 2;
+      canvas.height = dims.height * 2;
+
+      // Draw clean initial placeholder
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       const footer = document.createElement('div');
       footer.className = 'page-number-footer';
@@ -393,17 +414,17 @@ class FlipBookApp {
     this.pageFlip = new St.PageFlip(this.bookContainer, {
       width: dims.width,
       height: dims.height,
-      size: 'fixed',
-      minWidth: 280,
+      size: 'stretch',
+      minWidth: 260,
       maxWidth: 2400,
-      minHeight: 400,
+      minHeight: 380,
       maxHeight: 2800,
       maxShadowOpacity: 0.55,
       showCover: false,
-      mobileScrollSupport: false,
+      mobileScrollSupport: true,
       useMouseEvents: true,
       usePortrait: dims.isMobile,
-      autoSize: false
+      startPage: initialPage > 0 ? initialPage - 1 : 0
     });
 
     this.pageFlip.loadFromHTML(pageElements);
@@ -434,7 +455,8 @@ class FlipBookApp {
       pageNum < 1 ||
       pageNum > this.totalPages ||
       this.renderedPages.has(pageNum) ||
-      this.renderingPages.has(pageNum)
+      this.renderingPages.has(pageNum) ||
+      !this.pdfDoc
     ) {
       return;
     }
@@ -451,6 +473,8 @@ class FlipBookApp {
       const viewport = page.getViewport({ scale: 2.0 });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
 
       const ctx = canvas.getContext('2d');
       const renderContext = {
@@ -468,14 +492,15 @@ class FlipBookApp {
   }
 
   renderSurroundingPages(centerPage) {
-    // Priority: immediate current page spread, then surrounding pages (+/- 2)
     const pagesToRender = [
       centerPage,
       centerPage + 1,
       centerPage - 1,
       centerPage + 2,
       centerPage + 3,
-      centerPage - 2
+      centerPage - 2,
+      centerPage + 4,
+      centerPage + 5
     ];
 
     pagesToRender.forEach(p => {

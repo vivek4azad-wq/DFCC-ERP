@@ -16,6 +16,7 @@ import { launchNavigation } from '../services/geo.ts';
 import { useTheme } from '../context/ThemeContext.tsx';
 import type { AnalyticsSummary } from '../types/index.ts';
 import type { AssetCategoryKey } from './AssetCategories.tsx';
+import { ModernInfographicDashboard } from './ModernInfographicDashboard.tsx';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -266,6 +267,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     cutout: '65%'
   };
 
+  const [activeDashboardMode, setActiveDashboardMode] = useState<'infographic' | 'detailed'>('infographic');
+
   const handleQuickJumpClick = (km: number) => {
     if (onQuickJump) {
       const fromKm = (km - 0.05).toFixed(3);
@@ -276,16 +279,23 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
+      {/* 1. Modern High-Impact Infrastructure Infographic View (User Inspired) */}
+      <ModernInfographicDashboard
+        onNavigateToAsset={onNavigateToAsset}
+        onNavigateToStaff={onNavigateToStaff}
+        onQuickJump={onQuickJump}
+      />
+
+      {/* Top Banner & AI Summary */}
       <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm dark:shadow-lg">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 rounded-xl">
             <BarChart3 className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">IMSD-SMUN Unit Command Dashboard</h2>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Real-Time Telemetry &amp; Field Analytics</h2>
             <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-              Central Telemetry across 88.679 Km Corridor • Real-time Data Linked
+              Live Database Queries across 88.679 Km Corridor • P-Way, Store &amp; Roster Integrated
             </p>
           </div>
         </div>

@@ -37,7 +37,7 @@ export const CANONICAL_SMUN_84_STAFF: CanonicalStaffMember[] = [
     categoryLabel: 'Permanent Staff',
     isPermanent: true,
     awpoId: 'EMP-101518',
-    phone: '9717631362',
+    phone: '8872671873',
     beatOrSection: 'IMSD SMUN (Full Jurisdiction Km 1167.210 – 1249.720)'
   },
   {

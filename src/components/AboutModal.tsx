@@ -123,8 +123,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-center gap-3">
                   <div>
                     <span className="text-[10px] text-slate-500 block font-semibold">Official Contact</span>
-                    <a href="tel:9717631362" className="text-amber-300 font-mono font-bold hover:underline">
-                      +91 9717631362
+                    <a href="tel:8872671873" className="text-amber-300 font-mono font-bold hover:underline">
+                      +91 8872671873
                     </a>
                   </div>
                   <div>

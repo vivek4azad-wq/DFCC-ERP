@@ -41,26 +41,107 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
 
   const masterNavItems = [
+    // Pillar 1: Executive Command & Spatial Overview
     {
       id: 'analytics',
       label: 'Analytics Dashboard',
-      shortLabel: 'Analytics',
+      shortLabel: 'Dashboard',
       icon: BarChart3,
-      badge: 'Visual'
+      badge: 'Infographic'
     },
     {
       id: 'linear',
       label: 'Linear Track Diagram',
       shortLabel: 'Linear',
       icon: Layers,
-      badge: 'Schematic'
+      badge: '88.68 Km'
+    },
+    {
+      id: 'kmfinder',
+      label: 'Km Quick Finder',
+      shortLabel: 'Km Finder',
+      icon: Search,
+      badge: 'Search'
+    },
+    {
+      id: 'gpsmap',
+      label: 'DFCCIL GPS Track Map',
+      shortLabel: 'GPS Map',
+      icon: Compass,
+      badge: '144 GPS'
+    },
+
+    // Pillar 2: Track Assets & Spatial Master
+    {
+      id: 'categories',
+      label: 'Assets Master Directory',
+      shortLabel: 'Assets',
+      icon: Grid,
+      badge: '8 Groups'
     },
     {
       id: 'keyplans',
       label: 'Station Key-Plans & Layout',
       shortLabel: 'Key-Plans',
       icon: FileText,
-      badge: 'PDF / CAD'
+      badge: 'CAD / PDF'
+    },
+
+    // Pillar 3: P-Way Engineering & Maintenance
+    {
+      id: 'pway_work',
+      label: 'P-Way Quality Inspections',
+      shortLabel: 'P-Way',
+      icon: Activity,
+      badge: 'Quality'
+    },
+    {
+      id: 'maintenance',
+      label: 'Track Maintenance Module',
+      shortLabel: 'Maintenance',
+      icon: Wrench,
+      badge: '1+15 Gang'
+    },
+    {
+      id: 'defects',
+      label: 'Track Defects & USFD Logs',
+      shortLabel: 'Defects',
+      icon: AlertTriangle,
+      badge: '48 Logs'
+    },
+
+    // Pillar 4: Store & Material Logistics (Dedicated Independent Pillar)
+    {
+      id: 'store',
+      label: 'Store & Material Logistics',
+      shortLabel: 'Store ERP',
+      icon: Package,
+      badge: 'Tally Depot'
+    },
+
+    // Pillar 5: Personnel ERP & Attendance
+    {
+      id: 'staff',
+      label: 'Staff & Personnel Directory',
+      shortLabel: 'Staff ERP',
+      icon: Users,
+      badge: '84 Staff'
+    },
+    {
+      id: 'attendance',
+      label: 'Daily Attendance & Muster',
+      shortLabel: 'Attendance',
+      icon: CalendarCheck,
+      badge: 'Muster Roll'
+    },
+
+    // Pillar 6: Technical Software & 3D E-Manuals Hub
+    {
+      id: 'software',
+      label: 'DFCCIL Curve Calculator',
+      shortLabel: 'Software',
+      icon: Calculator,
+      badge: 'VK Azad'
     },
     {
       id: 'manuals',
@@ -68,76 +149,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       shortLabel: '3D Manuals',
       icon: BookOpen,
       badge: '6 Manuals'
-    },
-    {
-      id: 'software',
-      label: 'Curve Calculator Software',
-      shortLabel: 'Software',
-      icon: Calculator,
-      badge: 'VK Azad'
-    },
-    {
-      id: 'categories',
-      label: 'Assets Categories',
-      shortLabel: 'Categories',
-      icon: Grid,
-      badge: '8 Groups'
-    },
-    {
-      id: 'kmfinder',
-      label: 'Km Quick Finder',
-      shortLabel: 'Km Finder',
-      icon: Search,
-      badge: '88.68 Km'
-    },
-    {
-      id: 'gpsmap',
-      label: 'GPS Bridges Map',
-      shortLabel: 'Bridges',
-      icon: Compass,
-      badge: '144 GPS'
-    },
-    {
-      id: 'pway_work',
-      label: 'P-Way OMS & TRC',
-      shortLabel: 'P-Way',
-      icon: Activity,
-      badge: 'Quality'
-    },
-    {
-      id: 'maintenance',
-      label: 'Track Maintenance',
-      shortLabel: 'Maintenance',
-      icon: Wrench,
-      badge: '1+15 Gang'
-    },
-    {
-      id: 'store',
-      label: 'Store & Tool Depot',
-      shortLabel: 'Store ERP',
-      icon: Package,
-      badge: 'Depot'
-    },
-    {
-      id: 'attendance',
-      label: 'Daily Attendance & Absentee',
-      shortLabel: 'Attendance',
-      icon: CalendarCheck,
-      badge: 'ERP Roster'
-    },
-    {
-      id: 'staff',
-      label: 'Staff & Personnel ERP',
-      shortLabel: 'Staff ERP',
-      icon: Users,
-      badge: '84 Staff'
-    },
-    {
-      id: 'defects',
-      label: 'Track Defects Logs',
-      shortLabel: 'Defects',
-      icon: AlertTriangle,
-      badge: '48 Logs'
     },
     ...(isSuperAdmin
       ? [

@@ -1105,8 +1105,6 @@ function MainAppShell() {
         return <StaffAttendance />;
       case 'staff_mgmt':
         return <StaffManagement />;
-      case 'login_profile':
-        return <LoginDashboard />;
       case 'admin':
         return <AdminPanel />;
       default:

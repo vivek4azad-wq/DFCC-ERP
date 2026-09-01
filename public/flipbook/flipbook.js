@@ -129,19 +129,16 @@ class FlipBookApp {
     const availableH = window.innerHeight - headerH - toolbarH - 24;
     const availableW = window.innerWidth - (isMobile ? 24 : 120);
 
-    // High readability aspect ratio (~0.707 standard A4)
     const aspect = 0.707;
     let pageH = Math.max(450, Math.floor(availableH));
     let pageW = Math.round(pageH * aspect);
 
     if (!isMobile) {
-      // For two-page desktop spread
       if ((pageW * 2) > availableW) {
         pageW = Math.floor(availableW / 2);
         pageH = Math.round(pageW / aspect);
       }
     } else {
-      // Single page portrait on mobile
       if (pageW > availableW) {
         pageW = availableW;
         pageH = Math.round(pageW / aspect);
@@ -300,7 +297,9 @@ class FlipBookApp {
 
     try {
       if (this.pageFlip) {
-        this.pageFlip.destroy();
+        try {
+          this.pageFlip.destroy();
+        } catch (e) {}
         this.pageFlip = null;
       }
 
@@ -344,7 +343,9 @@ class FlipBookApp {
 
   rebuildFlipbook(initialPage = 1) {
     if (this.pageFlip) {
-      this.pageFlip.destroy();
+      try {
+        this.pageFlip.destroy();
+      } catch (e) {}
       this.pageFlip = null;
     }
 
@@ -353,11 +354,12 @@ class FlipBookApp {
 
     const dims = this.calculateDimensions();
 
-    // Create page DOM nodes with explicit aspect ratio sizing
+    // Create page DOM nodes with explicit soft density to avoid StPageFlip density crashes
     for (let i = 1; i <= this.totalPages; i++) {
       const pageDiv = document.createElement('div');
       pageDiv.className = 'page';
       pageDiv.dataset.pageNumber = i;
+      pageDiv.setAttribute('data-density', 'soft');
       pageDiv.style.width = `${dims.width}px`;
       pageDiv.style.height = `${dims.height}px`;
 
@@ -378,23 +380,26 @@ class FlipBookApp {
       this.bookContainer.appendChild(pageDiv);
     }
 
+    const pageElements = this.bookContainer.querySelectorAll('.page');
+    if (pageElements.length === 0) return;
+
     this.pageFlip = new St.PageFlip(this.bookContainer, {
       width: dims.width,
       height: dims.height,
       size: 'fixed',
       minWidth: 280,
-      maxWidth: 1800,
+      maxWidth: 2000,
       minHeight: 400,
-      maxHeight: 2400,
-      maxShadowOpacity: 0.65,
-      showCover: true,
+      maxHeight: 2500,
+      maxShadowOpacity: 0.55,
+      showCover: false,
       mobileScrollSupport: false,
       useMouseEvents: true,
       usePortrait: dims.isMobile,
       autoSize: false
     });
 
-    this.pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+    this.pageFlip.loadFromHTML(pageElements);
 
     if (initialPage > 1) {
       this.pageFlip.flip(initialPage - 1);
@@ -428,8 +433,7 @@ class FlipBookApp {
       const canvas = document.getElementById(`canvas-page-${pageNum}`);
       if (!canvas) return;
 
-      // 2.5x retina scaling for razor-sharp engineering text & diagrams
-      const viewport = page.getViewport({ scale: 2.5 });
+      const viewport = page.getViewport({ scale: 2.2 });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 

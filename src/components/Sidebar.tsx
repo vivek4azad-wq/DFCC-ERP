@@ -139,13 +139,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       icon: AlertTriangle,
       badge: '48 Logs'
     },
-    {
-      id: 'login_profile',
-      label: 'Login & User Profile',
-      shortLabel: 'Profile',
-      icon: UserCheck,
-      badge: 'RBAC'
-    },
     ...(isSuperAdmin
       ? [
           {

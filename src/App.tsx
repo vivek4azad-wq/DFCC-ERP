@@ -24,6 +24,7 @@ import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
 import { StaffPublicQRView } from './components/StaffPublicQRView.tsx';
 import { StationKeyPlanModal } from './components/StationKeyPlanModal.tsx';
 import { EBookManualsViewer } from './components/EBookManualsViewer.tsx';
+import { TrackSoftwareViewer } from './components/TrackSoftwareViewer.tsx';
 import { ChangePinModal } from './components/ChangePinModal.tsx';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -1078,6 +1079,8 @@ function MainAppShell() {
         );
       case 'manuals':
         return <EBookManualsViewer />;
+      case 'software':
+        return <TrackSoftwareViewer />;
       case 'categories':
         return (
           <AssetCategories

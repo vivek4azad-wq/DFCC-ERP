@@ -26,7 +26,8 @@ import {
   FileText,
   Activity,
   Wrench,
-  BookOpen
+  BookOpen,
+  Calculator
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -67,6 +68,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       shortLabel: '3D Manuals',
       icon: BookOpen,
       badge: '6 Manuals'
+    },
+    {
+      id: 'software',
+      label: 'Curve Calculator Software',
+      shortLabel: 'Software',
+      icon: Calculator,
+      badge: 'VK Azad'
     },
     {
       id: 'categories',

@@ -1,7 +1,7 @@
 /**
  * DFCCIL 3D HTML5 Flipbook Engine - Full-Scale Viewport Edition
  * Powered by StPageFlip & PDF.js
- * Instant First-Page Progressive Rendering
+ * Instant First-Page Progressive Rendering with Single Front Cover & 2-3 Paired Spreads
  * DFCCIL IMSD SMUN Unit
  */
 
@@ -334,7 +334,7 @@ class FlipBookApp {
 
       this.rebuildFlipbook(1);
 
-      // Render first 4 pages immediately so reading begins instantly
+      // Render front pages immediately so reading begins instantly
       await Promise.all([
         this.renderPage(1),
         this.renderPage(2),
@@ -374,11 +374,18 @@ class FlipBookApp {
     this.bookContainer.style.height = `${dims.height}px`;
 
     // Create page DOM nodes
+    // Page 1 is Single Front Cover (hard density), then Pages 2-3, 4-5 are paired spreads!
     for (let i = 1; i <= this.totalPages; i++) {
       const pageDiv = document.createElement('div');
       pageDiv.className = 'page';
       pageDiv.dataset.pageNumber = i;
-      pageDiv.setAttribute('data-density', 'soft');
+      
+      if (i === 1 || i === this.totalPages) {
+        pageDiv.setAttribute('data-density', 'hard');
+      } else {
+        pageDiv.setAttribute('data-density', 'soft');
+      }
+
       pageDiv.style.width = `${dims.width}px`;
       pageDiv.style.height = `${dims.height}px`;
 
@@ -411,6 +418,7 @@ class FlipBookApp {
     const pageElements = this.bookContainer.querySelectorAll('.page');
     if (pageElements.length === 0) return;
 
+    // showCover: true ensures Page 1 is Single Cover, then Page 2 & 3 open as side-by-side facing spread!
     this.pageFlip = new St.PageFlip(this.bookContainer, {
       width: dims.width,
       height: dims.height,
@@ -420,7 +428,7 @@ class FlipBookApp {
       minHeight: 380,
       maxHeight: 2800,
       maxShadowOpacity: 0.55,
-      showCover: false,
+      showCover: true,
       mobileScrollSupport: true,
       useMouseEvents: true,
       usePortrait: dims.isMobile,
@@ -510,14 +518,27 @@ class FlipBookApp {
     });
   }
 
-  updatePageCounter(page) {
-    this.currentPage = page;
-    if (this.pageInput) this.pageInput.value = page;
-    if (this.pageSlider) this.pageSlider.value = page;
+  updatePageCounter(pageNum) {
+    this.currentPage = pageNum;
+    if (this.pageInput) this.pageInput.value = pageNum;
+    if (this.pageSlider) this.pageSlider.value = pageNum;
+    
     const pageInfo = document.getElementById('pageInfo');
-    if (pageInfo) pageInfo.textContent = `Page ${page} of ${this.totalPages}`;
+    if (pageInfo) {
+      if (pageNum === 1) {
+        pageInfo.textContent = `Front Cover (Page 1 of ${this.totalPages})`;
+      } else if (pageNum >= this.totalPages) {
+        pageInfo.textContent = `Back Cover (Page ${this.totalPages} of ${this.totalPages})`;
+      } else {
+        const isOdd = pageNum % 2 !== 0;
+        const leftP = isOdd ? pageNum - 1 : pageNum;
+        const rightP = Math.min(this.totalPages, leftP + 1);
+        pageInfo.textContent = `Pages ${leftP}-${rightP} of ${this.totalPages}`;
+      }
+    }
+    
     const curEl = document.getElementById('currentPageText');
-    if (curEl) curEl.textContent = page;
+    if (curEl) curEl.textContent = pageNum;
     const totEl = document.getElementById('totalPagesText');
     if (totEl) totEl.textContent = this.totalPages;
   }

@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V K Azad: DFCCIL Railway(BG) Curve Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['\\(', '\\)'], ['$', '$']] },
+            chtml: { scale: 1.02 },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #2980b9;
+            --bg-color: #ecf0f1;
+            --surface: #ffffff;
+            --border: #bdc3c7;
+            --text: #333333;
+            --error-bg: #fadbd8;
+            --error-border: #e74c3c;
+            --success-bg: #e8f8f5;
+            --success-border: #1abc9c;
+            --warning-bg: #fcf3cf;
+            --warning-border: #f1c40f;
+            --magic: #8e44ad;
+            --reverse: #d35400;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1150px; margin: 0 auto; }
+        h1 { text-align: center; color: var(--primary); border-bottom: 3px solid var(--secondary); padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .tab-btn { background-color: var(--surface); color: var(--primary); border: 1px solid var(--border); padding: 10px 20px; font-weight: 600; cursor: pointer; border-radius: 4px; transition: all 0.3s ease; }
+        .tab-btn.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card h2 { margin-top: 0; color: var(--secondary); font-size: 1.3em; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .form-group { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .input-box { flex: 1 1 200px; display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 0.9em; }
+        input, select, textarea { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; }
+        textarea { resize: vertical; min-height: 60px; }
+        
+        button { background-color: var(--secondary); color: white; border: none; padding: 10px 20px; font-size: 1em; border-radius: 4px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #1a5276; }
+        .btn-secondary { background-color: #7f8c8d; }
+        .btn-secondary:hover { background-color: #616a6b; }
+        .btn-action { background-color: #27ae60; margin-right: 10px; margin-bottom: 10px;}
+        .btn-action:hover { background-color: #1e8449; }
+        .btn-magic { background-color: var(--magic); margin-bottom: 10px; font-weight: bold;}
+        .btn-magic:hover { background-color: #732d91; }
+        
+        .result { margin-top: 15px; padding: 15px; border-left: 4px solid var(--success-border); border-radius: 4px; font-weight: 500; display: none; white-space: pre-line; line-height: 1.6; font-family: 'Courier New', Courier, monospace; font-size: 1.05em; background-color: var(--success-bg); }
+        .result.warning { border-left-color: var(--warning-border); background-color: var(--warning-bg); color: #7d6608; }
+        .result.danger { border-left-color: var(--error-border); background-color: var(--error-bg); color: #900C3F; }
+        
+        table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 10px; font-size: 0.9em; }
+        table, th, td { border: 1px solid var(--border); }
+        th { background-color: var(--primary); color: white; padding: 8px; }
+        td { padding: 6px; }
+        input[type="number"] { font-family: 'Courier New', Courier, monospace; font-weight: bold; text-align: center;}
+        
+        .chart-container { position: sticky;top:0; height: 400px; width: 100%; margin-top: 20px; display: none; background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px;}
+        
+        .couple-box { background-color: #f4f6f7; border: 1px solid #d5dbdb; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .couple-box h3 { margin-top: 0; font-size: 1.1em; color: var(--primary); margin-bottom: 10px; }
+        .auto-box { border-color: var(--magic); background-color: #f5eef8; }
+        .auto-box h3 { color: var(--magic); }
+        
+        .toolbar { display: flex; justify-content: space-between; align-items: center; background-color: #f8f9f9; padding: 10px; border-radius: 6px; border: 1px solid #e5e8e8; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
+
+        .footer-disclaimer { background-color: #e5e8e8; padding: 20px; border-radius: 8px; font-size: 0.85em; color: #5d6d7e; margin-top: 40px; border-left: 4px solid #aeb6bf; line-height: 1.5; }
+        .footer-disclaimer p { margin: 5px 0; }
+        .footer-disclaimer a { color: var(--secondary); text-decoration: none; }
+        .footer-disclaimer a:hover { text-decoration: underline; }
+
+        /* Modern DFCCIL visual theme */
+        :root {
+            --primary: #12324a;
+            --secondary: #0b7c86;
+            --bg-color: #eef4f6;
+            --surface: rgba(255,255,255,0.96);
+            --border: #cbd9df;
+            --text: #18313f;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background:
+                radial-gradient(circle at 12% 8%, rgba(13,148,136,.12), transparent 28%),
+                radial-gradient(circle at 88% 4%, rgba(37,99,235,.10), transparent 24%),
+                linear-gradient(180deg, #f8fbfc 0%, #eaf2f4 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { max-width: 1240px; }
+        .tabs {
+            position: sticky;
+            top: 8px;
+            z-index: 20;
+            gap: 8px;
+            padding: 9px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(203,217,223,.9);
+            border-radius: 15px;
+            background: rgba(255,255,255,.88);
+            box-shadow: 0 10px 28px rgba(15,47,70,.10);
+            backdrop-filter: blur(12px);
+        }
+        .tab-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            background: transparent;
+            color: #27495b;
+        }
+        .tab-btn:hover { background: #e6f1f2; color: #0b6670; }
+        .tab-btn.active { background: linear-gradient(135deg, #12324a, #0b7c86); box-shadow: 0 7px 16px rgba(11,124,134,.22); }
+        .card {
+            border: 1px solid rgba(203,217,223,.85);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 30px rgba(15,47,70,.08);
+        }
+        .card h2 { color: #0b6670; border-bottom-color: #e2ecef; padding-bottom: 13px; }
+        input, select, textarea {
+            border-radius: 10px;
+            border: 1px solid #bdced5;
+            background: #fbfdfe;
+            min-height: 42px;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #0b8e94; box-shadow: 0 0 0 4px rgba(11,142,148,.12); background: #fff; }
+        button { border-radius: 10px; background: linear-gradient(135deg, #0b7c86, #0c9a8b); box-shadow: 0 6px 14px rgba(11,124,134,.16); }
+        button:hover { background: linear-gradient(135deg, #095f68, #087c70); transform: translateY(-1px); }
+        .result { border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(26,188,156,.14); }
+        .couple-box, .toolbar { border-radius: 14px; }
+        .footer-disclaimer { border: 0; border-radius: 16px; background: #17394a; color: #d6e5e9; box-shadow: 0 12px 30px rgba(15,47,70,.16); }
+        .footer-disclaimer strong { color: #fff; }
+        .footer-disclaimer p:last-child { color: #fff !important; }
+        @media (max-width: 720px) {
+            body { padding: 12px; }
+            .tabs { position: static; }
+            .tab-btn { flex: 1 1 46%; padding: 10px 8px; }
+            .tab-btn.btn-secondary { margin-left: 0 !important; }
+            .card { padding: 18px; border-radius: 14px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
+        }
+        .app-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 26px;
+            margin-bottom: 16px;
+            border-radius: 18px;
+            background: linear-gradient(125deg, #112f46, #174e63 58%, #0d7c79);
+            box-shadow: 0 16px 38px rgba(15,47,70,.18);
+            color: #fff;
+        }
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 15px;
+            background: linear-gradient(145deg, #ffcf5a, #ff9f43);
+            color: #17384a;
+            font-weight: 900;
+            letter-spacing: -.04em;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 8px 18px rgba(0,0,0,.18);
+        }
+        .app-title h1 { margin: 0; padding: 0; border: 0; color: #fff; text-align: left; font-size: clamp(1.4rem, 2.8vw, 2.2rem); }
+        .app-title p { margin: 5px 0 0; color: #bfe1e5; }
+        .header-tag { padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,.12); color: #e8fbfa; font-weight: 700; white-space: nowrap; }
+        #tab-core.active { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        #tab-core.active .card { margin-bottom: 0; }
+        #tab-core.active .card:nth-child(3) { grid-column: 1 / -1; }
+        #tab-core .card:nth-child(1) h2 { color: #1565a7; }
+        #tab-core .card:nth-child(2) h2 { color: #7a4fb3; }
+        #tab-core .card:nth-child(3) h2 { color: #b05b1b; }
+        label { color: #36586a; }
+        .result { font-family: 'Segoe UI', Tahoma, sans-serif; color: #17384a; }
+        .result-layout { display: grid; grid-template-columns: minmax(240px, .9fr) minmax(300px, 1.1fr); gap: 20px; align-items: center; }
+        .formula-panel { padding: 4px 2px; }
+        .formula-line { margin: 7px 0; color: #274d60; }
+        .formula-answer { color: #08776f; font-size: 1.18em; font-weight: 800; }
+        .result-chart { position: relative; min-height: 230px; width: 100%; }
+        .result-chart canvas { width: 100% !important; height: 230px !important; }
+        @media (max-width: 820px) {
+            #tab-core.active { grid-template-columns: 1fr; }
+            #tab-core.active .card:nth-child(3) { grid-column: auto; }
+            .result-layout { grid-template-columns: 1fr; }
+            .app-header { grid-template-columns: auto 1fr; padding: 18px; }
+            .header-tag { grid-column: 1 / -1; justify-self: start; }
+        }
+        /* Testbook-inspired learning layout */
+        :root { --tb-blue: #1268d3; --tb-dark: #123b67; --tb-light: #f4f8ff; --tb-yellow: #ffbf2f; }
+        body { background: #f4f7fb; }
+        .app-header { background: linear-gradient(120deg, #0b56b3, #1775de); border-radius: 12px; box-shadow: 0 8px 24px rgba(18,104,211,.18); }
+        .brand-mark { background: #fff; color: var(--tb-blue); border-radius: 10px; box-shadow: none; }
+        .header-tag { background: #ffca44; color: #3f3100; }
+        .tabs { border-radius: 10px; box-shadow: 0 5px 18px rgba(25,66,110,.08); }
+        .tab-btn.active { background: var(--tb-blue); box-shadow: none; }
+        .card { border-radius: 10px; box-shadow: 0 4px 16px rgba(25,66,110,.07); }
+        .formula-hub { display: grid; gap: 16px; }
+        .formula-section-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 7px; background: #eaf2fd; border: 1px solid #d2e2f6; border-radius: 12px; }
+        .formula-section-tab { padding: 12px 10px; background: transparent; color: #365b82; border: 0; border-radius: 8px; box-shadow: none; font-weight: 800; }
+        .formula-section-tab:hover { background: #fff; color: var(--tb-blue); transform: none; }
+        .formula-section-tab.active { background: #fff; color: var(--tb-blue); box-shadow: 0 3px 10px rgba(18,104,211,.13); }
+        .formula-toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(190px, .35fr); gap: 12px; padding: 16px; background: #fff; border: 1px solid #dce6f2; border-radius: 10px; }
+        .formula-toolbar input, .formula-toolbar select { width: 100%; }
+        .formula-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .formula-card { background: #fff; border: 1px solid #dce6f2; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(25,66,110,.06); }
+        .formula-card-head { padding: 15px 17px; background: #f7faff; border-bottom: 1px solid #e0e9f4; }
+        .formula-card-head h3 { margin: 0; color: var(--tb-dark); font-size: 1.08rem; }
+        .formula-source { margin-top: 5px; color: #637a91; font-size: .82rem; }
+        .formula-display { padding: 14px 17px 4px; color: #0f5fbf; font-size: 1.08rem; min-height: 54px; }
+        .formula-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 10px 17px 15px; }
+        .formula-fields label { font-size: .8rem; }
+        .formula-actions { display: flex; gap: 9px; padding: 0 17px 16px; }
+        .formula-actions button { flex: 1; box-shadow: none; }
+        .explain-btn { background: #fff; color: var(--tb-blue); border: 1px solid var(--tb-blue); }
+        .explain-btn:hover { background: #edf5ff; color: #0b56b3; }
+        .formula-output { display: none; margin: 0 17px 16px; padding: 13px; background: #eef7ff; border-left: 4px solid var(--tb-blue); border-radius: 6px; color: #173f67; }
+        .formula-output.is-visible { display: block; animation: fadeIn .25s ease; }
+        .formula-verdict { display: inline-block; margin-top: 8px; padding: 4px 9px; border-radius: 999px; font-weight: 800; font-size: .82rem; }
+        .formula-verdict.ok { background: #dff7e8; color: #13723c; }
+        .formula-verdict.warn { background: #fff1d3; color: #885900; }
+        .formula-verdict.info { background: #e3efff; color: #1556a0; }
+        .explain-panel { display: none; margin: -5px 17px 16px; padding: 14px; border: 1px solid #d9e5f3; border-radius: 7px; background: #fff; color: #38536e; line-height: 1.55; }
+        .explain-panel.is-visible { display: block; }
+        .formula-empty { display: none; padding: 30px; text-align: center; color: #637a91; background: #fff; border-radius: 10px; }
+        .ct48-banner { background: linear-gradient(120deg, #073b74, #1268d3); color: #fff; border-radius: 12px; padding: 22px; margin-bottom: 18px; }
+        .ct48-banner h2 { color: #fff; border: 0; margin: 0 0 7px; }
+        .ct48-banner p { margin: 0; color: #dcecff; line-height: 1.55; }
+        .ct48-formula { margin: 12px 0; padding: 13px; background: #f1f7ff; border: 1px solid #d5e6fb; border-radius: 8px; color: #0b56b3; overflow-x: auto; }
+        .ct48-result { display: none; margin-top: 16px; padding: 16px; background: #f7fbff; border: 1px solid #cfe0f4; border-left: 4px solid var(--tb-blue); border-radius: 8px; line-height: 1.7; }
+        .ct48-result.is-visible { display: block; }
+        .ct48-steps { width: 100%; margin: 12px 0 0; text-align: left; }
+        .ct48-steps th { background: #123b67; }
+        .ct48-steps td:first-child { font-weight: 700; color: #173f67; width: 31%; }
+        .ct48-chart { display: none; height: 310px; margin-top: 16px; padding: 12px; background: #fff; border: 1px solid #dce6f2; border-radius: 10px; }
+        .ct48-chart.is-visible { display: block; animation: fadeIn .3s ease; }
+        .source-chip { display: inline-block; margin: 4px 5px 10px 0; padding: 5px 9px; border-radius: 999px; background: #eaf2fd; color: #0b56b3; font-size: .8rem; font-weight: 800; }
+        .ct48-note { padding: 12px 14px; background: #fff7db; border-left: 4px solid #ffbf2f; border-radius: 6px; color: #654d00; }
+        .info-tap { display: inline-flex; align-items: center; justify-content: center; width: 21px; height: 21px; margin-left: 5px; padding: 0; border-radius: 50%; background: #1268d3; color: #fff; font-size: 13px; font-weight: 900; line-height: 1; vertical-align: middle; box-shadow: none; }
+        .info-tap:hover { background: #0b56b3; transform: none; }
+        .explain-modal { display: none; position: fixed; inset: 0; z-index: 9999; padding: 18px; background: rgba(7,31,58,.66); align-items: center; justify-content: center; }
+        .explain-modal.is-open { display: flex; animation: fadeIn .2s ease; }
+        .explain-modal-card { width: min(680px, 100%); max-height: 88vh; overflow-y: auto; background: #fff; border-radius: 14px; box-shadow: 0 22px 60px rgba(0,0,0,.28); }
+        .explain-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 20px; background: #edf5ff; border-bottom: 1px solid #d5e6fb; }
+        .explain-modal-head h3 { margin: 0; color: #123b67; }
+        .explain-modal-close { flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border-radius: 50%; background: #fff; color: #123b67; border: 1px solid #c8daee; box-shadow: none; font-size: 22px; }
+        .explain-modal-body { padding: 20px; color: #294d70; line-height: 1.7; }
+        .explain-modal-body table { margin: 14px 0; }
+        .explain-modal-body .ct48-formula { text-align: center; }
+        .info-source-line { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+        .info-source-badge { padding: 5px 9px; border-radius: 999px; background: #eaf2fd; color: #0b56b3; font-size: .78rem; font-weight: 800; }
+        .info-source-badge.example { background: #fff2ce; color: #755300; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+        .info-block { padding: 13px; background: #f7faff; border: 1px solid #dce8f5; border-radius: 9px; }
+        .info-block strong { display: block; margin-bottom: 5px; color: #123b67; }
+        .info-caution { margin-top: 13px; padding: 12px; border-left: 4px solid #ffbf2f; background: #fff8df; border-radius: 6px; color: #624b00; }
+        @media (max-width: 850px) { .formula-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 650px) { .formula-section-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 560px) { .formula-toolbar, .formula-fields, .info-grid { grid-template-columns: 1fr; } .formula-actions { flex-direction: column; } }
+
+        @media print {
+            body { background-color: white; padding: 0; }
+            .tabs, button, input, select, textarea, label, .input-box, .toolbar { display: none !important; }
+            .card { box-shadow: none; border: 1px solid #ccc; margin-bottom: 20px; page-break-inside: avoid; }
+            .result, #realignment-ui { display: block !important; }
+            .chart-container { height: 300px; }
+            .tab-content { display: none !important; }
+            .tab-content.active { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="app-header">
+        <div class="brand-mark">VKA</div>
+        <div class="app-title">
+            <h1>DFCCIL Railway(BG) Curve Calculator</h1>
+            <p>V K Azad • Engineering calculation workspace</p>
+        </div>
+        <div class="header-tag">DFCRRM + IRPWM</div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('tab-core', this)">Basic</button>
+        <button class="tab-btn" onclick="openTab('tab-realignment', this)">Curve Realignment</button>
+        <button class="tab-btn" onclick="openTab('tab-turnout', this)">T-out &amp; T-in</button>
+        <button class="tab-btn" onclick="openTab('tab-other', this)">C/R Curve</button>
+        <button class="tab-btn" onclick="openTab('tab-lwr-ct48', this); typesetCT48();">LWR (CT-48)</button>
+        <button class="tab-btn" onclick="openTab('tab-formulas', this); initFormulaHub();">Other Formulae</button>
+        <button class="tab-btn btn-secondary" style="margin-left: auto;" onclick="window.print()">🖨️ Print Report</button>
+    </div>
+
+    <!-- FORMULA LIBRARY -->
+    <div id="tab-formulas" class="tab-content">
+        <div class="formula-hub">
+            <div class="formula-toolbar">
+                <div><label for="formula-search">Search formula, parameter or paragraph</label><input id="formula-search" type="search" placeholder="e.g. cant, thermal force, turnout radius" oninput="filterFormulaHub()"></div>
+                <div><label for="formula-category">Category</label><select id="formula-category" onchange="filterFormulaHub()"><option value="all">All formulas</option><option value="Curves">Curves</option><option value="Transition">Transition</option><option value="Points & Crossings">Points &amp; Crossings</option><option value="LWR/CWR">LWR/CWR</option><option value="Gradient & Rails">Gradient &amp; Rails</option><option value="Track Geometry">Track Geometry</option><option value="Level Crossings">Level Crossings</option></select></div>
+            </div>
+            <div id="formula-grid" class="formula-grid"></div>
+            <div id="formula-empty" class="formula-empty">No matching formula found.</div>
+        </div>
+    </div>
+
+    <!-- LWR / CT-48 -->
+    <div id="tab-lwr-ct48" class="tab-content">
+        <div class="ct48-banner">
+            <h2>LWR through Turnouts - CT-48 Calculation Studio</h2>
+            <p>Detailed calculators based on RDSO Report No. CT-48 (Revised, November 2025), Annexures I, II and IV. Standard report values are pre-filled and may be changed for an independent engineering check.</p>
+        </div>
+
+        <div class="card">
+            <h2>1. Designed Longitudinal Capacity of Anti-Creep Device (ACD)</h2>
+            <div class="ct48-formula">\(R_{min}=n\,T_f\,T_L(1-\lambda),\quad \Delta l_r=\frac{F_{avg}L}{AE},\quad \Delta l_f=L\alpha\Delta t,\quad F_{ACD}=\frac{\Delta l\,AE}{L}\)</div>
+            <div class="form-group">
+                <div class="input-box"><label>Turnout preset</label><select id="ct48-type" onchange="loadCT48Preset()"><option value="12">DFCRRM 1 in 12 TWS (R=555)</option><option value="8.5">DFCRRM 1 in 8.5 (R=218)</option><option value="16">CT-48 1 in 16</option></select></div>
+                <div class="input-box"><label>Turnout radius R (m)</label><input id="ct48-radius" type="number" step="any" value="555" readonly></div>
+                <div class="input-box"><label>Effective lead/breathing length L (mm)</label><input id="ct48-l" type="number" value="22000"></div>
+                <div class="input-box"><label>Effective ERC count n</label><input id="ct48-erc" type="number" value="74"></div>
+                <div class="input-box"><label>Toe load per ERC TL (kg)</label><input id="ct48-toe" type="number" value="1200"></div>
+                <div class="input-box"><label>Transfer function Tf</label><input id="ct48-tf" type="number" step="any" value="0.4"></div>
+                <div class="input-box"><label>Service loss λ (%)</label><input id="ct48-loss" type="number" step="any" value="30"></div>
+                <div class="input-box"><label>Rail area A (cm²)</label><input id="ct48-area" type="number" step="any" value="76.86"></div>
+                <div class="input-box"><label>Elastic modulus E (kg/cm²)</label><input id="ct48-e" type="number" value="2110000"></div>
+                <div class="input-box"><label>Coefficient α (/°C)</label><input id="ct48-alpha" type="number" step="any" value="0.00001152"></div>
+                <div class="input-box"><label>Summer rise from td (°C) <button type="button" class="info-tap" aria-label="Why summer rise is 38 degrees" onclick="openCT48TempHelp('summer')">i</button></label><input id="ct48-summer" type="number" step="any" value="38"></div>
+                <div class="input-box"><label>Winter fall from td (°C) <button type="button" class="info-tap" aria-label="Why winter fall is 43 degrees" onclick="openCT48TempHelp('winter')">i</button></label><input id="ct48-winter" type="number" step="any" value="43"></div>
+                <div class="input-box"><label>ACD free play (mm)</label><input id="ct48-play" type="number" step="any" value="7"></div>
+                <div class="input-box"><label>Stock-rail allowance (mm)</label><input id="ct48-stock" type="number" step="any" value="2"></div>
+            </div>
+            <span id="ct48-geometry-source" class="source-chip">Geometry preset: DFCRRM - 1 in 12, R=555 m</span><span class="source-chip">LWR/ACD parameters: CT-48 Annexure-I</span>
+            <div class="ct48-note"><strong>Do not mix these lengths:</strong> For DFCRRM 1 in 12, R=555 m, Para 127 gives total turnout length = <strong>48,260 mm</strong> and SRJ-to-ATS = <strong>745.5 mm</strong>. CT-48 Annexure-I uses <strong>22,000 mm effective thermal lead length</strong> for ACD calculation. The 48,260 mm total turnout length must not be substituted for 22,000 mm.<br><span lang="hi"><strong>इन lengths को आपस में न मिलाएँ:</strong> DFCRRM का 48,260 mm पूरा turnout length है, जबकि CT-48 का 22,000 mm ACD calculation हेतु effective thermal lead length है।</span></div>
+            <button onclick="calculateCT48ACD()">Calculate ACD Capacity</button>
+            <div id="ct48-acd-result" class="ct48-result" aria-live="polite"></div>
+            <div class="ct48-chart"><canvas id="ct48-acd-chart"></canvas></div>
+        </div>
+
+        <div class="card">
+            <h2>2. Movement at SRJ when Turnout is not Integrated with LWR</h2>
+            <div class="ct48-formula">\(P=AE\alpha\Delta t,\quad BL=\frac{P}{(1-\lambda)r},\quad \Delta l_{net}=L_b\alpha\Delta t-\frac{F_{avg}L_b}{AE}\)</div>
+            <div class="form-group">
+                <div class="input-box"><label>Rail area A (cm²)</label><input id="srj-area" type="number" step="any" value="76.86"></div>
+                <div class="input-box"><label>Elastic modulus E (kg/cm²)</label><input id="srj-e" type="number" value="2110000"></div>
+                <div class="input-box"><label>Coefficient α (/°C)</label><input id="srj-alpha" type="number" step="any" value="0.00001152"></div>
+                <div class="input-box"><label>Temperature variation Δt (°C)</label><input id="srj-dt" type="number" step="any" value="43"></div>
+                <div class="input-box"><label>Ballast resistance r (kg/cm/rail seat)</label><input id="srj-r" type="number" step="any" value="12.98"></div>
+                <div class="input-box"><label>Service loss λ (%)</label><input id="srj-loss" type="number" step="any" value="30"></div>
+                <div class="input-box"><label>Distance SRJ-SEJ (m)</label><input id="srj-sej" type="number" step="any" value="40"></div>
+            </div>
+            <button onclick="calculateCT48SRJ()">Calculate SRJ Movement</button>
+            <div id="ct48-srj-result" class="ct48-result" aria-live="polite"></div>
+            <div class="ct48-chart"><canvas id="ct48-srj-chart"></canvas></div>
+        </div>
+
+        <div class="card">
+            <h2>3. Tongue-Rail Movement at Actual Toe of Switch (ATS)</h2>
+            <div class="ct48-formula">\(\Delta l_{TR}=L_{free}\alpha\Delta t,\qquad \Delta l_{ATS}=\Delta l_{TR}+\Delta l_{ACD}\)</div>
+            <div class="form-group">
+                <div class="input-box"><label>Free tongue-rail length (mm)</label><input id="ats-l" type="number" value="10125"></div>
+                <div class="input-box"><label>Coefficient α (/°C)</label><input id="ats-alpha" type="number" step="any" value="0.00001152"></div>
+                <div class="input-box"><label>Summer rise (°C)</label><input id="ats-summer" type="number" step="any" value="38"></div>
+                <div class="input-box"><label>Winter fall (°C)</label><input id="ats-winter" type="number" step="any" value="43"></div>
+                <div class="input-box"><label>Maximum ACD movement (mm)</label><input id="ats-acd" type="number" step="any" value="7"></div>
+                <div class="input-box"><label>Point-machine accommodation (mm)</label><input id="ats-limit" type="number" step="any" value="10"></div>
+            </div>
+            <button onclick="calculateCT48ATS()">Calculate ATS Movement</button>
+            <div id="ct48-ats-result" class="ct48-result" aria-live="polite"></div>
+            <div class="ct48-chart"><canvas id="ct48-ats-chart"></canvas></div>
+            <p class="ct48-note"><strong>CT-48 note:</strong> For 1 in 12 turnout in Temperature Zone IV, rare extreme-weather ATS movement may reach about 12 mm; the report notes that minor point-machine adjustment may then be required. Field action must follow current RDSO, IRPWM and signalling instructions.</p>
+        </div>
+    </div>
+
+    <div id="ct48-temp-modal" class="explain-modal" role="dialog" aria-modal="true" aria-labelledby="ct48-temp-modal-title" onclick="closeCT48TempHelp(event)">
+        <div class="explain-modal-card">
+            <div class="explain-modal-head">
+                <h3 id="ct48-temp-modal-title">Why 38°C / 43°C? • 38°C / 43°C क्यों?</h3>
+                <button type="button" class="explain-modal-close" aria-label="Close explanation" onclick="closeCT48TempHelp()">×</button>
+            </div>
+            <div class="explain-modal-body">
+                <p><strong>These are not arbitrary demo values.</strong> They are the conservative Temperature Zone-IV assumptions used in CT-48 Annexure-I.</p>
+                <div class="ct48-formula">\(T_{max}-T_{min}=76^\circ C,\qquad T_{max}=T_m+38,\qquad T_{min}=T_m-38\)</div>
+                <p>CT-48 takes the permitted destressing-temperature range as \(t_d=T_m\) to \(T_m+5^\circ C\). It checks two separate worst-case cases:</p>
+                <table><thead><tr><th>Case</th><th>Derivation</th><th>Design ΔT</th></tr></thead><tbody>
+                    <tr id="ct48-summer-row"><td>Maximum summer expansion</td><td>\((T_m+38)-T_m\)</td><td><strong>38°C</strong></td></tr>
+                    <tr id="ct48-winter-row"><td>Maximum winter contraction</td><td>\((T_m+5)-(T_m-38)\)</td><td><strong>43°C</strong></td></tr>
+                </tbody></table>
+                <p><strong>Important:</strong> these are two different critical design scenarios; they do not mean that one rail has two destressing temperatures simultaneously.</p>
+                <div class="ct48-formula">\(\Delta T_{summer}=T_{max}-t_d,\qquad \Delta T_{winter}=t_d-T_{min}\)</div>
+                <p>For an actual site check, use the applicable temperature zone and recorded/adopted \(t_d\). Keep 38°C and 43°C only when the CT-48 Zone-IV design assumptions apply.</p>
+                <hr><p lang="hi"><strong>हिंदी में:</strong> ये demo values नहीं हैं। Zone-IV की कुल rail-temperature range 76°C है, इसलिए \(T_m\) से अधिकतम और न्यूनतम temperature की दूरी 38°C होती है। Summer के critical case में \(t_d=T_m\), इसलिए rise 38°C है। Winter के critical case में \(t_d=T_m+5\), इसलिए fall \((T_m+5)-(T_m-38)=43°C\) है। ये दो अलग-अलग worst-case checks हैं, एक साथ लागू दो destressing temperatures नहीं। वास्तविक site calculation में applicable temperature zone और adopted/recorded \(t_d\) ही लें।</p>
+                <p><strong>Source:</strong> RDSO Report No. CT-48 (Revised, November 2025), Annexure-I.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="field-info-modal" class="explain-modal" role="dialog" aria-modal="true" aria-labelledby="field-info-title" onclick="closeFieldInfo(event)">
+        <div class="explain-modal-card">
+            <div class="explain-modal-head"><h3 id="field-info-title">Parameter information</h3><button type="button" class="explain-modal-close" aria-label="Close information" onclick="closeFieldInfo()">×</button></div>
+            <div id="field-info-body" class="explain-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- TAB 1: Basic Calculators -->
+    <div id="tab-core" class="tab-content active">
+        <div class="card">
+            <h2>1.📐 Basic Geometry &amp; Equilibrium Cant (Dynamic Gauge = 1750mm)</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Radius of Curve (R) in meters:</label><input type="number" id="basic-r" min="1" step="any" placeholder="e.g. 600"></div>
+                <div class="input-box"><label>Max Speed (V) in KMPH:</label><input type="number" id="basic-v" min="1" step="any" placeholder="e.g. 100"></div>
+            </div>
+            <button onclick="calcBasic()">Calculate Geometry</button>
+            <button class="explain-btn" onclick="toggleStaticExplain('basic-explain')">Explain Formula</button>
+            <div id="basic-result" class="result"></div>
+            <div id="basic-explain" class="explain-panel"><strong>Verification:</strong> Radius/degree and versine follow IRPWM 401 and DFCRRM 501. Equilibrium cant follows IRPWM 404 and DFCRRM 504. Substitute the displayed inputs in each formula and compare the arithmetic with the result. DFCRRM maximum cant is 165 mm.</div>
+        </div>
+
+        <div class="card">
+            <h2>2. DFCCIL Transition Length &amp; Shift (DFCRRM Para 505)</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Radius (R) in m:</label><input type="number" id="trans-r" min="1" step="any"></div>
+                <div class="input-box"><label>Speed (Vm) in KMPH:</label><input type="number" id="trans-v" min="1" step="any"></div>
+                <div class="input-box"><label>Actual Cant (Ca) in mm:</label><input type="number" id="trans-ca" min="0" step="any"></div>
+                <div class="input-box"><label>Cant Def (Cd) in mm:</label><input type="number" id="trans-cd" min="0" step="any"></div>
+            </div>
+            <button onclick="calcTransition()">Calculate Transition</button>
+            <button class="explain-btn" onclick="toggleStaticExplain('transition-explain')">Explain Formula</button>
+            <div id="trans-result" class="result"></div>
+            <div id="transition-explain" class="explain-panel"><strong>DFCCIL check:</strong> DFCRRM 505 uses 0.008 for the Ca and Cd criteria and 0.72Ca for cant-gradient criterion. Adopt the maximum and round upward to the next multiple of 10 m. IRPWM transitioned-curve coefficient 0.0056 is available separately in the Formula Library.</div>
+        </div>
+
+        <div class="card">
+            <h2>3. 🚄Speed Potential of Existing Curve</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Radius (R) in m:</label><input type="number" id="pot-r" min="1" step="any"></div>
+                <div class="input-box"><label>Existing Trans Length (L) in m:</label><input type="number" id="pot-l" min="1" step="any"></div>
+                <div class="input-box"><label>Actual Cant (Ca) in mm:</label><input type="number" id="pot-ca" min="0" step="any"></div>
+                <div class="input-box"><label>Permissible Cant Def (Cd) in mm:</label><input type="number" id="pot-cd" min="0" step="any"></div>
+                <div class="input-box"><label>Has Turnouts?</label>
+                    <select id="pot-turnout"><option value="no">No</option><option value="yes">Yes</option></select>
+                </div>
+            </div>
+            <button onclick="calcSpeedPotential()">Calculate Speed Potential</button>
+            <button class="explain-btn" onclick="toggleStaticExplain('speed-explain')">Explain Formula</button>
+            <div id="pot-result" class="result"></div>
+            <div id="speed-explain" class="explain-panel"><strong>How it is checked:</strong> The calculator compares circular-curve speed with transition limitations from cant and cant-deficiency rates under DFCRRM 503-505, then selects the lowest value. The final permitted speed remains subject to sectional, turnout, interlocking and competent-authority limits.</div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Curve Realignment -->
+    <div id="tab-realignment" class="tab-content">
+        <div class="card">
+            <h2>🪡Curve Realignment (String Lining Method)🪡</h2>
+            <p style="font-size: 0.9em; margin-bottom: 10px;">Enter existing versines manually (assumes standard 20m overlapping chords with 10m stations).</p>
+            
+            <div class="form-group">
+                <div class="input-box" style="flex: 1 1 100%;">
+                    <label>Paste Comma/Space-Separated Versines (Ve) in mm:</label>
+                    <textarea id="ve-input" placeholder="e.g. 0, 3, 8, 7, 9, 15, 6, 2, 5"></textarea>
+                </div>
+            </div>
+            
+            <div>
+                <button class="btn-action" onclick="generateRealignmentTable()">⚙️ Generate Manual Table</button>
+            </div>
+            <div id="realign-error" class="result" style="display:none; border-color:var(--error-border); background-color:var(--error-bg);"></div>
+
+            <div id="realignment-ui" style="display: none; margin-top: 20px;">
+                
+                <div class="toolbar">
+                    <div style="display:flex; align-items:center; flex-wrap: wrap; gap: 15px;">
+                        <div style="background: white; padding: 5px 10px; border-radius: 4px; border: 2px solid var(--secondary);">
+                            <label style="font-weight:bold; color: var(--primary); margin-right: 5px;">Calculation Mode:</label>
+                            <select id="realign-mode" onchange="generateRealignmentTable()" style="padding: 5px; border:none; font-weight:bold; outline:none; color: var(--secondary);">
+                                <option value="forward">Standard: Input Vp ➔ Calculate Slew</option>
+                                <option value="reverse">Reverse: Input Slew ➔ Calculate Vp</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:bold; color: var(--primary);">Max Slew Limit (±mm):</label>
+                            <input type="number" id="max-slew" value="50" style="width: 80px;" oninput="calculateRealignment()">
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="btn-action btn-secondary" onclick="saveSession()" style="margin-bottom:0;">💾 Save Session</button>
+                        <button class="btn-action btn-secondary" onclick="loadSession()" style="margin-bottom:0;">📂 Load Session</button>
+                        <button class="btn-action btn-secondary" onclick="exportCSV()" id="btn-export" style="margin-bottom:0;">⬇️ Export CSV</button>
+                    </div>
+                </div>
+
+                <!-- AUTO REALIGNMENT CARD -->
+                <div class="couple-box auto-box" id="auto-engine-box">
+                    <h3>🤖 Auto Realignment Engine</h3>
+                    <!-- 
+                    <p style="font-size: 0.9em; margin-top: 0; color: #555;">Automatically smooths the curve profile, matches total curvature, and strictly enforces a zero final half-throw (SS) using  internal correcting couples.</p>
+                   -->
+                    <button onclick="runAutoRealignment()" class="btn-magic">🪄 Auto Generate Smooth Curve</button>
+                </div>
+
+                <div class="couple-box" id="manual-couple-box">
+                    <h3>Apply Manual Correcting Couple (IRPWM 419.4.b.vi)</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap: 10px; align-items: flex-end;">
+                        <div class="input-box" style="flex:0 1 120px;"><label>Station A:</label><input type="number" id="couple-stn-a" min="0" step="1"></div>
+                        <div class="input-box" style="flex:0 1 120px;"><label>Station B:</label><input type="number" id="couple-stn-b" min="0" step="1"></div>
+                        <div class="input-box" style="flex:0 1 200px;"><label>Amt to Add to A (Sub from B):</label><input type="number" id="couple-amt" step="any"></div>
+                        <button onclick="applyCouple()" style="margin-bottom: 2px;">Apply Couple</button>
+                        <button onclick="suggestCouple()" class="btn-secondary" style="margin-bottom: 2px;">Suggest Couple</button>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.95em;">
+                        <strong>Projected Final Half-Throw (SS): </strong> <span id="current-final-ss" style="font-weight: bold; font-size: 1.1em; color: #c0392b;">0</span> mm
+                    </div>
+                </div>
+
+                <div class="chart-container" id="chart-div">
+                    <canvas id="realignmentChart"></canvas>
+                </div>
+                <div style="margin-top: 20px; overflow-x: auto;">
+                    <table id="realignment-table">
+                        <thead id="realignment-thead"></thead>
+                        <tbody id="realignment-tbody"></tbody>
+                        <tfoot id="realignment-tfoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Turnout & Turn-in Module -->
+    <div id="tab-turnout" class="tab-content">
+        <div class="card">
+            <h2>DFC Turnout Geometry Calculator - DFC Track Manual 2025, Para 602</h2>
+            <div class="ct48-formula">\(L_{ATS-TNC}=\frac{G-T-W\sin\theta}{\tan[(\theta+\beta)/2]}+W\cos\theta\)</div>
+            <div class="ct48-formula">\(R=\frac{G-T-W\sin\theta}{2\sin[(\theta+\beta)/2]\sin[(\theta-\beta)/2]},\qquad c_{JOH}=\sqrt{2R\times72}\)</div>
+            <div class="form-group">
+                <div class="input-box"><label for="dfcto-profile">DFC turnout profile</label><select id="dfcto-profile" onchange="loadDFCTurnoutProfile()"><option value="555">1 in 12 - R=555 m</option><option value="460">1 in 12 - R=460 m</option><option value="441">1 in 12 - R=441.36 m</option><option value="218">1 in 8.5 - R=218 m</option></select></div>
+                <div class="input-box"><label for="dfcto-g">Standard gauge G (mm)</label><input id="dfcto-g" type="number" step="any" value="1676"></div>
+                <div class="input-box"><label for="dfcto-w">End of curve from TNC, W (mm)</label><input id="dfcto-w" type="number" step="any" value="-3038"></div>
+                <div class="input-box"><label for="dfcto-t">Tongue-rail thickness at toe, T (mm)</label><input id="dfcto-t" type="number" step="any" value="0.5"></div>
+            </div>
+            <div class="form-group">
+                <div class="input-box"><label for="dfcto-th-d">Crossing angle θ - degrees</label><input id="dfcto-th-d" type="number" step="1" value="4"></div>
+                <div class="input-box"><label for="dfcto-th-m">θ - minutes</label><input id="dfcto-th-m" type="number" step="1" value="45"></div>
+                <div class="input-box"><label for="dfcto-th-s">θ - seconds</label><input id="dfcto-th-s" type="number" step="any" value="49"></div>
+                <div class="input-box"><label for="dfcto-b-d">Switch angle β - degrees</label><input id="dfcto-b-d" type="number" step="1" value="0"></div>
+                <div class="input-box"><label for="dfcto-b-m">β - minutes</label><input id="dfcto-b-m" type="number" step="1" value="4"></div>
+                <div class="input-box"><label for="dfcto-b-s">β - seconds</label><input id="dfcto-b-s" type="number" step="any" value="37"></div>
+            </div>
+            <div class="form-group">
+                <div class="input-box"><label for="dfcto-srjats">SRJ to ATS (mm)</label><input id="dfcto-srjats" type="number" step="any" value="745.5"></div>
+                <div class="input-box"><label for="dfcto-tncheel">TNC to heel end of crossing (mm)</label><input id="dfcto-tncheel" type="number" step="any" value="5128.1"></div>
+            </div>
+            <button onclick="calculateDFCTurnoutGeometry()">Calculate DFC Turnout Geometry</button>
+            <div id="dfcto-result" class="result" style="overflow-x:auto;"></div>
+            <div id="dfcto-chart-wrap" class="ct48-chart"><canvas id="dfcto-chart"></canvas></div>
+            <p class="ct48-note"><strong>Profile rule:</strong> the formula method is common, but G, W, T, angles and layout dimensions come from the selected turnout profile. Manual adopted dimensions remain controlling for field layout.<br><span lang="hi">Formula common है, लेकिन default geometry selected radius/profile से ही आती है। Field layout के लिए approved manual/drawing dimensions controlling रहेंगी।</span></p>
+        </div>
+        <div class="card">
+            <h2>1. Turnout &amp; Turn-in Versine Check (6m Chord, 3m Stations)</h2>
+            <div class="form-group">
+                <div class="input-box" style="flex: 1 1 100%;"><textarea id="to-ve-input" placeholder="e.g. 10, 12, 11, 13, 12"></textarea></div>
+            </div>
+            <button onclick="calcTurnoutVersines()">Calculate Radii</button>
+            <div id="to-ve-result" class="result" style="overflow-x:auto;"></div>
+        </div>
+        <div class="card">
+            <h2>2. Permissible Speed &amp; Minimum Radius Validator</h2>
+            <div class="form-group">
+                <div class="input-box">
+                    <select id="to-speed-type">
+                        <optgroup label="Indian Railways layouts">
+                            <option value="15">1 in 8.5 curved switch (15 kmph)</option>
+                            <option value="30">1 in 8.5 symmetrical split curved (30 kmph)</option>
+                            <option value="40_8.5">1 in 8.5 thick web symmetrical split (40 kmph)</option>
+                            <option value="30_12">1 in 12 curved switch (30 kmph)</option>
+                            <option value="40_12">1 in 12 thick web curved switch (40 kmph)</option>
+                        </optgroup>
+                        <optgroup label="DFCCIL — VAE VKN Points &amp; Crossings">
+                            <option value="dfcc_edfc_1_12_r555" data-radius="555" data-corridor="EDFC">VAE VKN 1 in 12 TWS — EDFC (R = 555 m)</option>
+                            <option value="dfcc_wdfc_1_12_r460" data-radius="460" data-corridor="WDFC">VAE VKN 1 in 12 TWS — WDFC (R = 460 m)</option>
+                            <option value="dfcc_1_12_r441" data-radius="441.36" data-corridor="DFC">1 in 12 TWS (R = 441.36 m)</option>
+                            <option value="dfcc_wdfc_1_8_5_r218" data-radius="218" data-corridor="WDFC">VAE VKN 1 in 8.5 TWS — WDFC (R = 218 m)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="input-box"><input type="number" id="to-ml-r" step="any" placeholder="Main Line Curve R"></div>
+                <div class="input-box"><input type="number" id="to-ti-r" step="any" placeholder="Turn-in Curve R"></div>
+            </div>
+            <button onclick="validateTurnoutConstraints()">Check Compliance</button>
+            <div id="to-speed-result" class="result"></div>
+        </div>
+        <div class="card">
+            <h2>3. R=555 Turnout Field Reference &amp; Tolerance Checker</h2>
+            <p><span class="source-chip">EDFCC APL-01-R03</span><span class="source-chip">VAEVKN04743-03/04</span><span class="source-chip">1 in 12 • 555 m • 25 t</span></p>
+            <div style="overflow-x:auto;">
+                <table><thead><tr><th>Design / field parameter</th><th>Manual value</th><th>Use</th></tr></thead><tbody>
+                    <tr><td>Design speed / cant deficiency</td><td>55 km/h / 75 mm</td><td>Design reference; not automatic sanctioned speed</td></tr>
+                    <tr><td>Total turnout length / SRJ-ATS</td><td>48,260 mm / 745.5 ± 6 mm</td><td>Layout verification</td></tr>
+                    <tr><td>Track gauge</td><td>1676 +2, -0 mm</td><td>Switch, lead and crossing alternate sleepers</td></tr>
+                    <tr><td>Throw at ATS / JOH clearance</td><td>160 mm / minimum 60 mm</td><td>Switch setting with point machine/back drive</td></tr>
+                    <tr><td>ACD position</td><td>Between sleepers 26-27; pin centred; about 7 mm each side</td><td>CWR installation reference</td></tr>
+                    <tr><td>Lead / crossing versine</td><td>8 mm on 6 m chord at 3 m intervals</td><td>Continuation of switch/lead curvature</td></tr>
+                    <tr><td>Nose / throat / wing clearance</td><td>44 +0,-2 / 66 +2,-0 / 66 +3,-0 mm</td><td>Crossing assembly check</td></tr>
+                    <tr><td>Check-rail clearance / raising</td><td>44 ±1 mm / 20 mm</td><td>Flangeway and level check</td></tr>
+                </tbody></table>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+                <div class="input-box"><label for="r555-check-type">Parameter to check</label><select id="r555-check-type">
+                    <option value="gauge">Track gauge (1676 to 1678 mm)</option><option value="srjats">SRJ to ATS (745.5 ±6 mm)</option><option value="joh">JOH clearance (minimum 60 mm)</option><option value="nose">Nose clearance (42 to 44 mm)</option><option value="throat">Throat clearance (66 to 68 mm)</option><option value="wing">Wing-rail clearance (66 to 69 mm)</option><option value="checkrail">Check-rail clearance (43 to 45 mm)</option><option value="straightness">Straightness deviation (±1 mm)</option><option value="squareness">Stock-rail squareness at SRJ (±3 mm)</option><option value="contactgap">Stock/tongue contact gap (maximum 1 mm)</option><option value="switchstop">Switch rail/stop gap (maximum 2 mm)</option><option value="crossnosewear">Crossing nose wear (less than 4 mm)</option><option value="crosswingwear">Crossing wing-rail wear (less than 8 mm)</option>
+                </select></div>
+                <div class="input-box"><label for="r555-observed">Observed value (mm)</label><input id="r555-observed" type="number" step="any" placeholder="Enter field measurement"></div>
+            </div>
+            <button onclick="checkR555Tolerance()">Check Manual Tolerance</button>
+            <div id="r555-check-result" class="result"></div>
+            <p class="ct48-note"><strong>Scope:</strong> These values are installation/maintenance references from APL-01-R03. Inspection frequency, safety action and acceptance remain subject to current DFCRRM, IRPWM, approved drawing and competent instructions.<br><span lang="hi">ये installation/maintenance reference values हैं; final acceptance वर्तमान DFCRRM, IRPWM और approved drawing से करें।</span></p>
+        </div>
+        <div class="card">
+            <h2>4. Turnouts on Curves (Effective Radius)</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Main Line R (m):</label><input type="number" id="turn-rm" min="1" step="any"></div>
+                <div class="input-box"><label>Turnout R (m):</label><input type="number" id="turn-rs" min="1" step="any"></div>
+                <div class="input-box"><label>Flexure Type:</label>
+                    <select id="turn-flex"><option value="similar">Similar Flexure</option><option value="contrary">Contrary Flexure</option></select>
+                </div>
+            </div>
+            <button onclick="calcTurnoutEffective()">Calculate Effective Radius</button>
+            <div id="turn-result" class="result"></div>
+        </div>
+    </div>
+
+    <!-- TAB 4: Compound/Reverse Curve etc. -->
+    <div id="tab-other" class="tab-content">
+         <div class="card">
+            <h2>A. Common Transition (Compound / Reverse Curves) - Para 405(8)&amp;(9)</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Curve Type:</label>
+                    <select id="com-type"><option value="compound">Compound Curve</option><option value="reverse">Reverse Curve</option></select>
+                </div>
+                <div class="input-box"><label>Max Speed (Vm) KMPH:</label><input type="number" id="com-v" min="1" step="any"></div>
+            </div>
+            <div class="form-group">
+                <div class="input-box"><label>Actual Cant 1 (Ca1):</label><input type="number" id="com-ca1" min="0" step="any"></div>
+                <div class="input-box"><label>Cant Def 1 (Cd1):</label><input type="number" id="com-cd1" min="0" step="any"></div>
+            </div>
+            <div class="form-group">
+                <div class="input-box"><label>Actual Cant 2 (Ca2):</label><input type="number" id="com-ca2" min="0" step="any"></div>
+                <div class="input-box"><label>Cant Def 2 (Cd2):</label><input type="number" id="com-cd2" min="0" step="any"></div>
+            </div>
+            <button onclick="calcCommonTrans()">Calculate Common Transition</button>
+            <div id="com-result" class="result"></div>
+        </div>
+        <div class="card">
+            <h2>B. Transition Curve Offsets (Para 405.6.b)</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Radius (R) in m:</label><input type="number" id="off-r" min="1" step="any"></div>
+                <div class="input-box"><label>Transition Length (L) in m:</label><input type="number" id="off-l" min="1" step="any"></div>
+                <div class="input-box"><label>Peg Interval (m):</label><input type="number" id="off-int" min="1" value="10" step="any"></div>
+            </div>
+            <button onclick="calcOffsets()">Generate Offsets</button>
+            <div id="off-result" class="result" style="overflow-x:auto;"></div>
+        </div>
+        <div class="card">
+            <h2>C. Cutting of Rails on Curves (Para 421)</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Radius (R) in m:</label><input type="number" id="cut-r" min="1" step="any"></div>
+                <div class="input-box"><label>Length of Curve (L) in m:</label><input type="number" id="cut-l" min="1" step="any"></div>
+            </div>
+            <button onclick="calcCutRails()">Calculate Cut Rails</button>
+            <div id="cut-result" class="result"></div>
+        </div>
+        <div class="card">
+            <h2>D. Grade Compensation for Curvature</h2>
+            <div class="form-group">
+                <div class="input-box"><label>Radius (R) in m:</label><input type="number" id="grad-r" min="1" step="any"></div>
+                <div class="input-box"><label>Existing Gradient (1 in X):</label><input type="number" id="grad-x" min="1" step="any"></div>
+            </div>
+            <button onclick="calcGradient()">Calculate Compensation</button>
+            <div id="grad-result" class="result"></div>
+        </div>
+    </div>
+
+    <div class="footer-disclaimer">
+        <p><strong>DFCCIL Disclaimer:</strong> This calculator is an independent engineering aid prepared for educational, reference and preliminary checking purposes for Dedicated Freight Corridor track works. It is not an official DFCCIL approval, authority or substitute for the prevailing DFC Railroad Manual (DFCRRM), IRPWM, RDSO/Railway Board instructions, approved drawings, speed certificates or competent-authority decisions. Before adopting any output for field execution, curve realignment, tamping, turnout work or speed assessment, all inputs, formulae, limits and results shall be independently verified from the latest applicable DFCCIL and Indian Railways provisions. The user and field engineer remain responsible for site verification and safe application.</p>
+        <p style="text-align:right; font-weight:700; color:#2c3e50; margin-top:18px;">Vivek Azad<br>Assistant Project Manager-DFCCIL</p>
+    </div>
+</div>
+
+<script>
+    function openTab(tabName, btn) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function showFeedback(elementId, isValid, html, feedbackType='normal') {
+        const el = document.getElementById(elementId);
+        el.style.display = 'block';
+        el.className = 'result';
+        if (feedbackType === 'warning') el.classList.add('warning');
+        else if (feedbackType === 'danger' || !isValid) el.classList.add('danger');
+        
+        el.innerHTML = html;
+        if(isValid && feedbackType === 'normal') {
+            el.style.backgroundColor = 'var(--success-bg)';
+            el.style.borderColor = 'var(--success-border)';
+            el.style.color = 'var(--text)';
+        }
+    }
+
+    // --- Tab 2: Curve Realignment ---
+    let realignmentChartInstance = null;
+
+    function generateRealignmentTable() {
+        const input = document.getElementById('ve-input').value;
+        const veArray = input.split(/[\n,\t ]+/).map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+        
+        if(veArray.length === 0) {
+            document.getElementById('realignment-ui').style.display = 'none';
+            return showFeedback('realign-error', false, '⚠️ No valid numeric data found. Please check your input.', 'danger');
+        }
+        document.getElementById('realign-error').style.display = 'none';
+
+        const mode = document.getElementById('realign-mode').value;
+        const thead = document.getElementById('realignment-thead');
+        const tfoot = document.getElementById('realignment-tfoot');
+        const tbody = document.getElementById('realignment-tbody');
+        tbody.innerHTML = '';
+        
+        let sumVe = 0;
+
+        if (mode === 'forward') {
+            document.getElementById('auto-engine-box').style.display = 'block';
+            document.getElementById('manual-couple-box').style.display = 'block';
+            
+            thead.innerHTML = `<tr><th>Stn</th><th>Ve (Exist)</th><th>Vp (Base)</th><th>Couple (±)</th><th style="background-color: #34495e; color:white;">Vp (Final)</th><th>Diff (Vp-Ve)</th><th>FS (1st Sum)</th><th>SS (2nd Sum)</th><th>Slew (2×SS)</th></tr>`;
+            tfoot.innerHTML = `<tr style="font-weight: bold; background-color: #f2f4f4;"><td>Total</td><td id="sum-ve">0</td><td id="sum-vp-base">0</td><td id="sum-couple">0</td><td id="sum-vp-final" style="background-color: #eaeded;">0</td><td colspan="4" id="sum-warning"></td></tr>`;
+
+            veArray.forEach((ve, index) => {
+                sumVe += ve;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="stn-index">${index}</td>
+                    <td class="ve-val">${ve}</td>
+                    <td><input type="number" step="0.1" class="vp-input" style="width: 65px;" value="${ve}" oninput="calculateRealignment()"></td>
+                    <td><input type="number" step="0.1" class="couple-input" style="width: 60px;" value="0" oninput="calculateRealignment()"></td>
+                    <td class="vp-final-val" style="font-weight: bold; background-color: #f9ebea;">${ve}</td>
+                    <td class="diff-val">0</td>
+                    <td class="fs-val">0</td>
+                    <td class="ss-val">0</td>
+                    <td class="slew-val">0</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } else {
+            document.getElementById('auto-engine-box').style.display = 'none';
+            document.getElementById('manual-couple-box').style.display = 'none';
+
+            thead.innerHTML = `<tr><th>Stn</th><th>Ve (Exist)</th><th style="background-color: #1abc9c; color:white;">Calculated Vp</th><th>Diff (Vp-Ve)</th><th>FS (1st Sum)</th><th>SS (2nd Sum)</th><th style="background-color: var(--reverse); color:white;">Target Slew (Input)</th></tr>`;
+            tfoot.innerHTML = `<tr style="font-weight: bold; background-color: #f2f4f4;"><td>Total</td><td id="sum-ve">0</td><td id="sum-vp-final" style="background-color: #e8f8f5;">0</td><td colspan="4" id="sum-warning"></td></tr>`;
+
+            veArray.forEach((ve, index) => {
+                sumVe += ve;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="stn-index">${index}</td>
+                    <td class="ve-val">${ve}</td>
+                    <td class="vp-final-val" style="font-weight: bold; background-color: #e8f8f5; color: #117864;">${ve}</td>
+                    <td class="diff-val">0</td>
+                    <td class="fs-val">0</td>
+                    <td class="ss-val">0</td>
+                    <td><input type="number" step="0.1" class="slew-input" style="width: 70px; border: 2px solid var(--reverse);" value="0" oninput="calculateRealignment()"></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        document.getElementById('sum-ve').innerText = sumVe.toFixed(1);
+        document.getElementById('realignment-ui').style.display = 'block';
+        document.getElementById('chart-div').style.display = 'block';
+        
+        calculateRealignment();
+    }
+
+    function calculateRealignment() {
+        const mode = document.getElementById('realign-mode').value;
+        const rows = document.querySelectorAll('#realignment-tbody tr');
+        const maxSlew = parseFloat(document.getElementById('max-slew').value) || 50;
+        
+        let sumVe = 0, sumVpFinal = 0;
+        let labels = [], dataVe = [], dataVpFinal = [], dataSlew = [];
+        let slewWarningTriggered = false;
+        let projectedFinalSS = 0;
+
+        if (mode === 'forward') {
+            let fs = 0, ss = 0, prev_fs = 0;
+            let sumVpBase = 0, sumCouple = 0;
+            
+            rows.forEach((row, index) => {
+                const ve = parseFloat(row.querySelector('.ve-val').innerText) || 0;
+                const vpBase = parseFloat(row.querySelector('.vp-input').value) || 0;
+                const couple = parseFloat(row.querySelector('.couple-input').value) || 0;
+                const vpFinal = vpBase + couple;
+                
+                sumVpBase += vpBase;
+                sumCouple += couple;
+                sumVpFinal += vpFinal;
+                sumVe += ve;
+                
+                const diff = vpFinal - ve;
+                
+                // ss(n) = ss(n-1) + fs(n-1)
+                ss = ss + prev_fs;
+                // fs(n) = fs(n-1) + diff(n)
+                fs = prev_fs + diff;
+                
+                const slew = 2 * ss;
+
+                row.querySelector('.vp-final-val').innerText = vpFinal.toFixed(1);
+                row.querySelector('.diff-val').innerText = diff.toFixed(1);
+                row.querySelector('.fs-val').innerText = fs.toFixed(1);
+                row.querySelector('.ss-val').innerText = ss.toFixed(1);
+                
+                const slewCell = row.querySelector('.slew-val');
+                slewCell.innerText = slew.toFixed(1);
+                if (Math.abs(slew) > maxSlew) {
+                    slewCell.style.color = '#c0392b';
+                    slewCell.style.fontWeight = 'bold';
+                    slewWarningTriggered = true;
+                } else {
+                    slewCell.style.color = 'inherit';
+                    slewCell.style.fontWeight = 'normal';
+                }
+
+                labels.push(`Stn ${index}`);
+                dataVe.push(ve); dataVpFinal.push(vpFinal); dataSlew.push(slew);
+                
+                prev_fs = fs;
+            });
+
+            // The theoretical final SS at station N (the end of the curve boundary)
+            projectedFinalSS = ss + prev_fs;
+
+            document.getElementById('sum-vp-base').innerText = sumVpBase.toFixed(1);
+            document.getElementById('sum-couple').innerText = sumCouple.toFixed(1);
+
+            const finalSSDisplay = document.getElementById('current-final-ss');
+            finalSSDisplay.innerText = projectedFinalSS.toFixed(1);
+            finalSSDisplay.style.color = Math.abs(projectedFinalSS) > 0.5 ? '#c0392b' : '#27ae60';
+
+        } else {
+            // Reverse Mode: Read Slews, Propagate to Vp
+            let slews = [];
+            rows.forEach(row => slews.push(parseFloat(row.querySelector('.slew-input').value) || 0));
+            
+            // From slew = 2*ss => ss = slew / 2
+            let ssArray = slews.map(s => s / 2);
+            // Assumed boundary condition: slew at station N is 0.
+            ssArray.push(0);
+            
+            let fsArray = [];
+            for(let i = 0; i < rows.length; i++) {
+                // Derived from: ss(n+1) = ss(n) + fs(n) => fs(n) = ss(n+1) - ss(n)
+                fsArray.push(ssArray[i+1] - ssArray[i]);
+            }
+            
+            rows.forEach((row, i) => {
+                let ve = parseFloat(row.querySelector('.ve-val').innerText) || 0;
+                let currentFS = fsArray[i];
+                let prevFS = (i > 0) ? fsArray[i-1] : 0;
+                
+                // Derived from: fs(n) = fs(n-1) + diff(n) => diff(n) = fs(n) - fs(n-1)
+                let currentDiff = currentFS - prevFS;
+                let currentVp = ve + currentDiff;
+                
+                sumVe += ve;
+                sumVpFinal += currentVp;
+                
+                row.querySelector('.vp-final-val').innerText = currentVp.toFixed(1);
+                row.querySelector('.diff-val').innerText = currentDiff.toFixed(1);
+                row.querySelector('.fs-val').innerText = currentFS.toFixed(1);
+                row.querySelector('.ss-val').innerText = ssArray[i].toFixed(1);
+                
+                const slewInput = row.querySelector('.slew-input');
+                if (Math.abs(slews[i]) > maxSlew) {
+                    slewInput.style.backgroundColor = '#fadbd8';
+                    slewWarningTriggered = true;
+                } else {
+                    slewInput.style.backgroundColor = 'white';
+                }
+
+                labels.push(`Stn ${i}`);
+                dataVe.push(ve); dataVpFinal.push(currentVp); dataSlew.push(slews[i]);
+            });
+            projectedFinalSS = 0;
+        }
+        
+        // Final Summary Updates (Both Modes)
+        const sumVpFinalElem = document.getElementById('sum-vp-final');
+        sumVpFinalElem.innerText = sumVpFinal.toFixed(1);
+        
+        const warning = document.getElementById('sum-warning');
+        let msg = "";
+        let color = '#27ae60';
+        
+        if(Math.abs(sumVpFinal - sumVe) > 0.9) {
+            sumVpFinalElem.style.color = '#c0392b'; 
+            msg += (mode === 'forward') ? "⚠️ Sum of Vp ≠ Sum of Ve. " : "⚠️ Sum of Vp ≠ Sum of Ve. (Ensure final 2 slews match boundary conditions). ";
+            color = '#c0392b';
+        } else {
+            sumVpFinalElem.style.color = '#27ae60'; 
+            msg += "✅ Target sum achieved. ";
+        }
+
+        if(mode === 'forward' && Math.abs(projectedFinalSS) > 0.9) {
+            msg += `<br><span style='color:#c0392b;'><b>🚨 Warning:</b> Projected Final Half-Throw (SS) is ${projectedFinalSS.toFixed(1)}mm (NOT zero). Apply correcting couple.</span>`;
+            color = '#c0392b';
+        }
+
+        if (slewWarningTriggered) {
+             msg += `<br><span style='color:#c0392b;'><b>🚨 LIMIT EXCEEDED:</b> Slew exceeds maximum limit (±${maxSlew} mm) at one or more stations!</span>`;
+             color = '#c0392b';
+        }
+
+        warning.innerHTML = msg;
+        warning.style.color = color;
+
+        updateChart(labels, dataVe, dataVpFinal, dataSlew, maxSlew);
+    }
+
+    // --- AUTO REALIGNMENT ENGINE (Forward Only) ---
+    function runAutoRealignment() {
+        const rows = document.querySelectorAll('#realignment-tbody tr');
+        let N = rows.length;
+        if(N < 5) return alert("⚠️ Need at least 5 stations for auto-realignment.");
+
+        let ve = [];
+        rows.forEach(row => ve.push(parseFloat(row.querySelector('.ve-val').innerText) || 0));
+
+        let vp = [...ve];
+        let startAnchored = ve[0] === 0;
+        let endAnchored = ve[N-1] === 0;
+
+        // Step 1: Smoothing
+        for(let iter = 0; iter < 5; iter++) {
+            let temp = [...vp];
+            for(let i = 1; i < N - 1; i++) temp[i] = (vp[i-1] + 2*vp[i] + vp[i+1]) / 4.0;
+            if(startAnchored) temp[0] = 0;
+            if(endAnchored) temp[N-1] = 0;
+            vp = temp;
+        }
+
+        // Step 2: Match Total Curvature
+        let diff = ve.reduce((a,b) => a+b, 0) - vp.reduce((a,b) => a+b, 0);
+        let correction = diff / (N - 2);
+        for(let i = 1; i < N - 1; i++) vp[i] += correction;
+
+        // Step 3: Calculate projected initial SS
+        let fs = 0, ss = 0, prev_fs = 0;
+        for(let i = 0; i < N; i++) {
+            let d = vp[i] - ve[i];
+            ss = ss + prev_fs;
+            fs = prev_fs + d;
+            prev_fs = fs;
+        }
+        let final_ss = ss + prev_fs; // projected SS(N)
+
+        // Step 4: Auto-apply couple to zero SS
+        if (Math.abs(final_ss) > 0.01) {
+            let stnA = 1, stnB = N - 2;
+            let amt = -final_ss / (stnB - stnA);
+            vp[stnA] += amt;
+            vp[stnB] -= amt;
+        }
+
+        rows.forEach((row, i) => {
+            row.querySelector('.vp-input').value = vp[i].toFixed(1);
+            row.querySelector('.couple-input').value = 0;
+        });
+
+        calculateRealignment();
+        alert("✅ Auto Realignment Complete!\n\nThe engine has smoothed the curve, matched curvature, and zeroed the final slew automatically.");
+    }
+
+    function applyCouple() {
+        const stnA = parseInt(document.getElementById('couple-stn-a').value);
+        const stnB = parseInt(document.getElementById('couple-stn-b').value);
+        const amt = parseFloat(document.getElementById('couple-amt').value);
+
+        if (isNaN(stnA) || isNaN(stnB) || isNaN(amt)) return alert("⚠️ Please enter valid numbers.");
+        
+        const rows = document.querySelectorAll('#realignment-tbody tr');
+        if (stnA < 0 || stnA >= rows.length || stnB < 0 || stnB >= rows.length) return alert(`⚠️ Station numbers must be between 0 and ${rows.length - 1}.`);
+
+        const inputA = rows[stnA].querySelector('.couple-input');
+        const inputB = rows[stnB].querySelector('.couple-input');
+
+        inputA.value = (parseFloat(inputA.value) + amt).toFixed(1);
+        inputB.value = (parseFloat(inputB.value) - amt).toFixed(1);
+
+        calculateRealignment();
+    }
+
+    function suggestCouple() {
+        const rows = document.querySelectorAll('#realignment-tbody tr');
+        if (rows.length < 3) return alert("Not enough stations to apply a correcting couple.");
+        
+        let fs = 0, ss = 0, prev_fs = 0;
+        rows.forEach(row => {
+            const ve = parseFloat(row.querySelector('.ve-val').innerText) || 0;
+            const vpBase = parseFloat(row.querySelector('.vp-input').value) || 0;
+            const couple = parseFloat(row.querySelector('.couple-input').value) || 0;
+            const diff = (vpBase + couple) - ve;
+            ss = ss + prev_fs;
+            fs = prev_fs + diff;
+            prev_fs = fs;
+        });
+        
+        let final_ss = ss + prev_fs;
+
+        if (Math.abs(final_ss) < 0.1) return alert("Final half-throw is already zero. No correction needed!");
+
+        const stnA = 1, stnB = rows.length - 2; 
+        document.getElementById('couple-stn-a').value = stnA;
+        document.getElementById('couple-stn-b').value = stnB;
+        document.getElementById('couple-amt').value = (-final_ss / (stnB - stnA)).toFixed(2);
+    }
+
+    // Save/Load Session
+    function saveSession() {
+        const rows = document.querySelectorAll('#realignment-tbody tr');
+        if(rows.length === 0) return alert("No table data available to save.");
+        
+        let data = [];
+        const mode = document.getElementById('realign-mode').value;
+
+        rows.forEach(row => {
+            if(mode === 'forward') {
+                data.push({
+                    ve: parseFloat(row.querySelector('.ve-val').innerText) || 0,
+                    vp: parseFloat(row.querySelector('.vp-input').value) || 0,
+                    couple: parseFloat(row.querySelector('.couple-input').value) || 0
+                });
+            } else {
+                data.push({
+                    ve: parseFloat(row.querySelector('.ve-val').innerText) || 0,
+                    vp: 0,
+                    couple: 0,
+                    slew: parseFloat(row.querySelector('.slew-input').value) || 0
+                });
+            }
+        });
+
+        localStorage.setItem('vkt_curve_realignment', JSON.stringify({
+            mode: mode,
+            maxSlew: document.getElementById('max-slew').value,
+            tableData: data
+        }));
+        alert("✅ Curve realignment session saved to your browser's Local Storage.");
+    }
+
+    function loadSession() {
+        const savedStr = localStorage.getItem('vkt_curve_realignment');
+        if(!savedStr) return alert("⚠️ No saved session found.");
+        
+        try {
+            const parsed = JSON.parse(savedStr);
+            const data = parsed.tableData || parsed; 
+            
+            if(parsed.maxSlew) document.getElementById('max-slew').value = parsed.maxSlew;
+            if(parsed.mode) {
+                document.getElementById('realign-mode').value = parsed.mode;
+                generateRealignmentTable(); // setup the correct table headers
+            }
+
+            const tbody = document.getElementById('realignment-tbody');
+            tbody.innerHTML = '';
+            let sumVe = 0;
+            
+            data.forEach((row, index) => {
+                sumVe += row.ve;
+                const tr = document.createElement('tr');
+                if(parsed.mode === 'forward') {
+                    tr.innerHTML = `
+                        <td class="stn-index">${index}</td>
+                        <td class="ve-val">${row.ve}</td>
+                        <td><input type="number" step="0.1" class="vp-input" style="width: 65px;" value="${row.vp}" oninput="calculateRealignment()"></td>
+                        <td><input type="number" step="0.1" class="couple-input" style="width: 60px;" value="${row.couple}" oninput="calculateRealignment()"></td>
+                        <td class="vp-final-val" style="font-weight: bold; background-color: #f9ebea;">${row.ve}</td>
+                        <td class="diff-val">0</td>
+                        <td class="fs-val">0</td>
+                        <td class="ss-val">0</td>
+                        <td class="slew-val">0</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td class="stn-index">${index}</td>
+                        <td class="ve-val">${row.ve}</td>
+                        <td class="vp-final-val" style="font-weight: bold; background-color: #e8f8f5; color: #117864;">${row.ve}</td>
+                        <td class="diff-val">0</td>
+                        <td class="fs-val">0</td>
+                        <td class="ss-val">0</td>
+                        <td><input type="number" step="0.1" class="slew-input" style="width: 70px; border: 2px solid var(--reverse);" value="${row.slew || 0}" oninput="calculateRealignment()"></td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('sum-ve').innerText = sumVe.toFixed(1);
+            document.getElementById('realignment-ui').style.display = 'block';
+            document.getElementById('chart-div').style.display = 'block';
+            
+            calculateRealignment();
+            alert("📂 Saved session loaded successfully.");
+        } catch(e) {
+            alert("⚠️ Error parsing saved session data.");
+        }
+    }
+
+    function updateChart(labels, dataVe, dataVpFinal, dataSlew, maxSlew) {
+        const ctx = document.getElementById('realignmentChart').getContext('2d');
+        if (realignmentChartInstance) realignmentChartInstance.destroy();
+        
+        const posLimit = Array(labels.length).fill(maxSlew);
+        const negLimit = Array(labels.length).fill(-maxSlew);
+
+        realignmentChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Existing (Ve)', data: dataVe, borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', borderWidth: 2, tension: 0.3, yAxisID: 'y' },
+                    { label: 'Proposed Final (Vp)', data: dataVpFinal, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', borderWidth: 2, tension: 0.3, yAxisID: 'y' },
+                    { label: 'Slew (mm)', data: dataSlew, borderColor: '#3498db', borderWidth: 2, tension: 0.3, yAxisID: 'y1' },
+                    { label: '+Max Slew', data: posLimit, borderColor: 'rgba(192, 57, 43, 0.5)', borderDash: [5, 5], borderWidth: 1, fill: false, pointRadius: 0, yAxisID: 'y1' },
+                    { label: '-Max Slew', data: negLimit, borderColor: 'rgba(192, 57, 43, 0.5)', borderDash: [5, 5], borderWidth: 1, fill: false, pointRadius: 0, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                scales: { 
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Versines (mm)' } }, 
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Slew Limit/Value (mm)' }, grid: { drawOnChartArea: false } } 
+                }
+            }
+        });
+    }
+
+    function exportCSV() {
+        const mode = document.getElementById('realign-mode').value;
+        let csvContent = (mode === 'forward') 
+            ? "data:text/csv;charset=utf-8,Station,Ve,Vp(Base),Couple,Vp(Final),Diff,FS,SS,Slew\n"
+            : "data:text/csv;charset=utf-8,Station,Ve,Vp(Calculated),Diff,FS,SS,Slew(Target)\n";
+            
+        document.querySelectorAll('#realignment-tbody tr').forEach(row => {
+            let rowData = [];
+            if(mode === 'forward') {
+                rowData = [
+                    row.querySelector('.stn-index').innerText, row.querySelector('.ve-val').innerText,
+                    row.querySelector('.vp-input').value, row.querySelector('.couple-input').value,
+                    row.querySelector('.vp-final-val').innerText, row.querySelector('.diff-val').innerText,
+                    row.querySelector('.fs-val').innerText, row.querySelector('.ss-val').innerText,
+                    row.querySelector('.slew-val').innerText
+                ];
+            } else {
+                 rowData = [
+                    row.querySelector('.stn-index').innerText, row.querySelector('.ve-val').innerText,
+                    row.querySelector('.vp-final-val').innerText, row.querySelector('.diff-val').innerText,
+                    row.querySelector('.fs-val').innerText, row.querySelector('.ss-val').innerText,
+                    row.querySelector('.slew-input').value
+                ];
+            }
+            csvContent += rowData.join(",") + "\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "VKT_Curve_Realignment_Data.csv");
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    // --- Testbook-style P.Way Formula Library ---
+    const formulaDefinitions = [
+      {id:'radius-versine',category:'Curves',title:'Radius from chord and versine',source:'IRPWM 401(1) | DFCRRM 501(a)',formula:'\\(R=\\frac{125C^2}{V}\\)',fields:[['C','Chord length C (m)',20],['V','Versine V (mm)',50]],compute:x=>{const r=125*x.C*x.C/x.V;return {value:r,unit:'m',steps:`R = 125 × ${x.C}² ÷ ${x.V} = ${r.toFixed(2)} m`,verdict:'Calculated geometrical radius',cls:'info'};},explain:'Measure versine at the midpoint of a known chord. For plain-track curves normally use a 20 m overlapping chord; for turnout/turn-in use a 6 m chord at 3 m stations.'},
+      {id:'degree-radius',category:'Curves',title:'Degree of curve from radius',source:'IRPWM 401(2) | DFCRRM 501(b)',formula:'\\(D=\\frac{1750}{R}\\)',fields:[['R','Radius R (m)',875]],compute:x=>{const d=1750/x.R;return {value:d,unit:'°',steps:`D = 1750 ÷ ${x.R} = ${d.toFixed(3)}°`,verdict:'Curve degree calculated',cls:'info'};},explain:'Indian Railway curves are described by radius in metres. Degree is the angle subtended by a 30.5 m chord and is useful for quick field conversion.'},
+      {id:'versine-radius',category:'Curves',title:'Expected versine for a curve',source:'Derived from IRPWM 401(1) | DFCRRM 501(a)',formula:'\\(V=\\frac{125C^2}{R}\\)',fields:[['C','Chord length C (m)',20],['R','Radius R (m)',875]],compute:x=>{const v=125*x.C*x.C/x.R;return {value:v,unit:'mm',steps:`V = 125 × ${x.C}² ÷ ${x.R} = ${v.toFixed(2)} mm`,verdict:'Design versine calculated',cls:'info'};},explain:'This is the inverse of the radius equation. Compare the calculated design versine with measured field versine and applicable maintenance tolerances.'},
+      {id:'safe-speed',category:'Curves',title:'Safe speed on fully transitioned curve',source:'IRPWM 403(1) | DFCRRM 503(a)',formula:'\\(V=0.27\\sqrt{R(C_a+C_d)}\\)',fields:[['R','Radius R (m)',875],['Ca','Actual cant Ca (mm)',100],['Cd','Cant deficiency Cd (mm)',75]],compute:x=>{const v=.27*Math.sqrt(x.R*(x.Ca+x.Cd));const ok=x.Cd<=75&&x.Ca<=165;return {value:v,unit:'km/h',steps:`V = 0.27√[${x.R} × (${x.Ca} + ${x.Cd})] = ${v.toFixed(2)} km/h`,verdict:ok?'Within DFCRRM cant/Cd input limits':'Check: DFCRRM limits Ca ≤ 165 mm and Cd ≤ 75 mm',cls:ok?'ok':'warn'};},explain:'This gives the curve-geometry speed. The adopted speed must also respect sectional speed, turnout/interlocking limits, transition length and competent-authority approval.'},
+      {id:'equilibrium-cant',category:'Curves',title:'Equilibrium cant',source:'IRPWM 404(1)(a) | DFCRRM 504(a)',formula:'\\(C=\\frac{GV^2}{127R}\\)',fields:[['G','Dynamic gauge G (mm)',1750],['V','Speed V (km/h)',100],['R','Radius R (m)',875]],compute:x=>{const c=x.G*x.V*x.V/(127*x.R);const ok=c<=165;return {value:c,unit:'mm',steps:`C = ${x.G} × ${x.V}² ÷ (127 × ${x.R}) = ${c.toFixed(2)} mm`,verdict:ok?'Within DFCRRM maximum cant 165 mm':'Exceeds DFCRRM maximum cant 165 mm',cls:ok?'ok':'warn'};},explain:'Dynamic gauge is nominal gauge plus rail-head width; 1750 mm is used for BG curve calculations. Actual cant is selected considering traffic mix, cant excess and cant deficiency.'},
+      {id:'dfc-transition',category:'Transition',title:'DFCCIL desirable transition length',source:'DFCRRM 505(1)',formula:'\\(L=\\max(0.008C_aV_m,\,0.008C_dV_m,\,0.72C_a)\\)',fields:[['Ca','Actual cant Ca (mm)',100],['Cd','Cant deficiency Cd (mm)',75],['Vm','Maximum speed Vm (km/h)',100]],compute:x=>{const a=.008*x.Ca*x.Vm,b=.008*x.Cd*x.Vm,c=.72*x.Ca,l=Math.ceil(Math.max(a,b,c)/10)*10;return {value:l,unit:'m',steps:`L1=${a.toFixed(2)} m; L2=${b.toFixed(2)} m; L3=${c.toFixed(2)} m; next higher 10 m = ${l} m`,verdict:'DFCRRM 2024 method applied',cls:'ok'};},explain:'DFCRRM uses 35 mm/s rate of change for cant and cant deficiency and 1 in 720 cant gradient. Adopt the maximum and round upward to the next 10 m.'},
+      {id:'ir-transition',category:'Transition',title:'IRPWM desirable transition length',source:'IRPWM 405(1)',formula:'\\(L=\\max(0.0056C_aV_m,\,0.0056C_dV_m,\,0.72C_a)\\)',fields:[['Ca','Actual cant Ca (mm)',100],['Cd','Cant deficiency Cd (mm)',75],['Vm','Maximum speed Vm (km/h)',100]],compute:x=>{const a=.0056*x.Ca*x.Vm,b=.0056*x.Cd*x.Vm,c=.72*x.Ca,l=Math.ceil(Math.max(a,b,c)/10)*10;return {value:l,unit:'m',steps:`L1=${a.toFixed(2)} m; L2=${b.toFixed(2)} m; L3=${c.toFixed(2)} m; adopted=${l} m`,verdict:'IRPWM transitioned-curve method applied',cls:'info'};},explain:'IRPWM 2024 uses 50 mm/s for a fully transitioned curve. Its note retains 0.008 for a non-transitioned curve designed with virtual transition. For DFCCIL field work follow prevailing DFCRRM/specific instructions.'},
+      {id:'minimum-transition-dfc',category:'Transition',title:'DFCCIL exceptional minimum transition',source:'DFCRRM 505(2)',formula:'\\(L_{min}=\\max(\\tfrac23L_1,\,\\tfrac23L_2,\,\\tfrac12L_3)\\)',fields:[['L1','Desirable L1 (m)',80],['L2','Desirable L2 (m)',60],['L3','Desirable L3 (m)',72]],compute:x=>{const l=Math.max(2*x.L1/3,2*x.L2/3,x.L3/2);return {value:l,unit:'m',steps:`max(2/3×${x.L1}, 2/3×${x.L2}, 1/2×${x.L3}) = ${l.toFixed(2)} m`,verdict:'Exceptional provision - approval/site constraints still apply',cls:'warn'};},explain:'This is not the normal target. It is an exceptional minimum based on 55 mm/s and maximum cant gradient 1 in 360; apply only under the manual’s exceptional-case conditions.'},
+      {id:'shift',category:'Transition',title:'Transition curve shift',source:'IRPWM 405(6)(a)',formula:'\\(S=\\frac{L^2}{24R}\\)',fields:[['L','Transition length L (m)',80],['R','Radius R (m)',875]],compute:x=>{const s=x.L*x.L/(24*x.R);return {value:s,unit:'m',steps:`S = ${x.L}² ÷ (24 × ${x.R}) = ${s.toFixed(4)} m`,verdict:'Cubic-parabola shift calculated',cls:'info'};},explain:'The main circular arc is shifted inward to accommodate the cubic-parabola transition. L and R must both be entered in metres.'},
+      {id:'transition-offset',category:'Transition',title:'Offset from straight on transition',source:'IRPWM 405(6)(b)',formula:'\\(Y=\\frac{X^3}{6RL}\\)',fields:[['X','Distance X from start (m)',40],['R','Radius R (m)',875],['L','Transition length L (m)',80]],compute:x=>{const y=x.X*x.X*x.X/(6*x.R*x.L);const valid=x.X<=x.L;return {value:y,unit:'m',steps:`Y = ${x.X}³ ÷ (6 × ${x.R} × ${x.L}) = ${y.toFixed(4)} m`,verdict:valid?'Point lies within transition length':'X exceeds transition length L',cls:valid?'ok':'warn'};},explain:'Use X measured from commencement of transition. The equation applies to a cubic-parabola transition and X should not exceed L.'},
+      {id:'compound-transition',category:'Transition',title:'DFCCIL common transition - compound curves',source:'DFCRRM 506',formula:'\\(L=\\max[0.008|C_{a1}-C_{a2}|V_m,\,0.008|C_{d1}-C_{d2}|V_m]\\)',fields:[['Ca1','Cant Ca1 (mm)',100],['Ca2','Cant Ca2 (mm)',60],['Cd1','Cd1 (mm)',75],['Cd2','Cd2 (mm)',40],['Vm','Speed Vm (km/h)',100]],compute:x=>{const a=.008*Math.abs(x.Ca1-x.Ca2)*x.Vm,b=.008*Math.abs(x.Cd1-x.Cd2)*x.Vm,l=Math.max(a,b);return {value:l,unit:'m',steps:`Ca criterion=${a.toFixed(2)} m; Cd criterion=${b.toFixed(2)} m; adopt ${l.toFixed(2)} m`,verdict:'Also verify cant gradient and virtual-transition condition',cls:'info'};},explain:'For curves in the same direction, use differences in cant and cant deficiency. DFCRRM also requires cant-gradient compliance and the calculated common transition to exceed virtual transition length.'},
+      {id:'reverse-transition',category:'Transition',title:'DFCCIL common transition - reverse curves',source:'DFCRRM 507',formula:'\\(L=\\max[0.008(C_{a1}+C_{a2})V_m,\,0.008(C_{d1}+C_{d2})V_m]\\)',fields:[['Ca1','Cant Ca1 (mm)',80],['Ca2','Cant Ca2 (mm)',80],['Cd1','Cd1 (mm)',60],['Cd2','Cd2 (mm)',60],['Vm','Speed Vm (km/h)',100]],compute:x=>{const a=.008*(x.Ca1+x.Ca2)*x.Vm,b=.008*(x.Cd1+x.Cd2)*x.Vm,l=Math.max(a,b);return {value:l,unit:'m',steps:`Ca criterion=${a.toFixed(2)} m; Cd criterion=${b.toFixed(2)} m; adopt ${l.toFixed(2)} m`,verdict:'DFCRRM reverse-curve method applied',cls:'info'};},explain:'Because the curves bend in opposite directions, the cant and deficiency values are added. The length is measured from the first circular curve to the second circular curve.'},
+      {id:'turnout-6m',category:'Points & Crossings',title:'Turnout radius from 6 m chord versine',source:'IRPWM 401(4) | DFCRRM 501(c)',formula:'\\(R=\\frac{4500}{V}\\)',fields:[['V','6 m chord versine V (mm)',10]],compute:x=>{const r=4500/x.V;return {value:r,unit:'m',steps:`R = 4500 ÷ ${x.V} = ${r.toFixed(2)} m`,verdict:'Use readings at 3 m stations',cls:'info'};},explain:'This is the radius formula with C = 6 m. IRICEN Turnout 2025 recommends comparing measured versines with design values; lead/turn-in versine should normally remain within the specified maintenance tolerance.'},
+      {id:'effective-turnout-similar',category:'Points & Crossings',title:'Effective radius - similar flexure',source:'IRICEN Turnout 2025, Ch.7',formula:'\\(\\frac1{R_e}=\\frac1{R_m}+\\frac1{R_{to}}\\)',fields:[['Rm','Main-line radius Rm (m)',875],['Rto','Turnout radius Rto (m)',555]],compute:x=>{const r=1/(1/x.Rm+1/x.Rto);return {value:r,unit:'m',steps:`Re = 1 ÷ (1/${x.Rm} + 1/${x.Rto}) = ${r.toFixed(2)} m`,verdict:r>=350?'Effective radius ≥ 350 m':'Effective radius below 350 m - examine exceptional provisions',cls:r>=350?'ok':'warn'};},explain:'Use when the turnout curve takes the same orientation as the main-line curve. Then calculate turnout equilibrium cant and permissible main-line cant/speed under the applicable flexure rules.'},
+      {id:'effective-turnout-contrary',category:'Points & Crossings',title:'Effective radius - contrary flexure',source:'IRICEN Turnout 2025, Ch.7',formula:'\\(\\frac1{R_e}=|\\frac1{R_{to}}-\\frac1{R_m}|\\)',fields:[['Rm','Main-line radius Rm (m)',875],['Rto','Turnout radius Rto (m)',555]],compute:x=>{const k=Math.abs(1/x.Rto-1/x.Rm);const r=k>0?1/k:Infinity;return {value:r,unit:'m',steps:`Re = 1 ÷ |1/${x.Rto} - 1/${x.Rm}| = ${Number.isFinite(r)?r.toFixed(2):'∞'} m`,verdict:Number.isFinite(r)?'Resultant contrary-flexure radius calculated':'Equal curvatures cancel to a straight resultant',cls:'info'};},explain:'Use only after confirming the geometric orientation. Similar and contrary flexure use different reciprocal-radius signs; selecting the wrong case gives an incorrect effective radius.'},
+      {id:'turnout-cant',category:'Points & Crossings',title:'Equilibrium cant on turnout route',source:'IRICEN Turnout 2025, Ch.7',formula:'\\(SE_{to}=13.76\\frac{V_{to}^2}{R_e}\\)',fields:[['Vto','Turnout speed Vto (km/h)',30],['Re','Effective radius Re (m)',555]],compute:x=>{const se=13.76*x.Vto*x.Vto/x.Re;return {value:se,unit:'mm',steps:`SEto = 13.76 × ${x.Vto}² ÷ ${x.Re} = ${se.toFixed(2)} mm`,verdict:'Use with similar/contrary-flexure cant rules',cls:'info'};},explain:'IRICEN uses this turnout equilibrium cant after finding effective radius. The permitted main-line cant then depends on flexure, cant excess/deficiency, reverse curve and interlocking/speed limits.'},
+      {id:'thermal-force',category:'LWR/CWR',title:'Thermal force in LWR/CWR',source:'IRPWM 335 | DFCRRM 407',formula:'\\(P=EA\\alpha\\Delta t\\)',fields:[['E','Elastic modulus E (kg/cm²)',2110000],['A','Rail area A (cm²)',76.86],['alpha','Expansion coefficient α (/°C)',0.00001152],['dt','Temperature variation Δt (°C)',30]],compute:x=>{const p=x.E*x.A*x.alpha*x.dt;return {value:p,unit:'kgf',steps:`P = ${x.E} × ${x.A} × ${x.alpha} × ${x.dt} = ${p.toFixed(2)} kgf`,verdict:'Static theoretical thermal force',cls:'info'};},explain:'The central portion of LWR/CWR is restrained, so temperature change builds thermal force. Use the correct rail cross-sectional area and temperature variation from stress-free/destressing temperature.'},
+      {id:'rail-expansion',category:'LWR/CWR',title:'Free rail expansion / required movement',source:'IRPWM Annexure 3/11 | DFCRRM 843',formula:'\\(e=L\\alpha(t_0-t_p)\\)',fields:[['L','Rail length L (m)',500],['alpha','Expansion coefficient α (/°C)',0.00001152],['dt','Temperature difference (°C)',20]],compute:x=>{const e=x.L*1000*x.alpha*x.dt;return {value:e,unit:'mm',steps:`e = ${x.L} × 1000 × ${x.alpha} × ${x.dt} = ${e.toFixed(2)} mm`,verdict:'Theoretical free movement calculated',cls:'info'};},explain:'For destressing movement, use the intended stress-free temperature minus prevailing rail temperature and include welding/initial-gap requirements prescribed by the procedure.'},
+      {id:'anchor-length',category:'LWR/CWR',title:'Anchor length for destressing',source:'DFCRRM 843(d)',formula:'\\(l_a=2.5(t_0-t_p)\\)',fields:[['t0','Target temperature t0 (°C)',45],['tp','Prevailing temperature tp (°C)',30]],compute:x=>{const l=2.5*Math.abs(x.t0-x.tp);return {value:l,unit:'m',steps:`la = 2.5 × |${x.t0} - ${x.tp}| = ${l.toFixed(2)} m`,verdict:'Increase suitably for poor fastening/ballast condition',cls:'warn'};},explain:'DFCRRM gives this anchor-length basis and requires suitable increase depending on fastenings, pads, liners and ballast condition.'},
+      {id:'gradient-compensation',category:'Gradient & Rails',title:'Curve compensation on gradient',source:'IRPWM 416 | DFCRRM 515',formula:'\\(Compensation=\\frac{70}{R}\%\\)',fields:[['R','Curve radius R (m)',583],['gradient','Existing gradient 1 in X',200]],compute:x=>{const comp=70/x.R,existing=100/x.gradient,net=Math.max(0,existing-comp),den=net>0?100/net:Infinity;return {value:comp,unit:'%',steps:`Compensation = 70/${x.R} = ${comp.toFixed(4)}%; existing=${existing.toFixed(4)}%; compensated=${net.toFixed(4)}% (about 1 in ${Number.isFinite(den)?den.toFixed(0):'∞'})`,verdict:'Apply where existing gradient plus curve compensation exceeds ruling gradient',cls:'info'};},explain:'The ordinary compensation is 70/R percent, equivalent to about 0.04% per degree. Final compensated gradient must be checked against the ruling gradient and approved alignment.'},
+      {id:'inner-rail-gain',category:'Gradient & Rails',title:'Inner rail gain on a curve',source:'IRPWM 421',formula:'\\(d=\\frac{LG}{R}\\)',fields:[['L','Curve length L (m)',500],['G','Dynamic gauge G (mm)',1750],['R','Radius R (m)',875]],compute:x=>{const d=x.L*x.G/x.R;return {value:d,unit:'mm',steps:`d = ${x.L} × ${x.G} ÷ ${x.R} = ${d.toFixed(2)} mm`,verdict:'Use for fish-plated rail-joint/cut-rail planning',cls:'info'};},explain:'The inner rail is shorter along the curve and its joint gains over the outer rail. Cut rails are considered when the lead reaches half the bolt-hole pitch, subject to the manual provisions.'},
+      {id:'track-twist',category:'Track Geometry',title:'Track twist over a specified base',source:'IRPWM Definitions (Twist) | Track geometry practice',formula:'\\(Twist=\\frac{|CL_2-CL_1|}{Base}\\)',fields:[['CL1','Cross level CL1 (mm)',4],['CL2','Cross level CL2 (mm)',12],['base','Measurement base (m)',3.5]],compute:x=>{const t=Math.abs(x.CL2-x.CL1)/x.base;return {value:t,unit:'mm/m',steps:`Twist = |${x.CL2} - ${x.CL1}| ÷ ${x.base} = ${t.toFixed(3)} mm/m`,verdict:'Compare with the applicable service/maintenance limit for the selected base and speed',cls:'info'};},explain:'Twist is the rate of change of cross level over the stated base. This calculator does not assume one universal acceptance limit; use the limit applicable to the inspection system, speed and base.'},
+      {id:'skew-lc-checkrail',category:'Level Crossings',title:'Check-rail length at a skew level crossing',source:'IRPWM Level Crossing table/formula',formula:'\\(X=\\frac{L}{\\sin A}\\)',fields:[['L','Required right-angle length L (m)',9],['A','Road/rail crossing angle A (deg)',60]],compute:x=>{const s=Math.sin(x.A*Math.PI/180),v=s?x.L/s:Infinity;return {value:v,unit:'m',steps:`X = ${x.L} ÷ sin(${x.A}°) = ${Number.isFinite(v)?v.toFixed(3):'∞'} m`,verdict:x.A>0&&x.A<=90?'Skew-length conversion calculated':'Angle should be above 0° and not more than 90°',cls:x.A>0&&x.A<=90?'info':'warn'};},explain:'For a skew crossing, the check-rail length along the railway increases relative to the right-angle requirement. Confirm the applicable LC class, gate width and drawing requirements.'}
+    ];
+    let formulaHubInitialized = false;
+    function initFormulaHub(){
+      if(formulaHubInitialized) return;
+      const grid=document.getElementById('formula-grid');
+      grid.innerHTML=formulaDefinitions.map(f=>`<article class="formula-card" data-formula-id="${f.id}" data-category="${f.category}" data-search="${(f.title+' '+f.source+' '+f.category+' '+f.formula).toLowerCase()}"><div class="formula-card-head"><h3>${f.title}</h3><div class="formula-source">${f.category} • ${f.source}</div></div><div class="formula-display">${f.formula}</div><div class="formula-fields">${f.fields.map(([k,label,val])=>`<div><label for="ff-${f.id}-${k}">${label}</label><input id="ff-${f.id}-${k}" type="number" step="any" value="${val}"></div>`).join('')}</div><div class="formula-actions"><button type="button" onclick="calculateFormula('${f.id}')">Calculate</button><button type="button" class="explain-btn" onclick="toggleFormulaExplain('${f.id}')">Explain</button></div><div id="fo-${f.id}" class="formula-output" aria-live="polite"></div><div id="fe-${f.id}" class="explain-panel"><strong>How to verify</strong><br>${f.explain}<br><strong>Reference:</strong> ${f.source}</div></article>`).join('');
+      formulaHubInitialized=true;
+      addInfoButtons(grid);
+      filterFormulaHub();
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([grid]).catch(()=>{});
+    }
+    function calculateFormula(id){
+      const f=formulaDefinitions.find(x=>x.id===id), values={};
+      for(const [k] of f.fields){const v=parseFloat(document.getElementById(`ff-${id}-${k}`).value);if(!Number.isFinite(v)){alert('Please fill all inputs with valid numbers.');return;}values[k]=v;}
+      let r; try{r=f.compute(values);}catch(e){alert('Calculation could not be completed. Check input values.');return;}
+      const out=document.getElementById(`fo-${id}`);
+      const shown=Number.isFinite(r.value)?Number(r.value).toFixed(Math.abs(r.value)>=100?2:4):'∞';
+      out.innerHTML=`<strong>Result:</strong> ${shown} ${r.unit}<br><strong>Substitution:</strong> ${r.steps}<br><span class="formula-verdict ${r.cls}">${r.verdict}</span>`;
+      out.classList.add('is-visible');
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([out]).catch(()=>{});
+    }
+    function toggleFormulaExplain(id){document.getElementById(`fe-${id}`).classList.toggle('is-visible');}
+    function toggleStaticExplain(id){document.getElementById(id)?.classList.toggle('is-visible');}
+    function filterFormulaHub(){
+      initFormulaHub();const q=document.getElementById('formula-search').value.trim().toLowerCase(),cat=document.getElementById('formula-category').value;let visible=0;
+      document.querySelectorAll('.formula-card').forEach(c=>{const show=(!q||c.dataset.search.includes(q))&&(cat==='all'||c.dataset.category===cat);c.style.display=show?'block':'none';if(show)visible++;});
+      document.getElementById('formula-empty').style.display=visible?'none':'block';
+    }
+
+    // --- RDSO CT-48 (November 2025) detailed LWR calculations ---
+    const ct48Charts = {};
+    const ct48Presets = {
+      '12': {length:22000, erc:74, radius:555, source:'Geometry preset: DFCRRM - 1 in 12, R=555 m'},
+      '8.5': {length:16000, erc:54, radius:218, source:'Geometry preset: DFCRRM - 1 in 8.5, R=218 m'},
+      '16': {length:34779, erc:104, radius:'', source:'Turnout/ACD preset: CT-48 - 1 in 16'}
+    };
+    function ct48Number(id, positive=true){
+      const value=parseFloat(document.getElementById(id).value);
+      if(!Number.isFinite(value)||(positive&&value<=0)) throw new Error('Please enter valid positive values in all fields.');
+      return value;
+    }
+    function loadCT48Preset(){
+      const p=ct48Presets[document.getElementById('ct48-type').value];
+      document.getElementById('ct48-l').value=p.length;document.getElementById('ct48-erc').value=p.erc;document.getElementById('ct48-radius').value=p.radius;document.getElementById('ct48-geometry-source').textContent=p.source;
+    }
+    function typesetCT48(){
+      const panel=document.getElementById('tab-lwr-ct48');
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([panel]).catch(()=>{});
+      setTimeout(()=>Object.values(ct48Charts).forEach(chart=>chart.resize()),80);
+    }
+    function openCT48TempHelp(focus){
+      const modal=document.getElementById('ct48-temp-modal');
+      document.getElementById('ct48-summer-row').style.background=focus==='summer'?'#e8f3ff':'';
+      document.getElementById('ct48-winter-row').style.background=focus==='winter'?'#fff3d6':'';
+      modal.classList.add('is-open');document.body.style.overflow='hidden';
+      modal.querySelector('.explain-modal-close').focus();
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([modal]).catch(()=>{});
+    }
+    function closeCT48TempHelp(event){
+      const modal=document.getElementById('ct48-temp-modal');
+      if(event&&event.target!==modal) return;
+      modal.classList.remove('is-open');document.body.style.overflow='';
+    }
+    const fieldInfoDetails={
+      'ct48-type':{en:'Select the turnout geometry preset. Current DFCRRM Para 127 supplies R=555 m for 1 in 12 TWS and R=218 m for 1 in 8.5; CT-48 supplies the LWR/ACD design parameters. The 2020 Track Maintainer training manual explains the concepts but contains older layout examples, so it is not used to replace the current DFCRRM geometry.',hi:'Turnout geometry preset चुनें। वर्तमान DFCRRM Para 127 से 1 in 12 TWS के लिए R=555 m तथा 1 in 8.5 के लिए R=218 m लिया गया है; LWR/ACD design parameters CT-48 से हैं। 2020 Track Maintainer training manual concepts समझाता है, लेकिन उसमें पुराने layout examples हैं; इसलिए उससे वर्तमान DFCRRM geometry replace नहीं की गई है।'},
+      'ct48-radius':{en:'DFCRRM turnout radius shown for identification and geometry reference. Radius is not directly used in the CT-48 Annexure-I ACD-capacity equation.',hi:'यह DFCRRM का turnout radius पहचान और geometry reference के लिए है। CT-48 Annexure-I की ACD-capacity calculation में radius सीधे प्रयुक्त नहीं होता।'},
+      'ct48-l':{en:'Effective lead or breathing length used in CT-48 Annexure-I: 22,000 mm for 1 in 12, 16,000 mm for 1 in 8.5 and 34,779 mm for 1 in 16.',hi:'CT-48 Annexure-I में प्रयुक्त effective lead/breathing length: 1 in 12 के लिए 22,000 mm, 1 in 8.5 के लिए 16,000 mm और 1 in 16 के लिए 34,779 mm।'},
+      'ct48-erc':{en:'Effective number of ERC restraints in the lead/breathing portion, as counted in CT-48 Annexure-I.',hi:'Lead/breathing portion में प्रभावी ERC restraints की संख्या, जैसा CT-48 Annexure-I में count किया गया है।'},
+      'ct48-toe':{en:'Toe load adopted per ERC Mk-V. CT-48 calculation uses 1,200 kg.',hi:'प्रति ERC Mk-V अपनाया गया toe load। CT-48 calculation में 1,200 kg लिया गया है।'},
+      'ct48-tf':{en:'Transfer function converting ERC toe load to longitudinal restraint. CT-48 adopts 0.4.',hi:'ERC toe load को longitudinal restraint में बदलने वाला transfer function। CT-48 में 0.4 अपनाया गया है।'},
+      'ct48-loss':{en:'Allowance for loss of restraint during service. CT-48 assumes 30%, leaving 70% effective restraint.',hi:'Service के दौरान restraint में कमी का allowance। CT-48 में 30% loss मानकर 70% effective restraint लिया गया है।'},
+      'ct48-area':{en:'Cross-sectional area of the adopted 60 kg rail: 76.86 cm² in the CT-48 calculation.',hi:'अपनाई गई 60 kg rail का cross-sectional area: CT-48 calculation में 76.86 cm²।'},
+      'ct48-e':{en:'Modulus of elasticity of rail steel used by CT-48: 2.11 × 10⁶ kg/cm².',hi:'CT-48 में प्रयुक्त rail steel का modulus of elasticity: 2.11 × 10⁶ kg/cm²।'},
+      'ct48-alpha':{en:'Coefficient of thermal expansion of rail steel used in CT-48: 1.152 × 10⁻⁵ per °C.',hi:'CT-48 में प्रयुक्त rail steel का thermal expansion coefficient: 1.152 × 10⁻⁵ प्रति °C।'},
+      'ct48-play':{en:'Permitted ACD movement on either side of the centralized pin. CT-48 adopts 7 mm.',hi:'Centralized pin के दोनों ओर permitted ACD movement। CT-48 में 7 mm अपनाया गया है।'},
+      'ct48-stock':{en:'Additional stock-rail movement allowance used as an indication of abnormal LWR behaviour. CT-48 allows 2 mm in the design-force calculation.',hi:'असामान्य LWR behaviour के संकेत हेतु additional stock-rail movement allowance। CT-48 design-force calculation में 2 mm लिया गया है।'},
+      'srj-r':{en:'Minimum longitudinal ballast resistance adopted in CT-48 Annexure-II: 12.98 kg/cm per rail seat.',hi:'CT-48 Annexure-II में अपनाया गया minimum longitudinal ballast resistance: 12.98 kg/cm प्रति rail seat।'},
+      'srj-sej':{en:'Available distance between SRJ and SEJ. CT-48 uses the minimum 40 m case.',hi:'SRJ और SEJ के बीच उपलब्ध दूरी। CT-48 में minimum 40 m case लिया गया है।'},
+      'ats-l':{en:'Free portion of tongue rail for the 1 in 12 turnout used in CT-48 Annexure-IV: 10,125 mm.',hi:'CT-48 Annexure-IV में 1 in 12 turnout की tongue rail का free portion: 10,125 mm।'},
+      'ats-limit':{en:'Longitudinal movement accommodation entered for the point machine. CT-48 discusses 10 mm and flags rare Zone-IV extreme cases up to about 12 mm.',hi:'Point machine की longitudinal movement accommodation। CT-48 में 10 mm का उल्लेख है तथा Zone-IV के rare extreme case में लगभग 12 mm तक movement बताई गई है।'}
+    };
+    const unlabeledFieldNames={
+      'to-ve-input':'Turnout versines Ve (mm)','to-speed-type':'Turnout layout / type','to-ml-r':'Main-line curve radius Rm (m)','to-ti-r':'Turn-in curve radius Rt (m)'
+    };
+    function fieldSource(id,section){
+      if(id.startsWith('dfcto-')) return 'DFC Track Manual 2025, Para 302 and Para 602; selected profile data';
+      if(id.startsWith('r555-')) return 'EDFCC APL-01-R03, VAEVKN 1 in 12 R=555 installation & maintenance manual';
+      if(id.startsWith('ct48-')||id.startsWith('srj-')||id.startsWith('ats-')) return 'RDSO CT-48 (Revised Nov 2025); DFCRRM geometry where tagged';
+      if(['basic-r','basic-v'].includes(id)) return 'DFCRRM 501/504; IRPWM 401/404; DFC Track Maintainer Manual, Curve chapter';
+      if(id.startsWith('trans-')||id.startsWith('pot-')) return 'DFCRRM 503-505; compare IRPWM 404-405';
+      if(['ve-input','realign-mode','max-slew','couple-stn-a','couple-stn-b','couple-amt'].includes(id)) return 'IRPWM 419; DFC Track Maintainer Manual, Curve/versine guidance';
+      if(id.startsWith('to-')||id.startsWith('turn-')) return 'DFCRRM 126-127 and P&C chapter; DFC Track Maintainer Manual, P&C chapter';
+      if(id.startsWith('com-')||id.startsWith('off-')) return 'IRPWM 405';
+      if(id.startsWith('cut-')) return 'IRPWM 421';
+      if(id.startsWith('grad-')) return 'IRPWM 416; DFCRRM 515';
+      if(id.startsWith('formula-')) return 'Calculator formula library and cited source on the selected formula card';
+      return section.includes('LWR')?'DFCRRM LWR provisions; IRPWM LWR chapter; DFC Track Maintainer Manual, CWR/LWR chapter':'Applicable DFCRRM / IRPWM provision shown in this calculator';
+    }
+    function fieldPurpose(id,title){
+      if(/radius|\bR\b/i.test(title)) return {en:'Defines the curvature. A smaller radius means a sharper curve and generally increases cant, versine and speed restrictions.',hi:'यह curvature निर्धारित करता है। कम radius का अर्थ अधिक तीखा curve है, जिससे cant, versine और speed restriction सामान्यतः बढ़ते हैं।',role:'Used as R in the displayed geometry/cant/turnout equation.'};
+      if(/speed|Vm|KMPH/i.test(title)) return {en:'The speed to be checked, not automatically the sanctioned speed. The final permissible speed is the lowest governing limit.',hi:'यह check की जाने वाली speed है, स्वतः sanctioned speed नहीं। अंतिम permissible speed सभी governing limits में सबसे कम होगी।',role:'Used as V or Vm; speed-squared terms strongly affect cant and curve demand.'};
+      if(/cant def|Cd/i.test(title)) return {en:'Cant deficiency is the additional equilibrium cant required at the checked speed beyond the cant actually provided.',hi:'Cant deficiency वह अतिरिक्त equilibrium cant है जो checked speed पर provided actual cant से अधिक आवश्यक होता है।',role:'Used as Cd in transition-length and speed-potential checks.'};
+      if(/actual cant|Ca/i.test(title)) return {en:'Actual cant is the measured/proposed difference in level between the outer and inner rails.',hi:'Actual cant बाहरी और अंदरूनी rail के level का measured/proposed अंतर है।',role:'Used as Ca; enter measured or approved design cant, not equilibrium cant unless they are intentionally equal.'};
+      if(/versine|Ve/i.test(title)) return {en:'Versine is the perpendicular offset from the chord midpoint to the rail. It represents local curvature at the station.',hi:'Versine chord के midpoint से rail तक perpendicular offset है और station की local curvature दर्शाता है।',role:'The realignment calculation uses station-wise versines to obtain proposed versines, second summation and slew.'};
+      if(/gradient/i.test(title)) return {en:'The existing longitudinal gradient expressed as 1 in X.',hi:'मौजूदा longitudinal gradient को 1 in X के रूप में दर्ज करें।',role:'Curve compensation is deducted/checked against the ruling-gradient requirement.'};
+      if(/temperature|summer|winter|thermal/i.test(title)) return {en:'Rail-temperature input for thermal expansion, contraction or force—not shade air temperature.',hi:'Thermal expansion, contraction या force के लिए rail-temperature input—यह shade air temperature नहीं है।',role:'Used as ΔT in thermal movement/force calculations.'};
+      return {en:`This parameter is required for “${title}” in the selected calculation.`,hi:`यह parameter selected calculation में “${title}” के लिए आवश्यक है।`,role:'Its exact role is shown in the displayed formula and result substitution.'};
+    }
+    function addInfoButtons(root=document){
+      root.querySelectorAll('input:not([type="hidden"]),select,textarea').forEach(field=>{
+        let label=(field.id&&root.querySelector(`label[for="${CSS.escape(field.id)}"]`))||field.closest('label')||field.parentElement?.querySelector(':scope > label');
+        if(!label){
+          const text=unlabeledFieldNames[field.id]||field.placeholder||field.name||'Input parameter';
+          label=document.createElement('label');label.textContent=text;if(field.id)label.htmlFor=field.id;field.parentElement.insertBefore(label,field);
+        }
+        if(label.dataset.infoReady||label.querySelector('.info-tap')) return;
+        label.dataset.infoReady='true';
+        const button=document.createElement('button');button.type='button';button.className='info-tap';button.textContent='i';button.setAttribute('aria-label','Information / जानकारी');
+        button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();openFieldInfo(label,field);});label.append(' ',button);
+      });
+    }
+    function openFieldInfo(label,field){
+      const title=[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join(' ').trim()||unlabeledFieldNames[field.id]||'Input parameter';
+      const card=field.closest('.card,.formula-card'),section=card?.querySelector('h2,h3')?.textContent?.trim()||'Engineering calculator';
+      const formulaId=card?.dataset.formulaId,formulaDef=formulaId?formulaDefinitions.find(f=>f.id===formulaId):null;
+      const exact=fieldInfoDetails[field.id],purpose=fieldPurpose(field.id,title);
+      const meaningEn=exact?.en||purpose.en,meaningHi=exact?.hi||purpose.hi;
+      const source=formulaDef?.source||fieldSource(field.id,section);
+      const formulaRole=formulaDef?`Formula: ${formulaDef.formula}. ${formulaDef.explain}`:purpose.role;
+      const current=field.tagName==='SELECT'?field.options[field.selectedIndex]?.text:field.value;
+      document.getElementById('field-info-title').textContent=`${title} • जानकारी`;
+      document.getElementById('field-info-body').innerHTML=`
+        <div class="info-source-line"><span class="info-source-badge">${source}</span><span class="info-source-badge example">Current/example: ${current||'Not entered'}</span></div>
+        <div class="info-grid">
+          <div class="info-block"><strong>Meaning / क्या है</strong>${meaningEn}<br><span lang="hi">${meaningHi}</span></div>
+          <div class="info-block"><strong>What to enter / क्या भरें</strong>Enter the measured, approved-design or applicable manual value in the unit printed on the field.<br><span lang="hi">Field पर लिखी unit में measured, approved-design या applicable manual value भरें।</span></div>
+          <div class="info-block"><strong>Formula role / Formula में उपयोग</strong>${formulaRole}</div>
+          <div class="info-block"><strong>Used in / कहाँ उपयोग होगा</strong>${section}<br><span lang="hi">यह value इसी calculation के result, table और graph में उपयोग होगी।</span></div>
+        </div>
+        <div class="info-caution"><strong>Field caution / सावधानी:</strong> A pre-filled number is an example or cited design assumption unless specifically marked as a mandatory limit. Verify turnout drawing, site measurement, temperature zone and latest applicable manual before field use.<br><span lang="hi">Pre-filled संख्या example या cited design assumption है, जब तक उसे mandatory limit न लिखा हो। Field use से पहले turnout drawing, site measurement, temperature zone और नवीनतम applicable manual से सत्यापन करें।</span></div>`;
+      const modal=document.getElementById('field-info-modal');modal.classList.add('is-open');document.body.style.overflow='hidden';modal.querySelector('.explain-modal-close').focus();
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([modal]).catch(()=>{});
+    }
+    function closeFieldInfo(event){const modal=document.getElementById('field-info-modal');if(event&&event.target!==modal)return;modal.classList.remove('is-open');document.body.style.overflow='';}
+    document.addEventListener('DOMContentLoaded',()=>addInfoButtons(document));
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeCT48TempHelp();closeFieldInfo();}});
+    function ct48Show(id, rows, conclusion){
+      const el=document.getElementById(id);
+      el.innerHTML=`<strong>Detailed substitution</strong><table class="ct48-steps"><thead><tr><th>Calculation</th><th>Formula and substituted value</th><th>Result</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table><p><strong>Engineering reading:</strong> ${conclusion}</p>`;
+      el.classList.add('is-visible');
+      if(window.MathJax?.typesetPromise) MathJax.typesetPromise([el]).catch(()=>{});
+    }
+    function ct48Chart(key, canvasId, labels, datasets, title){
+      if(ct48Charts[key]) ct48Charts[key].destroy();
+      const canvas=document.getElementById(canvasId);canvas.parentElement.classList.add('is-visible');
+      ct48Charts[key]=new Chart(canvas,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeOutQuart'},plugins:{title:{display:true,text:title,color:'#123b67',font:{size:15,weight:'bold'}},legend:{position:'bottom'}},scales:{y:{beginAtZero:true,title:{display:true,text:'Movement / force as labelled'}}}}});
+    }
+    function calculateCT48ACD(){
+      try{
+        const type=document.getElementById('ct48-type').value,L=ct48Number('ct48-l'),n=ct48Number('ct48-erc'),toe=ct48Number('ct48-toe'),tf=ct48Number('ct48-tf'),loss=ct48Number('ct48-loss',false),A=ct48Number('ct48-area'),E=ct48Number('ct48-e'),alpha=ct48Number('ct48-alpha'),summer=ct48Number('ct48-summer'),winter=ct48Number('ct48-winter'),play=ct48Number('ct48-play'),stock=ct48Number('ct48-stock');
+        if(loss<0||loss>=100) throw new Error('Service loss must be from 0% to below 100%.');
+        const totalKg=n*tf*toe,minT=totalKg*(1-loss/100)/1000,avgT=minT/2,Lcm=L/10;
+        const restraintMm=(avgT*1000*Lcm/(A*E))*10;
+        const freeSummer=L*alpha*summer,freeWinter=L*alpha*winter;
+        const netSummer=Math.max(0,freeSummer-restraintMm),netWinter=Math.max(0,freeWinter-restraintMm),critical=Math.max(netSummer,netWinter);
+        const excess=Math.max(0,critical-play),forceExcess=(excess/10)*A*E/Lcm/1000,forceStock=(stock/10)*A*E/Lcm/1000,capacity=forceExcess+forceStock;
+        const rows=[
+          ['Total ERC restraint',`\\(R=nT_fT_L=${n}\\times${tf}\\times${toe}\\) kg`,`${totalKg.toFixed(0)} kg = ${(totalKg/1000).toFixed(3)} t`],
+          ['Minimum in service',`\\(R_{min}=R(1-${loss}/100)\\)`,`${minT.toFixed(3)} t`],
+          ['Average restraint',`\\(F_{avg}=R_{min}/2\\)`,`${avgT.toFixed(3)} t`],
+          ['Restraining movement',`\\(\\Delta l_r=F_{avg}L/(AE)\\)`,`${restraintMm.toFixed(3)} mm`],
+          ['Free summer movement',`\\(${L}\\times${alpha}\\times${summer}\\)`,`${freeSummer.toFixed(3)} mm`],
+          ['Free winter movement',`\\(${L}\\times${alpha}\\times${winter}\\)`,`${freeWinter.toFixed(3)} mm`],
+          ['Net summer / winter',`\\(\\Delta l_{net}=\\Delta l_f-\\Delta l_r\\)`,`${netSummer.toFixed(3)} / ${netWinter.toFixed(3)} mm`],
+          ['Movement beyond ACD play',`\\(\\max(0,${critical.toFixed(3)}-${play})\\)`,`${excess.toFixed(3)} mm`],
+          ['Force for excess movement',`\\(F=\\Delta lAE/L\\)`,`${forceExcess.toFixed(3)} t`],
+          ['Force for stock allowance',`\\(F_s=${stock}AE/L\\)`,`${forceStock.toFixed(3)} t`],
+          ['Calculated ACD capacity',`\\(F_{design}=F+F_s\\)`,`${capacity.toFixed(3)} t`]
+        ];
+        ct48Show('ct48-acd-result',rows,`For the selected 1 in ${type} turnout, the unrounded calculated design force is <strong>${capacity.toFixed(2)} tonnes</strong>. CT-48 Annexure-I adopts nominal design capacities of 30 t (1 in 12), 20 t (1 in 8.5) and 40 t (1 in 16) after its stated rounding.`);
+        ct48Chart('acd','ct48-acd-chart',['Free summer','Free winter','ERC reduction','Net summer','Net winter','ACD play'],[{label:'Movement (mm)',data:[freeSummer,freeWinter,restraintMm,netSummer,netWinter,play],backgroundColor:['#38a169','#3182ce','#805ad5','#68d391','#63b3ed','#f6ad55']}],`CT-48 movement chain - 1 in ${type}`);
+      }catch(e){alert(e.message);}
+    }
+    function calculateCT48SRJ(){
+      try{
+        const A=ct48Number('srj-area'),E=ct48Number('srj-e'),alpha=ct48Number('srj-alpha'),dt=ct48Number('srj-dt'),r=ct48Number('srj-r'),loss=ct48Number('srj-loss',false),sej=ct48Number('srj-sej');
+        if(loss<0||loss>=100) throw new Error('Service loss must be from 0% to below 100%.');
+        const thermalKg=A*E*alpha*dt,thermalT=thermalKg/1000,blCm=thermalKg/((1-loss/100)*r),blM=blCm/100,breathing=Math.max(0,blM-sej);
+        const free=breathing*1000*alpha*dt,forceSRJ=thermalT*Math.min(1,sej/blM),avg=(thermalT+forceSRJ)/2,restrain=(avg*1000*(breathing*100)/(A*E))*10,net=Math.max(0,free-restrain);
+        const rows=[
+          ['Maximum thermal force',`\\(P=${A}\\times${E}\\times${alpha}\\times${dt}\\)`,`${thermalKg.toFixed(0)} kg = ${thermalT.toFixed(3)} t`],
+          ['Breathing length',`\\(BL=P/[(1-${loss}/100)\\times${r}]\\)`,`${blM.toFixed(3)} m`],
+          ['Breathing length behind SRJ',`\\(L_b=BL-${sej}\\)`,`${breathing.toFixed(3)} m`],
+          ['Free SRJ movement',`\\(\\Delta l_f=${breathing.toFixed(3)}\\times1000\\times${alpha}\\times${dt}\\)`,`${free.toFixed(3)} mm`],
+          ['Restraint at SRJ',`\\(F_{SRJ}=P\\times${sej}/BL\\)`,`${forceSRJ.toFixed(3)} t`],
+          ['Average restraint',`\\(F_{avg}=(P+F_{SRJ})/2\\)`,`${avg.toFixed(3)} t`],
+          ['Restraining effect',`\\(\\Delta l_r=F_{avg}L_b/(AE)\\)`,`${restrain.toFixed(3)} mm`],
+          ['Net movement at SRJ',`\\(\\Delta l_{net}=\\Delta l_f-\\Delta l_r\\)`,`${net.toFixed(3)} mm`]
+        ];
+        ct48Show('ct48-srj-result',rows,`Calculated net SRJ movement is <strong>${net.toFixed(2)} mm</strong>. With CT-48 standard assumptions, this is approximately 7 mm and is stated to be within the movement provision considered in the report.`);
+        ct48Chart('srj','ct48-srj-chart',['Free movement','Restraining effect','Net movement'],[{label:'Movement (mm)',data:[free,restrain,net],backgroundColor:['#3182ce','#805ad5',net<=7.5?'#38a169':'#e53e3e']}],'Annexure-II SRJ movement check');
+      }catch(e){alert(e.message);}
+    }
+    function calculateCT48ATS(){
+      try{
+        const L=ct48Number('ats-l'),alpha=ct48Number('ats-alpha'),summer=ct48Number('ats-summer'),winter=ct48Number('ats-winter'),acd=ct48Number('ats-acd'),limit=ct48Number('ats-limit');
+        const trSummer=L*alpha*summer,trWinter=L*alpha*winter,totalSummer=trSummer+acd,totalWinter=trWinter+acd,critical=Math.max(totalSummer,totalWinter),excess=Math.max(0,critical-limit);
+        const rows=[
+          ['Summer tongue-rail movement',`\\(\\Delta l_s=${L}\\times${alpha}\\times${summer}\\)`,`${trSummer.toFixed(3)} mm`],
+          ['Winter tongue-rail movement',`\\(\\Delta l_w=${L}\\times${alpha}\\times${winter}\\)`,`${trWinter.toFixed(3)} mm`],
+          ['Maximum total at ATS',`\\(\\Delta l_{ATS}=\\max(\\Delta l_s,\\Delta l_w)+${acd}\\)`,`${critical.toFixed(3)} mm`],
+          ['Movement above machine provision',`\\(\\max(0,${critical.toFixed(3)}-${limit})\\)`,`${excess.toFixed(3)} mm`]
+        ];
+        ct48Show('ct48-ats-result',rows,critical>limit?`The calculated rare combined movement is <strong>${critical.toFixed(2)} mm</strong>, above the entered ${limit} mm point-machine accommodation. CT-48 calls for monitoring and possible minor adjustment in the stated Zone-IV extreme-weather case.`:`The calculated combined movement is <strong>${critical.toFixed(2)} mm</strong>, within the entered ${limit} mm point-machine accommodation.`);
+        ct48Chart('ats','ct48-ats-chart',['Summer TR','Winter TR','Summer + ACD','Winter + ACD','Machine provision'],[{label:'Movement (mm)',data:[trSummer,trWinter,totalSummer,totalWinter,limit],backgroundColor:['#63b3ed','#3182ce','#f6ad55','#dd6b20','#38a169']}],'Annexure-IV ATS movement estimate');
+      }catch(e){alert(e.message);}
+    }
+
+    // --- Animated results: MathJax formulae + Chart.js ---
+    const resultCharts = {};
+
+    function typesetResult(elementId) {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetClear?.([document.getElementById(elementId)]);
+            MathJax.typesetPromise([document.getElementById(elementId)]).catch(() => {});
+        }
+    }
+
+    function renderResultChart(canvasId, labels, values, label, colors) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !window.Chart) return;
+        if (resultCharts[canvasId]) resultCharts[canvasId].destroy();
+        resultCharts[canvasId] = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label,
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: colors.map(c => c.replace('0.72', '1')),
+                    borderWidth: 1,
+                    borderRadius: 9,
+                    maxBarThickness: 64
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 1100, easing: 'easeOutQuart' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}` } }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(39,77,96,.10)' }, ticks: { color: '#496878' } },
+                    x: { grid: { display: false }, ticks: { color: '#274d60', font: { weight: '600' } } }
+                }
+            }
+        });
+    }
+
+    // --- Tab 1, 3, 4 Calculators ---
+    function calcBasic() {
+        const R = parseFloat(document.getElementById('basic-r').value), V = parseFloat(document.getElementById('basic-v').value);
+        if(!R || !V || R<=0 || V<=0) return showFeedback('basic-result', false, '⚠️ Please enter valid R and V.', 'danger');
+        const degree = 1750/R, versine = 50000/R, cant = (1750*V*V)/(127*R);
+        showFeedback('basic-result', true, `<div class="result-layout"><div class="formula-panel"><div class="formula-line">\\(D = \\frac{1750}{R} = \\frac{1750}{${R}}\\)</div><div class="formula-answer">Degree = ${degree.toFixed(2)}°</div><div class="formula-line">\\(V_{20m} = \\frac{50000}{R}\\)</div><div class="formula-answer">Versine = ${versine.toFixed(1)} mm</div><div class="formula-line">\\(C_e = \\frac{1750 \\times V^2}{127 \\times R}\\)</div><div class="formula-answer">Equilibrium Cant = ${cant.toFixed(1)} mm</div></div><div class="result-chart"><canvas id="basic-result-chart" aria-label="Animated basic geometry result chart"></canvas></div></div>`);
+        typesetResult('basic-result');
+        renderResultChart('basic-result-chart', ['Degree (°)', 'Versine (mm)', 'Cant (mm)'], [degree, versine, cant], 'Calculated value', ['rgba(21,101,167,0.72)','rgba(122,79,179,0.72)','rgba(8,119,111,0.72)']);
+    }
+
+    function calcTransition() {
+        const R = parseFloat(document.getElementById('trans-r').value), Vm = parseFloat(document.getElementById('trans-v').value), Ca = parseFloat(document.getElementById('trans-ca').value), Cd = parseFloat(document.getElementById('trans-cd').value);
+        if(!R || !Vm || isNaN(Ca) || isNaN(Cd) || R<=0) return showFeedback('trans-result', false, '⚠️ Fill all fields.', 'danger');
+        const L1 = 0.008 * Cd * Vm, L2 = 0.008 * Ca * Vm, L3 = 0.72 * Ca;
+        const L = Math.ceil(Math.max(L1, L2, L3) / 10) * 10; 
+        const shift = (L * L) / (24 * R);
+        showFeedback('trans-result', true, `<div class="result-layout"><div class="formula-panel"><div class="formula-line">\\(L_1 = 0.008 \\times C_d \\times V_m = ${L1.toFixed(2)}\\,m\\)</div><div class="formula-line">\\(L_2 = 0.008 \\times C_a \\times V_m = ${L2.toFixed(2)}\\,m\\)</div><div class="formula-line">\\(L_3 = 0.72 \\times C_a = ${L3.toFixed(2)}\\,m\\)</div><div class="formula-answer">Adopted Transition = ${L.toFixed(2)} m</div><div class="formula-line">\\(S = \\frac{L^2}{24R} = ${shift.toFixed(3)}\\,m\\)</div><div class="formula-line"><b>Reference:</b> DFCRRM 505</div></div><div class="result-chart"><canvas id="transition-result-chart" aria-label="Animated transition length comparison chart"></canvas></div></div>`);
+        typesetResult('trans-result');
+        renderResultChart('transition-result-chart', ['Cd criterion', 'Ca criterion', 'Gradient criterion', 'Adopted'], [L1, L2, L3, L], 'Transition length (m)', ['rgba(21,101,167,0.72)','rgba(122,79,179,0.72)','rgba(176,91,27,0.72)','rgba(8,119,111,0.72)']);
+    }
+
+    function calcSpeedPotential() {
+        const R = parseFloat(document.getElementById('pot-r').value), L = parseFloat(document.getElementById('pot-l').value), Ca = parseFloat(document.getElementById('pot-ca').value), Cd = parseFloat(document.getElementById('pot-cd').value);
+        if(!R || !L || isNaN(Ca) || isNaN(Cd) || R<=0) return showFeedback('pot-result', false, '⚠️ Fill all fields.', 'danger');
+        const circularSpeed = 0.27 * Math.sqrt(R * (Ca + Cd));
+        const cdSpeed = Cd > 0 ? L / (0.008 * Cd) : Infinity;
+        const caSpeed = Ca > 0 ? L / (0.008 * Ca) : Infinity;
+        const safeSpeed = Math.min(circularSpeed, cdSpeed, caSpeed);
+        const finiteChartValues = [circularSpeed, cdSpeed, caSpeed].map(v => Number.isFinite(v) ? v : 0);
+        showFeedback('pot-result', true, `<div class="result-layout"><div class="formula-panel"><div class="formula-line">\\(V_c = 0.27\\sqrt{R(C_a+C_d)} = ${circularSpeed.toFixed(2)}\\,km/h\\)</div><div class="formula-line">\\(V_{Cd} = \\frac{L}{0.008C_d} = ${Number.isFinite(cdSpeed) ? cdSpeed.toFixed(2) : 'Not limiting'}\\)</div><div class="formula-line">\\(V_{Ca} = \\frac{L}{0.008C_a} = ${Number.isFinite(caSpeed) ? caSpeed.toFixed(2) : 'Not limiting'}\\)</div><div class="formula-answer">Maximum Permissible Speed = ${safeSpeed.toFixed(2)} km/h</div><div class="formula-line"><b>Reference:</b> DFCRRM 503-505</div></div><div class="result-chart"><canvas id="speed-result-chart" aria-label="Animated speed constraint comparison chart"></canvas></div></div>`);
+        typesetResult('pot-result');
+        renderResultChart('speed-result-chart', ['Circular curve', 'Cd rate', 'Ca rate'], finiteChartValues, 'Speed limit (km/h)', ['rgba(21,101,167,0.72)','rgba(176,91,27,0.72)','rgba(8,119,111,0.72)']);
+    }
+
+    const dfcTurnoutProfiles={
+      '555':{G:1676,W:-3038,T:0.5,theta:[4,45,49],beta:[0,4,37],srjats:745.5,tncheel:5128.1,refR:555,refTotal:48260,speed:50,label:'1 in 12, R=555'},
+      '460':{G:1676,W:1106,T:3,theta:[4,45,49],beta:[0,20,0],srjats:1144,tncheel:4896,refR:460,refTotal:42667,speed:50,label:'1 in 12, R=460'},
+      '441':{G:1676,W:1823.5,T:1.5,theta:[4,45,49],beta:[0,7,21],srjats:1500,tncheel:6708,refR:441.36,refTotal:45762,speed:45,label:'1 in 12, R=441.36'},
+      '218':{G:1676,W:1650,T:2,theta:[6,42,35],beta:[0,36,8],srjats:1500,tncheel:4448,refR:218,refTotal:30768,speed:25,label:'1 in 8.5, R=218'}
+    };
+    let dfcTurnoutChart=null;
+    function loadDFCTurnoutProfile(){
+      const p=dfcTurnoutProfiles[document.getElementById('dfcto-profile').value];
+      document.getElementById('dfcto-g').value=p.G;document.getElementById('dfcto-w').value=p.W;document.getElementById('dfcto-t').value=p.T;
+      ['d','m','s'].forEach((x,i)=>{document.getElementById(`dfcto-th-${x}`).value=p.theta[i];document.getElementById(`dfcto-b-${x}`).value=p.beta[i];});
+      document.getElementById('dfcto-srjats').value=p.srjats;document.getElementById('dfcto-tncheel').value=p.tncheel;
+    }
+    function calculateDFCTurnoutGeometry(){
+      const ids=['dfcto-g','dfcto-w','dfcto-t','dfcto-th-d','dfcto-th-m','dfcto-th-s','dfcto-b-d','dfcto-b-m','dfcto-b-s','dfcto-srjats','dfcto-tncheel'];
+      const v={};for(const id of ids){v[id]=parseFloat(document.getElementById(id).value);if(!Number.isFinite(v[id]))return showFeedback('dfcto-result',false,'⚠️ Fill all turnout geometry inputs with valid numbers.','danger');}
+      if(v['dfcto-g']<=0||v['dfcto-srjats']<0||v['dfcto-tncheel']<=0)return showFeedback('dfcto-result',false,'⚠️ Gauge and layout lengths must be valid positive values.','danger');
+      const dmsToRad=(d,m,s)=>(d+m/60+s/3600)*Math.PI/180;
+      const theta=dmsToRad(v['dfcto-th-d'],v['dfcto-th-m'],v['dfcto-th-s']),beta=dmsToRad(v['dfcto-b-d'],v['dfcto-b-m'],v['dfcto-b-s']);
+      const G=v['dfcto-g'],W=v['dfcto-w'],T=v['dfcto-t'],numerator=G-T-W*Math.sin(theta),halfSum=(theta+beta)/2,halfDiff=(theta-beta)/2;
+      if(Math.abs(Math.tan(halfSum))<1e-12||Math.abs(Math.sin(halfSum)*Math.sin(halfDiff))<1e-12)return showFeedback('dfcto-result',false,'⚠️ Enter valid crossing and switch angles.','danger');
+      const lead=numerator/Math.tan(halfSum)+W*Math.cos(theta),srjTnc=lead+v['dfcto-srjats'],total=srjTnc+v['dfcto-tncheel'],radiusMm=numerator/(2*Math.sin(halfSum)*Math.sin(halfDiff)),radiusM=radiusMm/1000,johChord=Math.sqrt(Math.max(0,2*radiusMm*72));
+      const p=dfcTurnoutProfiles[document.getElementById('dfcto-profile').value],rDiff=radiusM-p.refR,tDiff=total-p.refTotal,rPct=rDiff/p.refR*100,tPct=tDiff/p.refTotal*100;
+      showFeedback('dfcto-result',true,`<strong>${p.label} - detailed calculation</strong><table><thead><tr><th>Output</th><th>Formula/substitution</th><th>Calculated</th><th>Manual reference</th><th>Difference</th></tr></thead><tbody>
+        <tr><td>ATS to TNC lead</td><td>\\(L=\\frac{G-T-W\\sin\\theta}{\\tan[(\\theta+\\beta)/2]}+W\\cos\\theta\\)</td><td>${lead.toFixed(2)} mm</td><td>Derived by Para 602</td><td>—</td></tr>
+        <tr><td>SRJ to TNC</td><td>\\(L+SRJ\\text{-}ATS\\)</td><td>${srjTnc.toFixed(2)} mm</td><td>Derived by Para 602</td><td>—</td></tr>
+        <tr><td>Total turnout length</td><td>\\(SRJ\\text{-}TNC+TNC\\text{-}Heel\\)</td><td>${total.toFixed(2)} mm</td><td>${p.refTotal.toFixed(0)} mm</td><td>${tDiff>=0?'+':''}${tDiff.toFixed(2)} mm</td></tr>
+        <tr><td>Turnout radius</td><td>\\(R=\\frac{G-T-W\\sin\\theta}{2\\sin[(\\theta+\\beta)/2]\\sin[(\\theta-\\beta)/2]}\\)</td><td>${radiusM.toFixed(3)} m</td><td>${p.refR} m</td><td>${rDiff>=0?'+':''}${rDiff.toFixed(3)} m</td></tr>
+        <tr><td>JOH chord from curve origin</td><td>\\(c=\\sqrt{2R\\times72}\\)</td><td>${johChord.toFixed(2)} mm</td><td>Verify drawing datum</td><td>—</td></tr></tbody></table>
+        <p><strong>Profile permitted speed reference:</strong> ${p.speed} km/h. This is not a substitute for sanctioned/interlocked speed.</p><small>Small differences can arise because the manual table angles and dimensions are rounded. Use the adopted profile dimensions and approved layout drawing for field setting.</small>`);
+      typesetResult('dfcto-result');
+      const wrap=document.getElementById('dfcto-chart-wrap');wrap.classList.add('is-visible');if(dfcTurnoutChart)dfcTurnoutChart.destroy();
+      dfcTurnoutChart=new Chart(document.getElementById('dfcto-chart'),{type:'bar',data:{labels:['Calculated radius deviation','Calculated length deviation'],datasets:[{label:'Difference from manual reference (%)',data:[rPct,tPct],backgroundColor:[Math.abs(rPct)<1?'#3182ce':'#dd6b20',Math.abs(tPct)<1?'#38a169':'#dd6b20']}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},plugins:{title:{display:true,text:`${p.label}: calculated vs adopted manual profile`},legend:{position:'bottom'}},scales:{y:{title:{display:true,text:'Deviation (%)'}}}}});
+    }
+    function calcTurnoutVersines() {
+        const veArray = document.getElementById('to-ve-input').value.split(/[\n,\t ]+/).map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
+        if(veArray.length === 0) return showFeedback('to-ve-result', false, '⚠️ Enter positive versines.', 'danger');
+        let html = `<table><tr><th>Stn (3m)</th><th>Versine</th><th>Radius (m)</th></tr>`;
+        veArray.forEach((v, idx) => html += `<tr><td>${idx}</td><td>${v}</td><td><b>${(4500/v).toFixed(1)}</b></td></tr>`);
+        html += `</table>`;
+        showFeedback('to-ve-result', true, html);
+    }
+    function validateTurnoutConstraints() {
+        const sel=document.getElementById('to-speed-type'), opt=sel.options[sel.selectedIndex];
+        const ml=parseFloat(document.getElementById('to-ml-r').value), ti=parseFloat(document.getElementById('to-ti-r').value);
+        if(!ml||!ti||ml<=0||ti<=0) return showFeedback('to-speed-result',false,'⚠️ Enter valid main-line and turn-in radii.','danger');
+        const designR=parseFloat(opt.dataset.radius||'0'), corridor=opt.dataset.corridor||'IR';
+        let status=ti>=350?'✅ Turn-in radius is at least 350 m.':(ti>=220?'⚠️ Turn-in radius is between 220 m and 350 m; exceptional provisions and conditions must be checked.':'🚨 Turn-in radius is below 220 m.');
+        let design=designR?`Selected DFCCIL layout: <b>${opt.text}</b><br>Design lead radius: <b>${designR} m (${corridor})</b><br>`:`Selected layout: <b>${opt.text}</b><br>`;
+        showFeedback('to-speed-result',true,`${design}Main-line radius: ${ml.toFixed(2)} m<br>Turn-in radius: ${ti.toFixed(2)} m<br><b>${status}</b><br><small>Lead radius and turn-in radius are different parameters. Final compliance requires layout drawing, versines, flexure, cant, interlocking and approved speed.</small>`,ti>=350?'normal':'warning');
+    }
+    const r555ToleranceSpecs={
+      gauge:{label:'Track gauge',min:1676,max:1678,rule:'1676 +2, -0 mm',source:'APL-01-R03, switch/lead/crossing check sheets'},
+      srjats:{label:'SRJ to ATS',min:739.5,max:751.5,rule:'745.5 ±6 mm',source:'APL-01-R03, Switch Assembly Check Sheet'},
+      joh:{label:'JOH clearance',min:60,max:Infinity,rule:'minimum 60 mm',source:'APL-01-R03, preventive maintenance 1.0.9'},
+      nose:{label:'Nose clearance',min:42,max:44,rule:'44 +0, -2 mm',source:'APL-01-R03, Weldable Crossing Check Sheet'},
+      throat:{label:'Throat clearance',min:66,max:68,rule:'66 +2, -0 mm',source:'APL-01-R03, Weldable Crossing Check Sheet'},
+      wing:{label:'Wing-rail clearance',min:66,max:69,rule:'66 +3, -0 mm',source:'APL-01-R03, Weldable Crossing Check Sheet'},
+      checkrail:{label:'Check-rail clearance',min:43,max:45,rule:'44 ±1 mm',source:'APL-01-R03, installation Step 34'},
+      straightness:{label:'Straightness deviation',min:-1,max:1,rule:'±1 mm',source:'APL-01-R03, assembly check sheets'},
+      squareness:{label:'Stock-rail squareness at SRJ',min:-3,max:3,rule:'±3 mm',source:'APL-01-R03, Switch Assembly Check Sheet'},
+      contactgap:{label:'Stock/tongue contact gap',min:0,max:1,rule:'maximum 1 mm',source:'APL-01-R03, preventive maintenance 1.0.3'},
+      switchstop:{label:'Switch rail/stop gap',min:0,max:2,rule:'maximum 2 mm',source:'APL-01-R03, preventive maintenance 1.0.6'},
+      crossnosewear:{label:'Crossing nose wear',min:0,max:4,strictMax:true,rule:'less than 4 mm',source:'APL-01-R03, crossing maintenance check sheet'},
+      crosswingwear:{label:'Crossing wing-rail wear',min:0,max:8,strictMax:true,rule:'less than 8 mm',source:'APL-01-R03, crossing maintenance check sheet'}
+    };
+    function checkR555Tolerance(){
+      const key=document.getElementById('r555-check-type').value,spec=r555ToleranceSpecs[key],value=parseFloat(document.getElementById('r555-observed').value);
+      if(!Number.isFinite(value)) return showFeedback('r555-check-result',false,'⚠️ Enter a valid observed measurement.','danger');
+      const within=value>=spec.min&&(spec.strictMax?value<spec.max:value<=spec.max);
+      const lower=Number.isFinite(spec.min)?spec.min:'−∞',upper=Number.isFinite(spec.max)?spec.max:'∞';
+      showFeedback('r555-check-result',within,`<strong>${spec.label}</strong><br>Observed: <b>${value.toFixed(2)} mm</b><br>Manual criterion: <b>${spec.rule}</b><br>Check range used: ${lower} to ${upper} mm${spec.strictMax?' (upper limit excluded)':''}<br><span class="formula-verdict ${within?'ok':'warn'}">${within?'WITHIN REFERENCE TOLERANCE / सीमा के अंदर':'OUTSIDE REFERENCE TOLERANCE / सीमा के बाहर'}</span><br><small>Source: ${spec.source}. Confirm current approved drawing and applicable DFCRRM/IRPWM action before acceptance.</small>`,within?'normal':'danger');
+    }
+    function calcTurnoutEffective() {
+        const rm=parseFloat(document.getElementById('turn-rm').value),rs=parseFloat(document.getElementById('turn-rs').value),flex=document.getElementById('turn-flex').value;
+        if(!rm||!rs||rm<=0||rs<=0)return showFeedback('turn-result',false,'⚠️ Enter valid radii.','danger');
+        const inv=flex==='similar'?(1/rm+1/rs):Math.abs(1/rs-1/rm),re=inv?1/inv:Infinity;
+        const sign=flex==='similar'?'+':'−';
+        showFeedback('turn-result',true,`\\(\\frac{1}{R_e}=\\left|\\frac{1}{${rs}} ${sign} \\frac{1}{${rm}}\\right|\\)<br><b>Effective Radius = ${Number.isFinite(re)?re.toFixed(2):'∞'} m</b><br><small>Reference: IRICEN Turnout 2025, Chapter 7. Confirm flexure orientation before use.</small>`);
+        typesetResult('turn-result');
+    }
+    function calcCommonTrans() {
+        const type=document.getElementById('com-type').value,vm=parseFloat(document.getElementById('com-v').value),ca1=parseFloat(document.getElementById('com-ca1').value),cd1=parseFloat(document.getElementById('com-cd1').value),ca2=parseFloat(document.getElementById('com-ca2').value),cd2=parseFloat(document.getElementById('com-cd2').value);
+        if(!vm||[ca1,cd1,ca2,cd2].some(v=>!Number.isFinite(v)))return showFeedback('com-result',false,'⚠️ Fill all fields.','danger');
+        const a=.008*(type==='compound'?Math.abs(ca1-ca2):(ca1+ca2))*vm,b=.008*(type==='compound'?Math.abs(cd1-cd2):(cd1+cd2))*vm,l=Math.max(a,b);
+        showFeedback('com-result',true,`Ca criterion = ${a.toFixed(2)} m<br>Cd criterion = ${b.toFixed(2)} m<br><b>Common Transition Length = ${l.toFixed(2)} m</b><br><small>Reference: DFCRRM ${type==='compound'?'506':'507'}; verify cant gradient and layout conditions.</small>`);
+    }
+    function calcOffsets() {
+        const r=parseFloat(document.getElementById('off-r').value),l=parseFloat(document.getElementById('off-l').value),step=parseFloat(document.getElementById('off-int').value);
+        if(!r||!l||!step||r<=0||l<=0||step<=0)return showFeedback('off-result',false,'⚠️ Enter valid values.','danger');
+        let rows='';for(let x=0;x<=l+1e-9;x+=step){const y=x*x*x/(6*r*l);rows+=`<tr><td>${x.toFixed(2)}</td><td>${y.toFixed(4)}</td><td>${(y*1000).toFixed(1)}</td></tr>`;}if(l%step!==0){const y=l*l/(6*r);rows+=`<tr><td>${l.toFixed(2)}</td><td>${y.toFixed(4)}</td><td>${(y*1000).toFixed(1)}</td></tr>`;}
+        showFeedback('off-result',true,`\\(Y=\\frac{X^3}{6RL}\\)<table><tr><th>X (m)</th><th>Offset Y (m)</th><th>Offset (mm)</th></tr>${rows}</table><small>Reference: IRPWM 405(6)(b).</small>`);typesetResult('off-result');
+    }
+    function calcCutRails() {
+        const r=parseFloat(document.getElementById('cut-r').value),l=parseFloat(document.getElementById('cut-l').value),g=1750;
+        if(!r||!l||r<=0||l<=0)return showFeedback('cut-result',false,'⚠️ Enter valid values.','danger');
+        const d=l*g/r;showFeedback('cut-result',true,`\\(d=\\frac{LG}{R}=\\frac{${l}\\times${g}}{${r}}\\)<br><b>Inner rail gain = ${d.toFixed(2)} mm</b><br><small>G = 1750 mm dynamic gauge. Reference: IRPWM 421.</small>`);typesetResult('cut-result');
+    }
+    function calcGradient() {
+        const r=parseFloat(document.getElementById('grad-r').value),x=parseFloat(document.getElementById('grad-x').value);
+        if(!r||!x||r<=0||x<=0)return showFeedback('grad-result',false,'⚠️ Enter valid values.','danger');
+        const comp=70/r,existing=100/x,flat=Math.max(0,existing-comp),den=flat?100/flat:Infinity;
+        showFeedback('grad-result',true,`\\(Compensation=\\frac{70}{R}=\\frac{70}{${r}}=${comp.toFixed(4)}\\%\\)<br>Existing gradient = ${existing.toFixed(4)}%<br><b>Compensated gradient = ${flat.toFixed(4)}% ≈ 1 in ${Number.isFinite(den)?den.toFixed(0):'∞'}</b><br><small>Reference: IRPWM 416 / DFCRRM 515. Apply when existing gradient plus compensation exceeds ruling gradient.</small>`);typesetResult('grad-result');
+    }
+</script>
+
+</body></html>

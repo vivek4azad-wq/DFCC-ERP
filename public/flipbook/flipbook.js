@@ -1,5 +1,5 @@
 /**
- * DFCCIL 3D HTML5 Flipbook Engine - Manuals Only Edition
+ * DFCCIL 3D HTML5 Flipbook Engine - Full-Scale Viewport Edition
  * Powered by StPageFlip & PDF.js
  * DFCCIL IMSD SMUN Unit
  */
@@ -49,7 +49,6 @@ const BOOKS = [
   }
 ];
 
-// Configure PDF.js Worker
 if (window.pdfjsLib) {
   window.pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -63,7 +62,6 @@ class FlipBookApp {
     this.totalPages = 0;
     this.currentPage = 0;
     this.renderedPages = new Map();
-    this.isRendering = false;
     this.soundEnabled = true;
     this.zoomLevel = 1;
     this.thumbnailsOpen = false;
@@ -73,7 +71,6 @@ class FlipBookApp {
     this.initBookSelector();
     this.bindEvents();
 
-    // Check URL params for book ID
     const urlParams = new URLSearchParams(window.location.search);
     const bookParam = urlParams.get('book');
     if (bookParam) {
@@ -123,6 +120,35 @@ class FlipBookApp {
       });
       this.bookSelect.appendChild(optgroup);
     }
+  }
+
+  calculateDimensions() {
+    const isMobile = window.innerWidth < 820;
+    const headerH = document.querySelector('.flipbook-header')?.offsetHeight || 56;
+    const toolbarH = document.querySelector('.flipbook-toolbar')?.offsetHeight || 52;
+    const availableH = window.innerHeight - headerH - toolbarH - 24;
+    const availableW = window.innerWidth - (isMobile ? 24 : 120);
+
+    // High readability aspect ratio (~0.707 standard A4)
+    const aspect = 0.707;
+    let pageH = Math.max(450, Math.floor(availableH));
+    let pageW = Math.round(pageH * aspect);
+
+    if (!isMobile) {
+      // For two-page desktop spread
+      if ((pageW * 2) > availableW) {
+        pageW = Math.floor(availableW / 2);
+        pageH = Math.round(pageW / aspect);
+      }
+    } else {
+      // Single page portrait on mobile
+      if (pageW > availableW) {
+        pageW = availableW;
+        pageH = Math.round(pageW / aspect);
+      }
+    }
+
+    return { width: pageW, height: pageH, isMobile };
   }
 
   bindEvents() {
@@ -211,11 +237,25 @@ class FlipBookApp {
       }
     });
 
-    // Window Resize
+    // Re-adapt on window resize / fullscreen
+    let resizeTimer;
     window.addEventListener('resize', () => {
-      if (this.pageFlip) {
-        this.updateDimensions();
-      }
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (this.pageFlip && this.pdfDoc) {
+          const currentPageNum = this.currentPage || 1;
+          this.rebuildFlipbook(currentPageNum);
+        }
+      }, 250);
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      setTimeout(() => {
+        if (this.pageFlip && this.pdfDoc) {
+          const currentPageNum = this.currentPage || 1;
+          this.rebuildFlipbook(currentPageNum);
+        }
+      }, 150);
     });
   }
 
@@ -265,7 +305,7 @@ class FlipBookApp {
       loadingTask.onProgress = (progress) => {
         if (progress.total > 0) {
           const percent = Math.round((progress.loaded / progress.total) * 60);
-          this.showLoading(`Downloading PDF (${percent}%)...`, percent);
+          this.showLoading(`Downloading Manual (${percent}%)...`, percent);
         }
       };
 
@@ -278,78 +318,92 @@ class FlipBookApp {
       this.pageInput.value = 1;
       this.updatePageCounter(1);
 
-      this.showLoading('Preparing 3D Page Engine...', 75);
+      this.showLoading('Setting up High-Res 3D Viewport...', 80);
 
-      // Create page DOM nodes
-      for (let i = 1; i <= this.totalPages; i++) {
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-        pageDiv.dataset.pageNumber = i;
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'page-content';
-
-        const canvas = document.createElement('canvas');
-        canvas.className = 'page-canvas';
-        canvas.id = `canvas-page-${i}`;
-
-        const footer = document.createElement('div');
-        footer.className = 'page-number-footer';
-        footer.textContent = `- ${i} -`;
-
-        contentDiv.appendChild(canvas);
-        contentDiv.appendChild(footer);
-        pageDiv.appendChild(contentDiv);
-        this.bookContainer.appendChild(pageDiv);
-      }
-
-      // Initialize StPageFlip
-      const isMobile = window.innerWidth < 768;
-      const baseWidth = isMobile ? Math.min(window.innerWidth - 20, 480) : 520;
-      const baseHeight = isMobile ? Math.min(window.innerHeight - 150, 680) : 735;
-
-      this.pageFlip = new St.PageFlip(this.bookContainer, {
-        width: baseWidth,
-        height: baseHeight,
-        size: 'stretch',
-        minWidth: 280,
-        maxWidth: 900,
-        minHeight: 400,
-        maxHeight: 1250,
-        maxShadowOpacity: 0.55,
-        showCover: true,
-        mobileScrollSupport: false,
-        useMouseEvents: true,
-        usePortrait: isMobile,
-        autoSize: true
-      });
-
-      this.pageFlip.loadFromHTML(document.querySelectorAll('.page'));
-
-      this.pageFlip.on('flip', (e) => {
-        const targetPage = e.data + 1;
-        this.currentPage = targetPage;
-        this.updatePageCounter(targetPage);
-        this.playPageSound();
-        this.renderSurroundingPages(targetPage);
-      });
-
-      this.pageFlip.on('changeState', (e) => {
-        if (e.data === 'flipping') {
-          this.playPageSound();
-        }
-      });
-
-      // Render initial pages
-      await this.renderSurroundingPages(1);
+      this.rebuildFlipbook(1);
 
       this.showLoading('Ready!', 100);
-      setTimeout(() => this.hideLoading(), 300);
+      setTimeout(() => this.hideLoading(), 250);
 
     } catch (err) {
-      console.error('Error loading PDF book:', err);
-      this.showLoading(`Error loading book: ${err.message}`, 100);
+      console.error('Error loading PDF manual:', err);
+      this.showLoading(`Error loading manual: ${err.message}`, 100);
     }
+  }
+
+  rebuildFlipbook(initialPage = 1) {
+    if (this.pageFlip) {
+      this.pageFlip.destroy();
+      this.pageFlip = null;
+    }
+
+    this.bookContainer.innerHTML = '';
+    this.renderedPages.clear();
+
+    const dims = this.calculateDimensions();
+
+    // Create page DOM nodes with explicit aspect ratio sizing
+    for (let i = 1; i <= this.totalPages; i++) {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'page';
+      pageDiv.dataset.pageNumber = i;
+      pageDiv.style.width = `${dims.width}px`;
+      pageDiv.style.height = `${dims.height}px`;
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'page-content';
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'page-canvas';
+      canvas.id = `canvas-page-${i}`;
+
+      const footer = document.createElement('div');
+      footer.className = 'page-number-footer';
+      footer.textContent = `- ${i} -`;
+
+      contentDiv.appendChild(canvas);
+      contentDiv.appendChild(footer);
+      pageDiv.appendChild(contentDiv);
+      this.bookContainer.appendChild(pageDiv);
+    }
+
+    this.pageFlip = new St.PageFlip(this.bookContainer, {
+      width: dims.width,
+      height: dims.height,
+      size: 'fixed',
+      minWidth: 280,
+      maxWidth: 1800,
+      minHeight: 400,
+      maxHeight: 2400,
+      maxShadowOpacity: 0.65,
+      showCover: true,
+      mobileScrollSupport: false,
+      useMouseEvents: true,
+      usePortrait: dims.isMobile,
+      autoSize: false
+    });
+
+    this.pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+
+    if (initialPage > 1) {
+      this.pageFlip.flip(initialPage - 1);
+    }
+
+    this.pageFlip.on('flip', (e) => {
+      const targetPage = e.data + 1;
+      this.currentPage = targetPage;
+      this.updatePageCounter(targetPage);
+      this.playPageSound();
+      this.renderSurroundingPages(targetPage);
+    });
+
+    this.pageFlip.on('changeState', (e) => {
+      if (e.data === 'flipping') {
+        this.playPageSound();
+      }
+    });
+
+    this.renderSurroundingPages(initialPage);
   }
 
   async renderPage(pageNum) {
@@ -363,7 +417,8 @@ class FlipBookApp {
       const canvas = document.getElementById(`canvas-page-${pageNum}`);
       if (!canvas) return;
 
-      const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for crisp retina display
+      // 2.5x retina scaling for razor-sharp engineering text & diagrams
+      const viewport = page.getViewport({ scale: 2.5 });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
@@ -410,7 +465,7 @@ class FlipBookApp {
       if (!AudioContext) return;
       const ctx = new AudioContext();
 
-      const bufferSize = ctx.sampleRate * 0.09; // 90ms
+      const bufferSize = ctx.sampleRate * 0.09;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
 

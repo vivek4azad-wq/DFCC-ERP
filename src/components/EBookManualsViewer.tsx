@@ -17,7 +17,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Bookmark
+  Bookmark,
+  Calculator
 } from 'lucide-react';
 
 interface ManualItem {
@@ -106,45 +107,60 @@ export const EBookManualsViewer: React.FC = () => {
     return `/flipbook/index.html?book=${selectedBook.id}`;
   };
 
+  const handleOpenCalculator = () => {
+    window.open('/calculator/index.html', '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] w-full gap-3 animate-in fade-in duration-300">
       {/* Top Banner & Fast Manual Selector */}
-      <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-4 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-3.5 sm:p-4 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
             <BookOpen className="w-6 h-6 text-slate-950" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                3D Track & Railroad Manuals E-Library
+              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                3D Track & Railroad Manuals
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold uppercase tracking-wider">
                   6 Manuals
                 </span>
               </h1>
             </div>
             <p className="text-xs text-amber-200/80 font-medium">
-              Realistic Page-Turn Physics • Web Audio Turn Sound • Search & Zoom
+              Realistic Page-Turn Physics • Audio Turn Sound • Search & Zoom
             </p>
           </div>
         </div>
 
-        {/* Quick Manual Selector Chips */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-semibold text-slate-300 mr-1 hidden sm:inline">Jump to Manual:</span>
-          {MANUAL_CATALOG.map(manual => (
-            <button
-              key={manual.id}
-              onClick={() => handleSelectBook(manual)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all shadow-sm ${
-                selectedBook.id === manual.id
-                  ? 'bg-amber-400 text-slate-950 shadow-amber-400/40 ring-2 ring-amber-300'
-                  : 'bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10'
-              }`}
-            >
-              {manual.badge}
-            </button>
-          ))}
+        {/* Quick Manual Selector Chips & Curve Calculator Launcher */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {MANUAL_CATALOG.map(manual => (
+              <button
+                key={manual.id}
+                onClick={() => handleSelectBook(manual)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all shadow-sm ${
+                  selectedBook.id === manual.id
+                    ? 'bg-amber-400 text-slate-950 shadow-amber-400/40 ring-2 ring-amber-300'
+                    : 'bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10'
+                }`}
+              >
+                {manual.badge}
+              </button>
+            ))}
+          </div>
+
+          {/* Dedicated Calculator Button */}
+          <button
+            onClick={handleOpenCalculator}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 border border-cyan-300/40 flex items-center gap-1.5 transition-all hover:scale-105"
+            title="Open DFCCIL Railway Curve Calculator in New Window"
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Curve Calculator ↗</span>
+          </button>
         </div>
       </div>
 
@@ -162,6 +178,27 @@ export const EBookManualsViewer: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dfccil-500"
             />
+          </div>
+
+          {/* Software Tools Card */}
+          <div
+            onClick={handleOpenCalculator}
+            className="mb-2.5 p-2.5 rounded-xl bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/40 border border-sky-200 dark:border-sky-800/80 cursor-pointer hover:border-sky-400 transition-all flex items-center justify-between gap-2 shadow-xs group"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                <Calculator className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-sky-900 dark:text-sky-200 truncate">
+                  DFCCIL Curve Calculator
+                </div>
+                <div className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">
+                  By V K Azad • Click to Open Software
+                </div>
+              </div>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-sky-500 flex-shrink-0" />
           </div>
 
           {/* Category Filter Pills */}
@@ -230,7 +267,7 @@ export const EBookManualsViewer: React.FC = () => {
         {/* Right 3D Flipbook Stage Viewport (9 cols) */}
         <div className="lg:col-span-9 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl relative">
           {/* Header Action Bar on Top of Flipbook */}
-          <div className="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-2 flex items-center justify-between z-10">
+          <div className="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-2 flex items-center justify-between z-10">
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <h2 className="text-xs font-bold text-white truncate max-w-[320px] sm:max-w-md">
@@ -239,6 +276,14 @@ export const EBookManualsViewer: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleOpenCalculator}
+                className="px-2 py-1 rounded-lg bg-sky-900/60 hover:bg-sky-800 text-sky-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-sky-600/40"
+                title="Open Curve Calculator"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Calculator</span>
+              </button>
               <button
                 onClick={() => setIframeKey(k => k + 1)}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"

@@ -33,15 +33,19 @@ html, body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: radial-gradient(circle at center, #17233d 0%, #080d1a 100%);
+  /* Scenic atmospheric railway sunset background with dark vignette for optimal reading focus */
+  background: 
+    radial-gradient(ellipse at center, rgba(15, 30, 60, 0.45) 0%, rgba(6, 10, 20, 0.95) 100%),
+    linear-gradient(180deg, rgba(8, 14, 30, 0.85) 0%, rgba(5, 8, 18, 0.9) 100%),
+    url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?q=80&w=2168&auto=format&fit=crop') center/cover no-repeat;
 }
 
 /* Header Top Bar */
 .flipbook-header {
-  height: 58px;
-  background: rgba(15, 43, 92, 0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--surface-border);
+  height: 56px;
+  background: rgba(10, 24, 52, 0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -88,9 +92,9 @@ html, body {
 
 .book-select {
   appearance: none;
-  background: rgba(10, 20, 42, 0.85);
+  background: rgba(8, 18, 38, 0.9);
   color: #ffffff;
-  border: 1px solid #334e80;
+  border: 1px solid #3b5a94;
   border-radius: 8px;
   padding: 6px 32px 6px 12px;
   font-size: 12.5px;
@@ -105,7 +109,7 @@ html, body {
 
 .book-select:hover, .book-select:focus {
   border-color: var(--accent-gold);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
 }
 
 .select-arrow {
@@ -117,7 +121,7 @@ html, body {
   color: var(--accent-gold);
 }
 
-/* Quick ACS Chip Badges */
+/* Quick Manual Badges */
 .acs-chip-group {
   display: flex;
   align-items: center;
@@ -136,7 +140,7 @@ html, body {
   color: #cbd5e1;
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -156,6 +160,30 @@ html, body {
   box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
 }
 
+/* Calculator Action Button */
+.btn-calc-launcher {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+  white-space: nowrap;
+}
+
+.btn-calc-launcher:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.5);
+}
+
 /* Header Right Action Buttons */
 .header-actions {
   display: flex;
@@ -165,10 +193,10 @@ html, body {
 
 .btn-icon {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #cbd5e1;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -178,7 +206,7 @@ html, body {
 }
 
 .btn-icon:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.22);
   color: #ffffff;
   transform: translateY(-1px);
 }
@@ -197,6 +225,7 @@ html, body {
   justify-content: center;
   overflow: hidden;
   user-select: none;
+  padding: 10px;
 }
 
 .book-wrapper {
@@ -206,18 +235,21 @@ html, body {
   justify-content: center;
   transform-origin: center center;
   transition: transform 0.15s ease-out;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+  /* Deep 3D book spine drop shadow */
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85));
 }
 
 /* StPageFlip Styling */
 .st-page-flip {
   margin: 0 auto;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
 }
 
 .page {
   background-color: #ffffff;
   overflow: hidden;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.08);
 }
 
 .page-content {
@@ -243,9 +275,9 @@ html, body {
   left: 0;
   width: 100%;
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
   color: #64748b;
-  font-weight: 600;
+  font-weight: 700;
   pointer-events: none;
 }
 
@@ -254,11 +286,11 @@ html, body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 56px;
-  background: rgba(15, 43, 92, 0.65);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 48px;
+  height: 64px;
+  background: rgba(10, 24, 52, 0.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -270,32 +302,32 @@ html, body {
 
 .nav-arrow:hover {
   background: rgba(15, 43, 92, 0.95);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  width: 48px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  width: 54px;
 }
 
 .nav-arrow.prev {
-  left: 12px;
-  border-radius: 0 10px 10px 0;
+  left: 14px;
+  border-radius: 0 12px 12px 0;
 }
 
 .nav-arrow.next {
-  right: 12px;
-  border-radius: 10px 0 0 10px;
+  right: 14px;
+  border-radius: 12px 0 0 12px;
 }
 
 .nav-arrow:disabled {
-  opacity: 0.2;
+  opacity: 0.15;
   cursor: not-allowed;
   pointer-events: none;
 }
 
 /* Bottom Control Toolbar */
 .flipbook-toolbar {
-  height: 50px;
-  background: rgba(15, 43, 92, 0.85);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--surface-border);
+  height: 52px;
+  background: rgba(10, 24, 52, 0.92);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -310,23 +342,23 @@ html, body {
 }
 
 .page-counter {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #cbd5e1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .page-input {
-  width: 48px;
-  height: 28px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid #334e80;
+  width: 52px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #3b5a94;
   color: #ffffff;
   border-radius: 6px;
   text-align: center;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   outline: none;
 }
@@ -335,7 +367,7 @@ html, body {
 }
 
 .page-slider {
-  width: 140px;
+  width: 160px;
   height: 4px;
   accent-color: var(--accent-gold);
   cursor: pointer;
@@ -345,8 +377,8 @@ html, body {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(10, 15, 29, 0.85);
-  backdrop-filter: blur(6px);
+  background: rgba(6, 10, 22, 0.88);
+  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -356,27 +388,27 @@ html, body {
 }
 
 .loading-spinner {
-  width: 44px;
-  height: 44px;
-  border: 3.5px solid rgba(212, 175, 55, 0.2);
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(212, 175, 55, 0.2);
   border-top-color: var(--accent-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 .loading-text {
-  margin-top: 14px;
-  font-size: 13.5px;
+  margin-top: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 .loading-bar-wrapper {
-  width: 180px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  margin-top: 10px;
+  width: 200px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  margin-top: 12px;
   overflow: hidden;
 }
 
@@ -394,12 +426,12 @@ html, body {
 /* Thumbnails Drawer */
 .thumbnails-drawer {
   position: absolute;
-  bottom: 50px;
+  bottom: 52px;
   left: 0;
   right: 0;
-  height: 140px;
-  background: rgba(10, 15, 29, 0.95);
-  backdrop-filter: blur(14px);
+  height: 145px;
+  background: rgba(6, 10, 22, 0.96);
+  backdrop-filter: blur(16px);
   border-top: 1px solid var(--surface-border);
   display: flex;
   gap: 12px;
@@ -415,8 +447,8 @@ html, body {
 }
 
 .thumb-item {
-  flex: 0 0 85px;
-  height: 110px;
+  flex: 0 0 90px;
+  height: 120px;
   background: #ffffff;
   border: 2px solid transparent;
   border-radius: 4px;
@@ -424,13 +456,13 @@ html, body {
   overflow: hidden;
   position: relative;
   transition: all 0.2s;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .thumb-item:hover, .thumb-item.active {
   border-color: var(--accent-gold);
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4);
 }
 
 .thumb-item canvas {
@@ -444,11 +476,12 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   text-align: center;
   padding: 2px;
+  font-weight: 600;
 }
 
 /* Search Modal */
@@ -456,14 +489,14 @@ html, body {
   position: absolute;
   top: 68px;
   right: 16px;
-  width: 320px;
-  max-height: 400px;
-  background: rgba(15, 23, 42, 0.95);
+  width: 340px;
+  max-height: 420px;
+  background: rgba(10, 18, 36, 0.96);
   backdrop-filter: blur(16px);
-  border: 1px solid var(--surface-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   padding: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
   z-index: 180;
   display: none;
   flex-direction: column;
@@ -480,8 +513,8 @@ html, body {
 
 .search-input {
   flex: 1;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid #334e80;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid #3b5a94;
   border-radius: 8px;
   padding: 8px 12px;
   color: #ffffff;
@@ -495,7 +528,7 @@ html, body {
 .search-results-list {
   margin-top: 10px;
   overflow-y: auto;
-  max-height: 280px;
+  max-height: 300px;
 }
 
 .search-result-item {
@@ -507,7 +540,7 @@ html, body {
   transition: background 0.15s;
 }
 .search-result-item:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }
 
@@ -534,8 +567,14 @@ html, body {
     display: none;
   }
   .nav-arrow {
-    width: 36px;
-    height: 48px;
+    width: 38px;
+    height: 50px;
+  }
+  .nav-arrow.prev {
+    left: 4px;
+  }
+  .nav-arrow.next {
+    right: 4px;
   }
   .page-slider {
     display: none;

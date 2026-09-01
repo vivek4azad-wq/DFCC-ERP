@@ -87,6 +87,7 @@ class FlipBookApp {
   }
 
   initBookSelector() {
+    if (!this.bookSelect) return;
     this.bookSelect.innerHTML = '';
     const groups = {};
     BOOKS.forEach(b => {
@@ -135,12 +136,12 @@ class FlipBookApp {
   }
 
   bindEvents() {
-    this.bookSelect.addEventListener('change', (e) => {
+    this.bookSelect?.addEventListener('change', (e) => {
       const book = BOOKS.find(b => b.id === e.target.value);
       if (book) this.loadBook(book);
     });
 
-    this.manualChips.forEach(chip => {
+    this.manualChips?.forEach(chip => {
       chip.addEventListener('click', () => {
         const bookId = chip.dataset.book;
         const book = BOOKS.find(b => b.id === bookId);
@@ -148,20 +149,20 @@ class FlipBookApp {
       });
     });
 
-    this.prevBtn.addEventListener('click', () => this.pageFlip?.flipPrev());
-    this.nextBtn.addEventListener('click', () => this.pageFlip?.flipNext());
+    this.prevBtn?.addEventListener('click', () => this.pageFlip?.flipPrev());
+    this.nextBtn?.addEventListener('click', () => this.pageFlip?.flipNext());
 
     document.getElementById('prevBtnBottom')?.addEventListener('click', () => this.pageFlip?.flipPrev());
     document.getElementById('nextBtnBottom')?.addEventListener('click', () => this.pageFlip?.flipNext());
 
-    this.pageInput.addEventListener('change', (e) => {
+    this.pageInput?.addEventListener('change', (e) => {
       let page = parseInt(e.target.value, 10);
       if (isNaN(page)) return;
       page = Math.max(1, Math.min(this.totalPages, page));
       this.pageFlip?.flip(page - 1);
     });
 
-    this.pageSlider.addEventListener('input', (e) => {
+    this.pageSlider?.addEventListener('input', (e) => {
       const page = parseInt(e.target.value, 10);
       this.pageFlip?.flip(page - 1);
     });
@@ -185,20 +186,20 @@ class FlipBookApp {
     // Thumbnails toggle
     document.getElementById('thumbBtn')?.addEventListener('click', () => {
       this.thumbnailsOpen = !this.thumbnailsOpen;
-      this.thumbnailsDrawer.classList.toggle('open', this.thumbnailsOpen);
+      this.thumbnailsDrawer?.classList.toggle('open', this.thumbnailsOpen);
       if (this.thumbnailsOpen) this.renderThumbnails();
     });
 
     // Search toggle
     document.getElementById('searchBtn')?.addEventListener('click', () => {
       this.searchOpen = !this.searchOpen;
-      this.searchModal.classList.toggle('open', this.searchOpen);
-      if (this.searchOpen) this.searchInput.focus();
+      this.searchModal?.classList.toggle('open', this.searchOpen);
+      if (this.searchOpen) this.searchInput?.focus();
     });
 
     document.getElementById('searchCloseBtn')?.addEventListener('click', () => {
       this.searchOpen = false;
-      this.searchModal.classList.remove('open');
+      this.searchModal?.classList.remove('open');
     });
 
     this.searchInput?.addEventListener('input', (e) => this.debounceSearch(e.target.value));
@@ -223,8 +224,8 @@ class FlipBookApp {
       } else if (e.key === 'f' || e.key === 'F') {
         this.toggleFullscreen();
       } else if (e.key === 'Escape') {
-        this.thumbnailsDrawer.classList.remove('open');
-        this.searchModal.classList.remove('open');
+        this.thumbnailsDrawer?.classList.remove('open');
+        this.searchModal?.classList.remove('open');
         acsModal?.classList.remove('open');
         this.thumbnailsOpen = false;
         this.searchOpen = false;
@@ -256,30 +257,33 @@ class FlipBookApp {
   }
 
   updateManualChips() {
-    this.manualChips.forEach(chip => {
+    this.manualChips?.forEach(chip => {
       chip.classList.toggle('active', chip.dataset.book === this.currentBook.id);
     });
-    this.bookSelect.value = this.currentBook.id;
+    if (this.bookSelect) this.bookSelect.value = this.currentBook.id;
   }
 
   showLoading(text = 'Loading Document...', progress = 0) {
+    if (!this.loadingOverlay) return;
     this.loadingOverlay.style.display = 'flex';
     this.loadingOverlay.style.opacity = '1';
-    this.loadingText.textContent = text;
-    this.loadingBar.style.width = `${progress}%`;
+    if (this.loadingText) this.loadingText.textContent = text;
+    if (this.loadingBar) this.loadingBar.style.width = `${progress}%`;
   }
 
   hideLoading() {
+    if (!this.loadingOverlay) return;
     this.loadingOverlay.style.opacity = '0';
     setTimeout(() => {
-      this.loadingOverlay.style.display = 'none';
+      if (this.loadingOverlay) this.loadingOverlay.style.display = 'none';
     }, 200);
   }
 
   async loadBook(book) {
     this.currentBook = book;
     this.updateManualChips();
-    document.getElementById('headerTitle').textContent = book.title;
+    const headerTitle = document.getElementById('headerTitle');
+    if (headerTitle) headerTitle.textContent = book.title;
 
     this.showLoading(`Loading ${book.title}...`, 25);
 
@@ -291,7 +295,7 @@ class FlipBookApp {
         this.pageFlip = null;
       }
 
-      this.bookContainer.innerHTML = '';
+      if (this.bookContainer) this.bookContainer.innerHTML = '';
       this.renderedPages.clear();
       this.renderingPages.clear();
 
@@ -313,10 +317,14 @@ class FlipBookApp {
       this.pdfDoc = await loadingTask.promise;
       this.totalPages = this.pdfDoc.numPages;
 
-      this.pageSlider.max = this.totalPages;
-      this.pageSlider.value = 1;
-      this.pageInput.max = this.totalPages;
-      this.pageInput.value = 1;
+      if (this.pageSlider) {
+        this.pageSlider.max = this.totalPages;
+        this.pageSlider.value = 1;
+      }
+      if (this.pageInput) {
+        this.pageInput.max = this.totalPages;
+        this.pageInput.value = 1;
+      }
       this.updatePageCounter(1);
 
       this.showLoading('Rendering Initial Pages...', 90);
@@ -344,6 +352,8 @@ class FlipBookApp {
       } catch (e) {}
       this.pageFlip = null;
     }
+
+    if (!this.bookContainer) return;
 
     this.bookContainer.innerHTML = '';
     this.renderedPages.clear();
@@ -477,10 +487,14 @@ class FlipBookApp {
 
   updatePageCounter(page) {
     this.currentPage = page;
-    this.pageInput.value = page;
-    this.pageSlider.value = page;
-    document.getElementById('currentPageText').textContent = page;
-    document.getElementById('totalPagesText').textContent = this.totalPages;
+    if (this.pageInput) this.pageInput.value = page;
+    if (this.pageSlider) this.pageSlider.value = page;
+    const pageInfo = document.getElementById('pageInfo');
+    if (pageInfo) pageInfo.textContent = `Page ${page} of ${this.totalPages}`;
+    const curEl = document.getElementById('currentPageText');
+    if (curEl) curEl.textContent = page;
+    const totEl = document.getElementById('totalPagesText');
+    if (totEl) totEl.textContent = this.totalPages;
   }
 
   playPageSound() {
@@ -508,8 +522,13 @@ class FlipBookApp {
 
   setZoom(level) {
     this.zoomLevel = Math.max(0.7, Math.min(2.2, level));
-    this.bookWrapper.style.transform = `scale(${this.zoomLevel})`;
-    document.getElementById('zoomLevelText').textContent = `${Math.round(this.zoomLevel * 100)}%`;
+    if (this.bookWrapper) {
+      this.bookWrapper.style.transform = `scale(${this.zoomLevel})`;
+    }
+    const zoomText = document.getElementById('zoomLevelText');
+    if (zoomText) {
+      zoomText.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+    }
   }
 
   toggleFullscreen() {
@@ -535,7 +554,7 @@ class FlipBookApp {
   }
 
   async renderThumbnails() {
-    if (this.thumbnailsDrawer.children.length > 0) return;
+    if (!this.thumbnailsDrawer || this.thumbnailsDrawer.children.length > 0) return;
 
     for (let i = 1; i <= Math.min(this.totalPages, 60); i++) {
       const item = document.createElement('div');
@@ -553,7 +572,7 @@ class FlipBookApp {
 
       item.addEventListener('click', () => {
         this.pageFlip?.flip(i - 1);
-        this.thumbnailsDrawer.classList.remove('open');
+        this.thumbnailsDrawer?.classList.remove('open');
         this.thumbnailsOpen = false;
       });
 
@@ -575,6 +594,8 @@ class FlipBookApp {
   }
 
   async performSearch(query) {
+    if (!this.searchResults) return;
+
     if (!query || query.trim().length < 2) {
       this.searchResults.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding:10px;">Type at least 2 characters to search...</div>';
       return;
@@ -621,7 +642,7 @@ class FlipBookApp {
       `;
       card.addEventListener('click', () => {
         this.pageFlip?.flip(m.page - 1);
-        this.searchModal.classList.remove('open');
+        this.searchModal?.classList.remove('open');
         this.searchOpen = false;
       });
       this.searchResults.appendChild(card);

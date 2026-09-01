@@ -76,14 +76,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   const allTabs = [
     { id: 'analytics', label: 'Dashboard', icon: '📊', count: null },
     { id: 'categories', label: 'Assets', icon: '🗂️', count: null },
-    { id: 'manuals', label: '3D Manuals', icon: '📖', count: null },
-    { id: 'software', label: 'Software', icon: '📐', count: null },
-    { id: 'staff', label: 'Staff', icon: '👥', count: null },
+    { id: 'linear', label: 'Linear', icon: '📐', count: null },
     { id: 'pway_work', label: 'P.way', icon: '⚡', count: null },
     { id: 'maintenance', label: 'Maintenance', icon: '🛠️', count: null },
     { id: 'store', label: 'Store', icon: '📦', count: null },
-    { id: 'attendance', label: 'Attendence', icon: '📋', count: null },
-    { id: 'linear', label: 'Linear', icon: '📐', count: null },
+    { id: 'staff', label: 'Staff', icon: '👥', count: null },
+    { id: 'attendance', label: 'Attendance', icon: '📋', count: null },
+    { id: 'software', label: 'Software', icon: '📐', count: null },
+    { id: 'manuals', label: '3D Manuals', icon: '📖', count: null },
   ];
 
   const visibleTabs = React.useMemo(() => {
@@ -94,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: 'pway_work', label: 'P.way', icon: '⚡', count: null },
         { id: 'maintenance', label: 'Maintenance', icon: '🛠️', count: null },
         { id: 'staff', label: 'Staff', icon: '👥', count: null },
-        { id: 'attendance', label: 'Attendence', icon: '📋', count: null },
+        { id: 'attendance', label: 'Attendance', icon: '📋', count: null },
       ];
     }
     if (currentAppRole === 'StoreKeeper' || role === 'STORE_KEEPER') {

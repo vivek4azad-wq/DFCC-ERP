@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ThemeProvider, useTheme } from './context/ThemeContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
+import { Sidebar } from './components/Sidebar.tsx';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard.tsx';
 import { AssetCategories, type AssetCategoryKey } from './components/AssetCategories.tsx';
 import { KmQuickFinder } from './components/KmQuickFinder.tsx';
@@ -20,6 +21,7 @@ import { DefectManager } from './components/DefectManager.tsx';
 import { LoginDashboard } from './components/LoginDashboard.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
 import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
+import { StoreMasterPublicQRView } from './components/StoreMasterPublicQRView.tsx';
 import { StaffPublicQRView } from './components/StaffPublicQRView.tsx';
 import { StationKeyPlanModal } from './components/StationKeyPlanModal.tsx';
 import { EBookManualsViewer } from './components/EBookManualsViewer.tsx';
@@ -78,6 +80,15 @@ function MainAppShell() {
   // Inspection Eligibility (Strictly APM & Officer)
   const isInspectionEligible = role === 'SUPER_ADMIN' || role === 'OFFICER' || currentAppRole === 'APM' || currentAppRole === 'Executive';
 
+  // Standalone Whole Store Master QR Scan View
+  const [publicStoreMaster, setPublicStoreMaster] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('view') === 'store_master' || params.get('store_inventory') === 'all';
+    }
+    return false;
+  });
+
   // Standalone QR Scan Store Item View
   const [publicStoreItemId, setPublicStoreItemId] = useState<string | null>(() => {
     if (typeof window !== 'undefined' && window.location.search) {
@@ -96,8 +107,8 @@ function MainAppShell() {
     return null;
   });
 
-  // Modals & Popups (Saved for later entry: inspection popup default false)
-  const [isInspectionPopupOpen, setIsInspectionPopupOpen] = useState(false);
+  // Modals & Popups (Open vacant beat & low/negative stock alert popup on launch)
+  const [isInspectionPopupOpen, setIsInspectionPopupOpen] = useState(true);
   const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false);
 
   // Navigation filter states for cross-screen deep-linking
@@ -388,6 +399,22 @@ function MainAppShell() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // 1.4 IF WHOLE STORE MASTER QR SCAN: RENDER LIVE INVENTORY REGISTER VIEW
+  // -------------------------------------------------------------------------
+  if (publicStoreMaster) {
+    return (
+      <StoreMasterPublicQRView
+        onBackToApp={() => {
+          setPublicStoreMaster(false);
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }}
+      />
     );
   }
 
@@ -1129,10 +1156,13 @@ function MainAppShell() {
         onOpenInspectionsAlert={() => setIsInspectionPopupOpen(true)}
       />
 
-      {/* Main Layout Container: Full-Width Clean Modern View */}
-      <div className="flex-1 w-full max-w-[1780px] mx-auto pb-20 md:pb-8 overflow-x-hidden">
+      {/* Main Layout Container: Desktop Sidebar + Dynamic Content View */}
+      <div className="flex-1 flex max-w-[1780px] w-full mx-auto pb-20 md:pb-8 overflow-x-hidden">
+        {/* Desktop / Tablet Sidebar */}
+        <Sidebar activeTab={currentTab} setActiveTab={setActiveTab} />
+
         {/* Dynamic Content View Area */}
-        <main className="w-full p-2.5 sm:p-5 lg:p-6 min-w-0 overflow-x-hidden overflow-y-auto">
+        <main className="flex-1 p-2.5 sm:p-5 lg:p-6 min-w-0 w-full overflow-x-hidden overflow-y-auto">
           {renderActiveScreen()}
         </main>
       </div>
@@ -1141,7 +1171,7 @@ function MainAppShell() {
       <ScheduledInspectionPopup
         isOpen={isInspectionPopupOpen}
         onClose={() => setIsInspectionPopupOpen(false)}
-        onNavigateToInspections={() => setActiveTab('store')}
+        onNavigateToInspections={(tab) => setActiveTab(tab || 'store')}
       />
 
       {/* 🤖 Admin AI Search & Firebase Log Assistant Modal */}

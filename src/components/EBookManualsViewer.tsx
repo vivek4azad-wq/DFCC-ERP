@@ -1,36 +1,33 @@
 /**
- * 3D Track & Railroad Manuals Library (Interactive Flipbook)
- * DFCCIL IMSD SMUN Unit
+ * DFCCIL 3D Track & Railroad Manuals Viewer
+ * High-Performance 3D Flipbook Experience
+ * 100% Full-Stage Viewport with Fast Progressive Rendering
+ * Unit Incharge: Shri Vivek Kumar Azad (APM / Civil)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   BookOpen,
-  FileText,
-  ExternalLink,
-  Download,
   Maximize2,
-  RefreshCw,
-  Search,
-  Sparkles,
-  Layers,
-  ChevronRight,
-  ShieldCheck,
-  Zap,
-  Bookmark,
-  Calculator,
+  Minimize2,
+  RotateCw,
+  Download,
   FileCheck,
-  X
+  X,
+  ExternalLink,
+  Layers,
+  Sparkles,
+  HelpCircle,
+  Volume2
 } from 'lucide-react';
 
 interface ManualItem {
   id: string;
   title: string;
-  category: 'Core' | 'Track' | 'Turnout' | 'Installation' | 'Maintenance';
+  category: 'Core' | 'Track' | 'Installation';
   badge: string;
-  date?: string;
+  date: string;
   url: string;
-  isExternal?: boolean;
 }
 
 interface ACSCorrectionSlip {
@@ -92,88 +89,106 @@ const ACS_SLIPS_LIST: ACSCorrectionSlip[] = [
     shortTitle: 'ACS 02',
     date: '2025',
     size: '2.1 MB',
-    url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf'
+    url: '/manuals/ACS_02_DFC_RRM.pdf'
   },
   {
     id: 'acs-03',
-    title: 'ACS-03: Addendum & Correction Slip to DFC RRM',
+    title: 'ACS-03: DFC Railroad Manual',
     shortTitle: 'ACS 03',
     date: '2025',
-    size: '812 KB',
-    url: '/manuals/ACS_03_to_DFC_RRM.pdf'
+    size: '1.4 MB',
+    url: '/manuals/ACS_03_DFC_RRM.pdf'
   },
   {
     id: 'acs-04',
-    title: 'ACS-04: DFC Railroad Manual (dt. 16.10.2025)',
+    title: 'ACS-04: DFC Railroad Manual',
     shortTitle: 'ACS 04',
-    date: '16-Oct-2025',
-    size: '3.0 MB',
-    url: '/manuals/ACS_04_dt_16.10.2025.pdf'
+    date: '2025',
+    size: '850 KB',
+    url: '/manuals/ACS_04_DFC_RRM.pdf'
   },
   {
     id: 'acs-05',
-    title: 'ACS-05: DFC Railroad Manual (dt. 02.12.2025)',
+    title: 'ACS-05: DFC Railroad Manual',
     shortTitle: 'ACS 05',
-    date: '02-Dec-2025',
-    size: '795 KB',
-    url: '/manuals/ACS_05_dt_02.12.25_RRM.pdf'
+    date: '2025',
+    size: '1.2 MB',
+    url: '/manuals/ACS_05_DFC_RRM.pdf'
   }
 ];
 
 export const EBookManualsViewer: React.FC = () => {
   const [selectedBook, setSelectedBook] = useState<ManualItem>(MANUAL_CATALOG[0]);
-  const [activeCategory, setActiveCategory] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [iframeKey, setIframeKey] = useState(0);
   const [isAcsModalOpen, setIsAcsModalOpen] = useState(false);
+  const [useDirectPdfFallback, setUseDirectPdfFallback] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const viewerContainerRef = useRef<HTMLDivElement>(null);
 
-  const filteredBooks = MANUAL_CATALOG.filter(book => {
-    const matchesCat = activeCategory === 'ALL' || book.category === activeCategory;
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          book.badge.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
-
-  const handleSelectBook = (book: ManualItem) => {
-    setSelectedBook(book);
+  const handleSelectBook = (manual: ManualItem) => {
+    setSelectedBook(manual);
     setIframeKey(prev => prev + 1);
   };
 
   const getViewerUrl = () => {
-    if (selectedBook.isExternal) {
+    if (useDirectPdfFallback) {
       return selectedBook.url;
     }
     return `/flipbook/index.html?book=${selectedBook.id}`;
   };
 
-  const handleOpenCalculator = () => {
-    window.open('/calculator/index.html', '_blank', 'noopener,noreferrer');
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (viewerContainerRef.current?.requestFullscreen) {
+        viewerContainerRef.current.requestFullscreen().catch(err => {
+          console.warn('Native fullscreen failed, opening standalone window:', err);
+          window.open(getViewerUrl(), '_blank', 'noopener,noreferrer');
+        });
+      } else {
+        window.open(getViewerUrl(), '_blank', 'noopener,noreferrer');
+      }
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
   };
 
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] w-full gap-3 animate-in fade-in duration-300">
+    <div
+      ref={viewerContainerRef}
+      className={`flex flex-col w-full gap-3 animate-in fade-in duration-300 ${
+        isFullscreen ? 'h-screen p-3 bg-[#070c18]' : 'h-[calc(100vh-120px)]'
+      }`}
+    >
       {/* Top Banner & Fast Manual Selector */}
-      <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-3.5 sm:p-4 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
-            <BookOpen className="w-6 h-6 text-slate-950" />
+      <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-3 sm:p-4 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+            <BookOpen className="w-5 h-5 text-slate-950" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center gap-2">
                 3D Track &amp; Railroad Manuals
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold uppercase tracking-wider">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black uppercase tracking-wider">
                   4 Official Manuals
                 </span>
               </h1>
             </div>
-            <p className="text-xs text-amber-200/80 font-medium">
-              Realistic Page-Turn Physics • Audio Turn Sound • Search &amp; Zoom
+            <p className="text-[11px] text-amber-200/80 font-medium">
+              Realistic 3D Page-Turn Physics &bull; Web Audio Sound &bull; Progressive Loading
             </p>
           </div>
         </div>
 
-        {/* Action Buttons: Fast Manuals & ACS Slips Download */}
+        {/* Action Buttons: Fast Manual Selection Chips & ACS Download */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Quick Manual Selector Chips */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -181,7 +196,7 @@ export const EBookManualsViewer: React.FC = () => {
               <button
                 key={manual.id}
                 onClick={() => handleSelectBook(manual)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all shadow-sm ${
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm ${
                   selectedBook.id === manual.id
                     ? 'bg-amber-400 text-slate-950 shadow-amber-400/40 ring-2 ring-amber-300'
                     : 'bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10'
@@ -204,191 +219,77 @@ export const EBookManualsViewer: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Container: Sidebar Manuals List + 3D Stage Viewport */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
-        {/* Left Book Catalog Selector (3 cols on large screens) */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 flex flex-col shadow-sm min-h-0 overflow-hidden">
-          {/* Search Box */}
-          <div className="relative mb-2.5">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Filter manuals..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dfccil-500"
-            />
+      {/* Main 100% Full-Stage 3D Viewport Container */}
+      <div className="flex-1 w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col min-h-0 relative">
+        {/* Stage Header Toolbar */}
+        <div className="p-2 sm:p-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-2 text-xs shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="font-bold text-slate-100 truncate text-xs sm:text-sm">
+              {selectedBook.title}
+            </span>
+            <span className="text-[10px] text-amber-400 font-mono hidden sm:inline bg-slate-800 px-2 py-0.5 rounded">
+              {selectedBook.date}
+            </span>
           </div>
 
-          {/* Correction Slips Quick Download Card */}
-          <div className="mb-2.5 p-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800/80 shadow-xs">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Correction Slips (ACS)</span>
-              </div>
-              <span className="text-[10px] bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 font-bold px-1.5 py-0.5 rounded">
-                Direct PDF
-              </span>
-            </div>
-            <p className="text-[10px] text-emerald-700 dark:text-emerald-300/90 mb-2 leading-relaxed">
-              Click any slip below to download original PDF directly:
-            </p>
-            <div className="grid grid-cols-5 gap-1">
-              {ACS_SLIPS_LIST.map(acs => (
-                <a
-                  key={acs.id}
-                  href={acs.url}
-                  download
-                  className="px-1 py-1 rounded bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-[10px] font-bold text-center text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 transition-all flex flex-col items-center justify-center shadow-2xs"
-                  title={`${acs.title} (${acs.size}) - Click to Download`}
-                >
-                  <span>{acs.shortTitle}</span>
-                  <span className="text-[8px] opacity-75 font-normal">PDF ⬇</span>
-                </a>
-              ))}
-            </div>
-          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setIsAcsModalOpen(true)}
+              className="px-2 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-600/40"
+              title="Download Correction Slips"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">ACS Slips</span>
+            </button>
 
-          {/* Category Filter Pills */}
-          <div className="flex gap-1 overflow-x-auto pb-2 mb-2 scrollbar-none">
-            {['ALL', 'Core', 'Track', 'Installation'].map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-2 py-1 text-[11px] font-semibold rounded-md whitespace-nowrap transition-colors ${
-                  activeCategory === cat
-                    ? 'bg-dfccil-900 dark:bg-dfccil-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+            <button
+              onClick={() => setIframeKey(k => k + 1)}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              title="Reload Flipbook"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
 
-          {/* Manuals Scrollable List */}
-          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-            {filteredBooks.map(book => {
-              const isSelected = selectedBook.id === book.id;
-              return (
-                <div
-                  key={book.id}
-                  onClick={() => handleSelectBook(book)}
-                  className={`p-2.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-2 ${
-                    isSelected
-                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-400 dark:border-amber-600/50 shadow-sm'
-                      : 'bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800/80'
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        book.category === 'Core'
-                          ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300'
-                          : book.category === 'Track'
-                          ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300'
-                          : 'bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300'
-                      }`}>
-                        {book.badge}
-                      </span>
-                      {book.date && (
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {book.date}
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-xs font-bold leading-snug line-clamp-2 ${
-                      isSelected ? 'text-slate-900 dark:text-amber-200' : 'text-slate-700 dark:text-slate-300'
-                    }`}>
-                      {book.title}
-                    </p>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 mt-1 flex-shrink-0 transition-transform ${
-                    isSelected ? 'text-amber-500 translate-x-0.5' : 'text-slate-400'
-                  }`} />
-                </div>
-              );
-            })}
+            <a
+              href={selectedBook.url}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium flex items-center gap-1"
+              title="Download Original PDF Manual"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">PDF</span>
+            </a>
+
+            <button
+              onClick={toggleFullscreen}
+              className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black transition-all text-xs flex items-center gap-1.5 shadow-md shadow-amber-400/20 active:scale-95"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Right 3D Flipbook Stage Viewport (9 cols) */}
-        <div className="lg:col-span-9 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl relative">
-          {/* Header Action Bar on Top of Flipbook */}
-          <div className="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-2 flex items-center justify-between z-10">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <h2 className="text-xs font-bold text-white truncate max-w-[320px] sm:max-w-md">
-                {selectedBook.title}
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setIsAcsModalOpen(true)}
-                className="px-2 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-600/40"
-                title="Download Correction Slips"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">ACS Slips</span>
-              </button>
-              <button
-                onClick={handleOpenCalculator}
-                className="px-2 py-1 rounded-lg bg-sky-900/60 hover:bg-sky-800 text-sky-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-sky-600/40"
-                title="Open Curve Calculator"
-              >
-                <Calculator className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Calculator</span>
-              </button>
-              <button
-                onClick={() => setIframeKey(k => k + 1)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                title="Reload Flipbook"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-              <a
-                href={selectedBook.url}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium flex items-center gap-1"
-                title="Download Original PDF Manual"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">PDF</span>
-              </a>
-              <a
-                href={getViewerUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold transition-colors text-xs flex items-center gap-1 shadow-sm"
-                title="Open Standalone Fullscreen"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Fullscreen</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Flipbook Iframe Shell */}
-          <div className="flex-1 w-full h-full bg-[#0a0f1d] relative">
-            <iframe
-              key={iframeKey}
-              src={getViewerUrl()}
-              className="w-full h-full border-0 absolute inset-0"
-              title={selectedBook.title}
-              allow="fullscreen"
-            />
-          </div>
+        {/* Flipbook Iframe Shell (Takes 100% Full Stage) */}
+        <div className="flex-1 w-full h-full bg-[#0a0f1d] relative">
+          <iframe
+            key={iframeKey}
+            src={getViewerUrl()}
+            className="w-full h-full border-0 absolute inset-0"
+            title={selectedBook.title}
+            allow="fullscreen *; autoplay; clipboard-read; clipboard-write"
+          />
         </div>
       </div>
 
       {/* ACS Correction Slips Direct Download Modal */}
       {isAcsModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-5 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -408,10 +309,10 @@ export const EBookManualsViewer: React.FC = () => {
             </div>
 
             <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
-              {ACS_SLIPS_LIST.map((acs, idx) => (
+              {ACS_SLIPS_LIST.map(acs => (
                 <div
                   key={acs.id}
-                  className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-colors"
+                  className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -433,19 +334,9 @@ export const EBookManualsViewer: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <a
                       href={acs.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors flex items-center gap-1"
-                      title="Open PDF in browser"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">View</span>
-                    </a>
-                    <a
-                      href={acs.url}
                       download
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors flex items-center gap-1.5 shadow-sm"
-                      title="Download PDF directly"
+                      className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-1 shadow-sm"
+                      title="Download PDF"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Download</span>
@@ -455,10 +346,11 @@ export const EBookManualsViewer: React.FC = () => {
               ))}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-xs text-slate-400">Official DFCCIL IMSD SMUN Unit</span>
               <button
                 onClick={() => setIsAcsModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200"
               >
                 Close
               </button>

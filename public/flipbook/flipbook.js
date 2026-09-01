@@ -243,13 +243,15 @@ class FlipBookApp {
       }, 200);
     });
 
-    document.addEventListener('fullscreenchange', () => {
-      setTimeout(() => {
-        if (this.pageFlip && this.pdfDoc) {
-          const currentPageNum = this.currentPage || 1;
-          this.rebuildFlipbook(currentPageNum);
-        }
-      }, 100);
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        setTimeout(() => {
+          if (this.pageFlip && this.pdfDoc) {
+            const currentPageNum = this.currentPage || 1;
+            this.rebuildFlipbook(currentPageNum);
+          }
+        }, 150);
+      });
     });
   }
 
@@ -511,10 +513,24 @@ class FlipBookApp {
   }
 
   toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
+    try {
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+      if (!isFs) {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    } catch (e) {
+      console.warn('Fullscreen toggle failed:', e);
     }
   }
 

@@ -50,6 +50,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { StoreItemPublicQRView } from './StoreItemPublicQRView.tsx';
+import { StoreMasterQRModal } from './StoreMasterQRModal.tsx';
 import { SAP_MATERIALS, type SapMaterial } from '../data/sapMaterialMaster.ts';
 import { SapMaterialLookup } from './SapMaterialLookup.tsx';
 import { ImsdSourceTallyBook } from './ImsdSourceTallyBook.tsx';
@@ -167,6 +168,7 @@ export const StoreInventoryManager: React.FC = () => {
 
   const [selectedItemForTally, setSelectedItemForTally] = useState<StoreItemRecord | null>(null);
   const [selectedItemForQR, setSelectedItemForQR] = useState<StoreItemRecord | null>(null);
+  const [isStoreMasterQROpen, setIsStoreMasterQROpen] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isPreviewingLiveScan, setIsPreviewingLiveScan] = useState(false);
 
@@ -1122,6 +1124,15 @@ export const StoreInventoryManager: React.FC = () => {
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Upload CSV</span>
+            </button>
+
+            <button
+              onClick={() => setIsStoreMasterQROpen(true)}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md border border-amber-300 shadow-amber-500/20"
+              title="Generate Whole Store Inventory Master QR Code"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>📦 Whole Store QR</span>
             </button>
 
             <button
@@ -3528,6 +3539,13 @@ export const StoreInventoryManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Whole Store Inventory Master QR Modal */}
+      <StoreMasterQRModal
+        isOpen={isStoreMasterQROpen}
+        onClose={() => setIsStoreMasterQROpen(false)}
+        totalItems={items.length}
+      />
     </div>
   );
 };

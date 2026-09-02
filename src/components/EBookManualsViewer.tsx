@@ -1,8 +1,9 @@
 /**
- * DFCCIL 3D Track & Railroad Manuals Viewer
- * High-Performance 3D Flipbook Experience
- * 100% Full-Stage Viewport with Fast Progressive Rendering
- * Unit Incharge: Shri Vivek Kumar Azad (APM / Civil)
+ * DFCCIL 3D & Amazon Kindle-Style Track & Railroad Manuals Viewer
+ * Features:
+ * 1. 📱 Amazon Kindle Mobile E-Reader (Default): Warm Sepia / Dark / Light themes, Toc Drawer, Tap zones, Fast vector render.
+ * 2. 📖 3D Realistic Flipbook: Physical page turn physics with sound and 100% full-stage viewport.
+ * Unit Incharge: Shri Vivek Kumar Azad (APM / Civil, IMSD SMUN)
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -14,21 +15,11 @@ import {
   Download,
   FileCheck,
   X,
-  ExternalLink,
+  Smartphone,
   Layers,
-  Sparkles,
-  HelpCircle,
-  Volume2
+  Sparkles
 } from 'lucide-react';
-
-interface ManualItem {
-  id: string;
-  title: string;
-  category: 'Core' | 'Track' | 'Installation';
-  badge: string;
-  date: string;
-  url: string;
-}
+import { KindleManualReader, ManualItem } from './KindleManualReader';
 
 interface ACSCorrectionSlip {
   id: string;
@@ -119,8 +110,8 @@ const ACS_SLIPS_LIST: ACSCorrectionSlip[] = [
 
 export const EBookManualsViewer: React.FC = () => {
   const [selectedBook, setSelectedBook] = useState<ManualItem>(MANUAL_CATALOG[0]);
+  const [viewMode, setViewMode] = useState<'kindle' | '3d_flipbook'>('kindle');
   const [isAcsModalOpen, setIsAcsModalOpen] = useState(false);
-  const [useDirectPdfFallback, setUseDirectPdfFallback] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const viewerContainerRef = useRef<HTMLDivElement>(null);
@@ -131,9 +122,6 @@ export const EBookManualsViewer: React.FC = () => {
   };
 
   const getViewerUrl = () => {
-    if (useDirectPdfFallback) {
-      return selectedBook.url;
-    }
     return `/flipbook/index.html?book=${selectedBook.id}`;
   };
 
@@ -141,11 +129,8 @@ export const EBookManualsViewer: React.FC = () => {
     if (!document.fullscreenElement) {
       if (viewerContainerRef.current?.requestFullscreen) {
         viewerContainerRef.current.requestFullscreen().catch(err => {
-          console.warn('Native fullscreen failed, opening standalone window:', err);
-          window.open(getViewerUrl(), '_blank', 'noopener,noreferrer');
+          console.warn('Native fullscreen failed:', err);
         });
-      } else {
-        window.open(getViewerUrl(), '_blank', 'noopener,noreferrer');
       }
     } else {
       document.exitFullscreen().catch(() => {});
@@ -163,42 +148,71 @@ export const EBookManualsViewer: React.FC = () => {
   return (
     <div
       ref={viewerContainerRef}
-      className={`flex flex-col w-full gap-3 animate-in fade-in duration-300 ${
-        isFullscreen ? 'h-screen p-3 bg-[#070c18]' : 'h-[calc(100vh-120px)]'
+      className={`flex flex-col w-full gap-2.5 animate-in fade-in duration-300 ${
+        isFullscreen ? 'h-screen p-2 bg-[#070c18]' : 'h-[calc(100vh-115px)]'
       }`}
     >
-      {/* Top Banner & Fast Manual Selector */}
-      <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-3 sm:p-4 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3 shrink-0">
+      {/* Top Banner & Fast Reader Mode Selector */}
+      <div className="bg-gradient-to-r from-[#0f2b5c] via-[#163a75] to-[#071733] border border-[#233f75] rounded-2xl p-2.5 sm:p-3.5 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
             <BookOpen className="w-5 h-5 text-slate-950" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center gap-2">
-                3D Track &amp; Railroad Manuals
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black uppercase tracking-wider">
-                  4 Official Manuals
-                </span>
+                DFCCIL Track &amp; Railroad E-Manuals
               </h1>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black uppercase tracking-wider">
+                {viewMode === 'kindle' ? '📱 Kindle E-Reader' : '📖 3D Flipbook'}
+              </span>
             </div>
             <p className="text-[11px] text-amber-200/80 font-medium">
-              Realistic 3D Page-Turn Physics &bull; Web Audio Sound &bull; Progressive Loading
+              Amazon Kindle UX &bull; Warm Sepia / Dark Themes &bull; Tap Zones &bull; Realistic 3D Audio Flip
             </p>
           </div>
         </div>
 
-        {/* Action Buttons: Fast Manual Selection Chips & ACS Download */}
+        {/* Action Controls & Dual Mode Switcher */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Dual Mode Switcher: Kindle Mode vs 3D Flipbook */}
+          <div className="p-1 rounded-xl bg-slate-950/60 border border-white/10 flex items-center gap-1 shadow-inner">
+            <button
+              onClick={() => setViewMode('kindle')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                viewMode === 'kindle'
+                  ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+              title="Kindle E-Reader View (Phone & Eye Care)"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Kindle View</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('3d_flipbook')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                viewMode === '3d_flipbook'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+              title="3D Flipbook View (Realistic Page Turns)"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>3D Flipbook</span>
+            </button>
+          </div>
+
           {/* Quick Manual Selector Chips */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {MANUAL_CATALOG.map(manual => (
               <button
                 key={manual.id}
                 onClick={() => handleSelectBook(manual)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm ${
+                className={`px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all shadow-sm ${
                   selectedBook.id === manual.id
-                    ? 'bg-amber-400 text-slate-950 shadow-amber-400/40 ring-2 ring-amber-300'
+                    ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300'
                     : 'bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10'
                 }`}
               >
@@ -207,83 +221,94 @@ export const EBookManualsViewer: React.FC = () => {
             ))}
           </div>
 
-          {/* Direct ACS Download Modal Trigger */}
+          {/* ACS Download Modal Trigger */}
           <button
             onClick={() => setIsAcsModalOpen(true)}
             className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 border border-emerald-400/40 flex items-center gap-1.5 transition-all hover:scale-105"
             title="Download Correction Slips (ACS 1 to 5)"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>ACS Slips (1-5) ⬇</span>
+            <span className="hidden sm:inline">ACS Slips</span>
+          </button>
+
+          {/* Fullscreen Button */}
+          <button
+            onClick={toggleFullscreen}
+            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+            title="Toggle Fullscreen"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Main 100% Full-Stage 3D Viewport Container */}
+      {/* Main Viewport: Either Kindle Reader OR 3D Flipbook */}
       <div className="flex-1 w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col min-h-0 relative">
-        {/* Stage Header Toolbar */}
-        <div className="p-2 sm:p-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-2 text-xs shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="font-bold text-slate-100 truncate text-xs sm:text-sm">
-              {selectedBook.title}
-            </span>
-            <span className="text-[10px] text-amber-400 font-mono hidden sm:inline bg-slate-800 px-2 py-0.5 rounded">
-              {selectedBook.date}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => setIsAcsModalOpen(true)}
-              className="px-2 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-emerald-600/40"
-              title="Download Correction Slips"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">ACS Slips</span>
-            </button>
-
-            <button
-              onClick={() => setIframeKey(k => k + 1)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-              title="Reload Flipbook"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </button>
-
-            <a
-              href={selectedBook.url}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium flex items-center gap-1"
-              title="Download Original PDF Manual"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">PDF</span>
-            </a>
-
-            <button
-              onClick={toggleFullscreen}
-              className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black transition-all text-xs flex items-center gap-1.5 shadow-md shadow-amber-400/20 active:scale-95"
-              title="Toggle Fullscreen"
-            >
-              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Flipbook Iframe Shell (Takes 100% Full Stage) */}
-        <div className="flex-1 w-full h-full bg-[#0a0f1d] relative">
-          <iframe
-            key={iframeKey}
-            src={getViewerUrl()}
-            className="w-full h-full border-0 absolute inset-0"
-            title={selectedBook.title}
-            allow="fullscreen *; autoplay; clipboard-read; clipboard-write"
+        {viewMode === 'kindle' ? (
+          <KindleManualReader
+            manual={selectedBook}
+            manualList={MANUAL_CATALOG}
+            onSelectManual={handleSelectBook}
+            onOpenAcsModal={() => setIsAcsModalOpen(true)}
+            onSwitchTo3DFlipbook={() => setViewMode('3d_flipbook')}
           />
-        </div>
+        ) : (
+          <div className="flex-1 w-full h-full flex flex-col">
+            {/* 3D Stage Header Toolbar */}
+            <div className="p-2 sm:p-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-2 text-xs shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+                <span className="font-bold text-slate-100 truncate text-xs sm:text-sm">
+                  {selectedBook.title}
+                </span>
+                <span className="text-[10px] text-amber-400 font-mono hidden sm:inline bg-slate-800 px-2 py-0.5 rounded">
+                  {selectedBook.date}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setViewMode('kindle')}
+                  className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold transition-all text-xs flex items-center gap-1"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Kindle Mode</span>
+                </button>
+
+                <button
+                  onClick={() => setIframeKey(k => k + 1)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                  title="Reload 3D Flipbook"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
+
+                <a
+                  href={selectedBook.url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium flex items-center gap-1"
+                  title="Download Original PDF Manual"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">PDF</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Flipbook Iframe Shell (Takes 100% Full Stage) */}
+            <div className="flex-1 w-full h-full bg-[#0a0f1d] relative">
+              <iframe
+                key={iframeKey}
+                src={getViewerUrl()}
+                className="w-full h-full border-0 absolute inset-0"
+                title={selectedBook.title}
+                allow="fullscreen *; autoplay; clipboard-read; clipboard-write"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ACS Correction Slips Direct Download Modal */}

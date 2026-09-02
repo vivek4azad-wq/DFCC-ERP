@@ -1527,7 +1527,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
 
         await db.addDocument('officers_staff', payload, currentUser);
 
-        if (empType === 'KEYMAN' && staffFormData.beatNo) {
+        if ((empType === 'KEYMAN' || payload.post?.includes('Keyman')) && staffFormData.beatNo) {
           const beatNum = parseInt(staffFormData.beatNo.replace(/\D/g, '')) || 1;
           await db.addDocument('keymen', {
             id: `KM-${beatNum}`,
@@ -1541,7 +1541,96 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
             residence: staffFormData.residence?.trim() || 'IMSD SMUN HQ',
             kmRange: staffFormData.beatFromTo || '',
             sectionCode: `IMSD SMUN Beat ${beatNum}`
-          }, currentUser);
+          }, currentUser).catch(() => {});
+        }
+
+        // Gateman Registration & Level Crossing Assignment
+        if (empType === 'GATEMAN' || payload.post?.includes('Gateman') || staffFormData.lcNo) {
+          const selectedLcCode = staffFormData.lcNo || 'LC-151';
+          const newGatemanObj = {
+            id: staffFormData.awpoId?.trim() || newId,
+            name: staffFormData.name.trim(),
+            nameHi: staffFormData.nameHi?.trim() || '',
+            mobile: staffFormData.phone.trim(),
+            phone: staffFormData.phone.trim(),
+            fatherName: staffFormData.fatherName?.trim() || '',
+            residence: staffFormData.residence?.trim() || 'Gate Lodge',
+            gateNo: selectedLcCode,
+            shift: '07:00 to 19:00 (12h Shift)',
+            photoUrl: staffFormData.photoUrl
+          };
+
+          try {
+            const lcs = await db.getCollection<LevelCrossingRecord>('level_crossings');
+            const targetLc = lcs.find(l => {
+              const lNum = (l.lcNo || l.id || '').replace(/\D/g, '');
+              const selNum = selectedLcCode.replace(/\D/g, '');
+              return lNum && selNum && lNum === selNum;
+            });
+
+            if (targetLc) {
+              const currentGatemen = Array.isArray(targetLc.gatemen) ? targetLc.gatemen : [];
+              const updatedGatemen = [
+                ...currentGatemen.filter((g: any) => g.id !== newGatemanObj.id && normalizeName(g.name) !== normalizeName(newGatemanObj.name)),
+                newGatemanObj
+              ];
+              await db.updateDocument('level_crossings', targetLc.id, { gatemen: updatedGatemen } as any, currentUser);
+            }
+          } catch (e) {
+            console.warn('LC gatemen sync warning:', e);
+          }
+
+          await db.addDocument('gatemen', {
+            id: `GM_${newGatemanObj.id}`,
+            ...newGatemanObj,
+            lcNo: selectedLcCode
+          }, currentUser).catch(() => {});
+        }
+
+        // Patrolman Registration
+        if (empType === 'PATROLMAN_DAY' || empType === 'PATROLMAN_NIGHT' || payload.post?.includes('Patrol')) {
+          const beatCode = staffFormData.beatNo || staffFormData.advanceBeatCode || 'SPD-01';
+          const isNight = empType === 'PATROLMAN_NIGHT' || beatCode.startsWith('SPN');
+          const route = DEFAULT_BEAT_ROUTES[beatCode] || {
+            fromKm: 1167.210,
+            toKm: 1170.435,
+            section: `IMSD SMUN ${beatCode}`,
+            shiftHoursDay: '15:00 - 23:00',
+            shiftHoursNight: '23:00 - 07:00'
+          };
+          await db.addDocument('patrol_shifts', {
+            id: `PAT-${beatCode}`,
+            beatCode,
+            sectionCode: route.section,
+            fromKm: route.fromKm,
+            toKm: route.toKm,
+            shiftCode: isNight ? 'SHIFT_C_NIGHT' : 'SHIFT_A_DAY',
+            shiftHours: isNight ? route.shiftHoursNight : route.shiftHoursDay,
+            shiftType: isNight ? 'NIGHT' : 'DAY',
+            patrolType: isNight ? 'COLD_WEATHER_NIGHT' : 'HOT_WEATHER',
+            patrolmanName: staffFormData.name.trim(),
+            patrolmanStaffId: staffFormData.awpoId?.trim() || newId,
+            patrolmanPhone: staffFormData.phone.trim(),
+            isFilled: true,
+            status: 'ACTIVE',
+            restDay: staffFormData.restDay || 'Sunday',
+            remarks: staffFormData.residence || `${beatCode} • Active Patrol Duty`,
+            photoUrl: staffFormData.photoUrl
+          }, currentUser).catch(() => {});
+        }
+
+        // Bridge Watchman Registration
+        if (empType === 'BR_WATCHMAN' || payload.post?.includes('Watchman')) {
+          await db.addDocument('bridge_watchmen', {
+            id: `wm_${Date.now()}`,
+            name: staffFormData.name.trim(),
+            awpoId: staffFormData.awpoId?.trim() || newId,
+            phone: staffFormData.phone.trim(),
+            emergencyContact: staffFormData.emergencyContact?.trim() || '',
+            location: staffFormData.bridgeNoOrKm || staffFormData.residence || 'ROR Rajpura Detour',
+            bridgeNo: staffFormData.bridgeNoOrKm || 'BR. 108',
+            photoUrl: staffFormData.photoUrl
+          }, currentUser).catch(() => {});
         }
       }
 
@@ -3772,7 +3861,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
  </div>
 
   {/* Category Specific Location, Beat, Gate, or Bridge Selectors */}
-  {(staffFormData.employmentType === 'KEYMAN' || staffFormData.employmentType === 'PATROLMAN_DAY' || staffFormData.employmentType === 'PATROLMAN_NIGHT') && (
+  {(staffFormData.post === 'Keyman' || staffFormData.post === 'Day Patrolman' || staffFormData.post === 'Night Patrolman' || staffFormData.employmentType === 'KEYMAN' || staffFormData.employmentType === 'PATROLMAN_DAY' || staffFormData.employmentType === 'PATROLMAN_NIGHT') && (
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Beat Assignment *</label>
@@ -3791,11 +3880,11 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
           className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
         >
           <option value="">-- Select Beat --</option>
-          {staffFormData.employmentType === 'KEYMAN' ? (
+          {(staffFormData.post === 'Keyman' || staffFormData.employmentType === 'KEYMAN') ? (
             Array.from({ length: 34 }, (_, i) => `Beat ${String(i + 1).padStart(2, '0')}`).map(b => (
               <option key={b} value={b}>{b}</option>
             ))
-          ) : staffFormData.employmentType === 'PATROLMAN_DAY' ? (
+          ) : (staffFormData.post === 'Day Patrolman' || staffFormData.employmentType === 'PATROLMAN_DAY') ? (
             Array.from({ length: 12 }, (_, i) => `SPD-${String(i + 1).padStart(2, '0')}`).map(b => (
               <option key={b} value={b}>{b} ({DEFAULT_BEAT_ROUTES[b]?.section || 'Day Patrol'})</option>
             ))
@@ -3820,14 +3909,14 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
     </div>
   )}
 
-  {staffFormData.employmentType === 'GATEMAN' && (
+  {(staffFormData.post === 'Gateman' || staffFormData.employmentType === 'GATEMAN') && (
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Level Crossing Gate *</label>
         <select
-          value={staffFormData.lcNo || ''}
+          value={staffFormData.lcNo || 'LC-151 (Km 1215.034)'}
           onChange={e => setStaffFormData(prev => ({ ...prev, lcNo: e.target.value, headquarters: e.target.value }))}
-          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold"
+          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-red-500/60 rounded-xl text-slate-900 dark:text-white font-bold"
         >
           <option value="">-- Select Level Crossing Gate --</option>
           <option value="LC-151 (Km 1215.034)">LC-151 (Km 1215.034 - Special Class)</option>
@@ -3841,7 +3930,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
         <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Gate Chainage / KM</label>
         <input
           type="text"
-          placeholder="e.g. Km 1171.950"
+          placeholder="e.g. Km 1215.034"
           value={staffFormData.beatFromTo || ''}
           onChange={e => setStaffFormData(prev => ({ ...prev, beatFromTo: e.target.value }))}
           className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono"
@@ -3850,7 +3939,7 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
     </div>
   )}
 
-  {staffFormData.employmentType === 'BR_WATCHMAN' && (
+  {(staffFormData.post === 'Bridge Watchman' || staffFormData.employmentType === 'BR_WATCHMAN') && (
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Bridge No. / Location *</label>

@@ -123,6 +123,8 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [flipAnimation, setFlipAnimation] = useState<'flip-next' | 'flip-prev' | null>(null);
+  const [is3DFlipEffect, setIs3DFlipEffect] = useState<boolean>(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -292,28 +294,30 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
     }
   }, [pdfDoc, currentPage, readingMode, zoomScale, theme, loading, renderSinglePage, totalPages]);
 
-  // Page Navigation
+  // Page Navigation with 3D Flip Physics
   const goToNextPage = useCallback(() => {
     const step = readingMode === 'two-page' ? 2 : 1;
-    if (currentPage + step <= totalPages) {
+    if (currentPage + step <= totalPages || currentPage < totalPages) {
+      if (is3DFlipEffect) {
+        setFlipAnimation('flip-next');
+        setTimeout(() => setFlipAnimation(null), 380);
+      }
       setCurrentPage(prev => Math.min(totalPages, prev + step));
       playFlipSound();
-    } else if (currentPage < totalPages) {
-      setCurrentPage(totalPages);
-      playFlipSound();
     }
-  }, [currentPage, totalPages, readingMode, playFlipSound]);
+  }, [currentPage, totalPages, readingMode, playFlipSound, is3DFlipEffect]);
 
   const goToPrevPage = useCallback(() => {
     const step = readingMode === 'two-page' ? 2 : 1;
-    if (currentPage - step >= 1) {
+    if (currentPage - step >= 1 || currentPage > 1) {
+      if (is3DFlipEffect) {
+        setFlipAnimation('flip-prev');
+        setTimeout(() => setFlipAnimation(null), 380);
+      }
       setCurrentPage(prev => Math.max(1, prev - step));
       playFlipSound();
-    } else if (currentPage > 1) {
-      setCurrentPage(1);
-      playFlipSound();
     }
-  }, [currentPage, readingMode, playFlipSound]);
+  }, [currentPage, readingMode, playFlipSound, is3DFlipEffect]);
 
   // Kindle Touch Screen Zone Tap Handler
   const handleStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -553,8 +557,25 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
           </div>
         )}
 
-        {/* Page Render Canvas Area */}
-        <div className="flex items-center justify-center gap-4 max-w-full max-h-full transition-transform duration-200">
+        {/* Page Render Canvas Area with 3D Page Turn Physics */}
+        <div
+          className={`flex items-center justify-center gap-4 max-w-full max-h-full transition-all duration-300 ease-out select-none ${
+            flipAnimation === 'flip-next'
+              ? 'scale-[0.98] -rotate-1 shadow-2xl opacity-90'
+              : flipAnimation === 'flip-prev'
+              ? 'scale-[0.98] rotate-1 shadow-2xl opacity-90'
+              : 'scale-100 rotate-0 opacity-100'
+          }`}
+          style={{
+            perspective: '1800px',
+            transformStyle: 'preserve-3d',
+            transform: flipAnimation === 'flip-next'
+              ? 'perspective(1800px) rotateY(-8deg) translateX(-12px)'
+              : flipAnimation === 'flip-prev'
+              ? 'perspective(1800px) rotateY(8deg) translateX(12px)'
+              : 'none'
+          }}
+        >
           <canvas
             ref={canvasRef}
             className={`rounded-lg transition-shadow duration-300 ${currentTheme.canvasClass}`}

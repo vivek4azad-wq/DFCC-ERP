@@ -45,6 +45,15 @@ export const PWayMaintenanceModule: React.FC = () => {
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
+  // MTS / Civil Staff List for Supervising Authority
+  const MTS_CIVIL_STAFF_LIST = [
+    { id: 'OFF-101804', name: 'Gautam Kumar (MTS / Civil - 101804)', phone: '9729851608' },
+    { id: 'OFF-101805', name: 'Ranjeet Kumar (MTS / Civil - 101805)', phone: '9467657954' },
+    { id: 'OFF-101806', name: 'Sudhir Kumar (MTS / Civil - 101806)', phone: '8528994503' },
+    { id: 'OFF-101807', name: 'Suraj Verma (MTS / Civil - 101807)', phone: '9812401826' },
+    { id: 'OFF-101808', name: 'Sanni Kumar Sharma (MTS / Civil - 101808)', phone: '8199990812' }
+  ];
+
   // Form State for new Maintenance Entry
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -59,7 +68,7 @@ export const PWayMaintenanceModule: React.FC = () => {
     hoursWorked: 8.0,
     machineUsed: 'Hydraulic Jacks & Beaters',
     supervisor: 'Mate Baldev Singh (AWPO)',
-    dfccilRep: 'Pinki Sharma (MTS) / Field MTS Representative',
+    dfccilRep: 'Gautam Kumar (MTS / Civil - 101804)',
     remarks: ''
   });
 
@@ -145,7 +154,7 @@ export const PWayMaintenanceModule: React.FC = () => {
             gangName: '1+15 Gang SMUN',
             trackType: 'UP',
             supervisor: 'Mate Baldev Singh (AWPO)',
-            dfccilRep: 'Pinki Sharma (MTS) / Field MTS Representative',
+            dfccilRep: 'Gautam Kumar (MTS / Civil - 101804)',
             workCategory: 'GANG_WORK',
             workDone: 'Through packing, cross-level adjustment, and lifting of weld joints at Km 1174.200 to 1175.800 UP line.',
             fromKm: 1174.200,
@@ -502,14 +511,19 @@ export const PWayMaintenanceModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">MTS Supervisor</label>
-                <input
-                  type="text"
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Supervising Authority (MTS / Civil) *</label>
+                <select
                   required
                   value={formData.dfccilRep}
                   onChange={e => setFormData({ ...formData, dfccilRep: e.target.value })}
-                  className="w-full px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-900 dark:text-emerald-200 font-bold"
-                />
+                  className="w-full px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500/60 rounded-xl text-emerald-950 dark:text-emerald-200 font-bold"
+                >
+                  {MTS_CIVIL_STAFF_LIST.map(m => (
+                    <option key={m.id} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

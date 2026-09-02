@@ -246,9 +246,33 @@ export const KmQuickFinder: React.FC<KmQuickFinderProps> = ({
       return Math.abs(sKm - kmVal) <= 1.0;
     });
 
-    setMatchedKeymen(nearKeymen);
-    setMatchedDayPatrol(dayPatrol);
-    setMatchedNightPatrol(nightPatrol);
+    // Deduplicate Keymen by beat number / AWPO ID / Normalized Name to prevent duplicate cards
+    const uniqueKeymenMap = new Map<string, KeymanRecord>();
+    nearKeymen.forEach(k => {
+      const normBeat = String(k.beatNo || '').replace(/\D/g, '') || String(k.id);
+      const normAwpo = (k.awpoId || '').replace(/\D/g, '');
+      const key = normBeat ? `BEAT_${normBeat}` : (normAwpo ? `AWPO_${normAwpo}` : k.id);
+      if (!uniqueKeymenMap.has(key)) {
+        uniqueKeymenMap.set(key, k);
+      }
+    });
+
+    // Deduplicate Patrol Shifts
+    const uniqueDayPatrol = new Map<string, PatrolShiftRecord>();
+    dayPatrol.forEach(p => {
+      const key = p.beatCode || p.id;
+      if (!uniqueDayPatrol.has(key)) uniqueDayPatrol.set(key, p);
+    });
+
+    const uniqueNightPatrol = new Map<string, PatrolShiftRecord>();
+    nightPatrol.forEach(p => {
+      const key = p.beatCode || p.id;
+      if (!uniqueNightPatrol.has(key)) uniqueNightPatrol.set(key, p);
+    });
+
+    setMatchedKeymen(Array.from(uniqueKeymenMap.values()));
+    setMatchedDayPatrol(Array.from(uniqueDayPatrol.values()));
+    setMatchedNightPatrol(Array.from(uniqueNightPatrol.values()));
     setMatchedLC(nearLC);
     setMatchedBridges(nearBridges);
     setMatchedPC(nearPC);

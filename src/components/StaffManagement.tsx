@@ -452,6 +452,49 @@ export const StaffManagement: React.FC = () => {
         await db.addDocument('officers_staff', formattedRecord, currentUser);
       }
 
+      // If Gateman, sync to level_crossings & gatemen collections
+      if (formData.dutyType === 'GATEMAN' || formattedRecord.post?.includes('Gateman')) {
+        const selectedGate = formData.beatNo || 'LC-151';
+        const newGatemanObj = {
+          id: docId,
+          name: formData.name.trim(),
+          nameHi: formData.nameHi?.trim() || '',
+          mobile: formData.phone.trim(),
+          phone: formData.phone.trim(),
+          fatherName: formData.fatherName?.trim() || '',
+          residence: formData.residence?.trim() || 'Gate Lodge',
+          gateNo: selectedGate,
+          shift: '07:00 to 19:00 (12h Shift)',
+          photoUrl: formData.photoUrl
+        };
+
+        try {
+          const lcs = await db.getCollection<LevelCrossingRecord>('level_crossings');
+          const targetLc = lcs.find(l => {
+            const lNum = (l.lcNo || l.id || '').replace(/\D/g, '');
+            const selNum = selectedGate.replace(/\D/g, '');
+            return lNum && selNum && lNum === selNum;
+          });
+
+          if (targetLc) {
+            const currentGatemen = Array.isArray(targetLc.gatemen) ? targetLc.gatemen : [];
+            const updatedGatemen = [
+              ...currentGatemen.filter((g: any) => g.id !== newGatemanObj.id && g.name.toLowerCase() !== newGatemanObj.name.toLowerCase()),
+              newGatemanObj
+            ];
+            await db.updateDocument('level_crossings', targetLc.id, { gatemen: updatedGatemen } as any, currentUser);
+          }
+        } catch (e) {
+          console.warn('Level crossing update warning:', e);
+        }
+
+        await db.addDocument('gatemen', {
+          id: `GM_${docId}`,
+          ...newGatemanObj,
+          lcNo: selectedGate
+        }, currentUser).catch(() => {});
+      }
+
       setIsFormModalOpen(false);
       await loadStaffData();
     } catch (err: any) {
@@ -1206,14 +1249,30 @@ export const StaffManagement: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Beat / Gate / Br No.:</label>
-                    <input
-                      type="text"
-                      value={formData.beatNo}
-                      onChange={e => setFormData(prev => ({ ...prev, beatNo: e.target.value }))}
-                      placeholder={formData.dutyType === 'PATROLMAN' ? 'SPN-02' : 'Beat No. 20'}
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
-                    />
+                    <label className="block text-slate-400 mb-1 font-semibold">
+                      {formData.dutyType === 'GATEMAN' ? 'Assigned LC Gate *' : 'Beat / Gate / Br No.:'}
+                    </label>
+                    {formData.dutyType === 'GATEMAN' ? (
+                      <select
+                        value={formData.beatNo || 'LC-151'}
+                        onChange={e => setFormData(prev => ({ ...prev, beatNo: e.target.value, section: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 bg-slate-950 border-2 border-red-500/60 rounded-xl text-white font-bold"
+                      >
+                        <option value="LC-151">LC-151 (Km 1215.034 - Special Class)</option>
+                        <option value="LC-159">LC-159 (Km 1232.095 - Special Class)</option>
+                        <option value="LC-163">LC-163 (Km 1239.827 - Class C)</option>
+                        <option value="LC-164">LC-164 (Km 1244.833 - Class AB/3T)</option>
+                        <option value="LC-167">LC-167 (Km 1247.930 - Class AB/3T)</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={formData.beatNo}
+                        onChange={e => setFormData(prev => ({ ...prev, beatNo: e.target.value }))}
+                        placeholder={formData.dutyType === 'PATROLMAN' ? 'SPN-02' : 'Beat No. 20'}
+                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                      />
+                    )}
                   </div>
                 </div>
               ) : (

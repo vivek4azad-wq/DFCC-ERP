@@ -1,23 +1,33 @@
 /**
  * DFCCIL IMSD SMUN - Master Annual Track Inspection Schedule (IRPWM / DFCCIL Compliance)
- * Authentic Planning for In-Charge (APM/Civil Shri Vivek Kumar Azad) & Sectional Officials
+ * Authentic Planning for In-Charge (APM/Civil Shri Vivek Kumar Azad) & Sectional Incharge (Shri Arjun Kumar)
  * 
- * Regulatory Rules:
- * 1. Points & Crossings Main Line: Once in 3 months (Quarterly) on 6-month rotational cycle.
- * 2. Points & Crossings Loop Lines: Once in a year (Annually) station-by-station to prevent mixing.
- * 3. Joint P&C with S&T: Monthly rotational station sequence.
- * 4. Curves: Complete 100% coverage of Curves 315 to 409 (Jan-Nov, Dec zero curves).
- * 5. Level Crossings: Monthly safety audit of 5 manned gates (LC-151, LC-159, LC-163, LC-164, LC-167).
- * 6. LWR / SEJ: Fortnightly/Monthly SEJ gap measurement at mean rail temperature.
+ * Rules:
+ * 1. Points & Crossings Main Line: 3 Months (Quarterly) rotational cycle.
+ *    - Accurate points from PNC:
+ *      - GVGN (7): Pt 201, 205b, 246b, 250b, 254a, 296b, 299
+ *      - SBJN (7): Pt 201b, 243a, 244b, 246a, 290b, 291a, 295b
+ *      - CHAN (6): Pt 201b, 206b, 245b, 248a, 297b, 298b
+ *      - SMUN (9): Pt 201b, 205b, 243a, 245b, 248a, 249a, 295b, 298b, 299a
+ *      - KNNN (4): Pt 201b, 245a, 247b, 298b
+ *      - NSIR (8): Pt 201b, 243b, 244a, 245a, 295b, 296b, 297a, 299b
+ * 2. Loop Line Points: 1 Year (Annually) whole station audited together.
+ * 3. Joint P&C with S&T Dept:
+ *    - If GVGN & NSIR -> JPM / S&T / NSIR
+ *    - If KNNN & CHAN -> APM / S&T / CHAN
+ *    - If SMUN & SBJN -> APM / S&T / UBCD
+ * 4. IMSD Sectional Official: Shri Arjun Kumar (Executive / Civil - 101801)
+ * 5. Curves: 100% of Curves 315 to 409 covered across Jan to Nov (Dec zero curves).
  */
 
 export interface MonthlyInspectionPlan {
-  monthIndex: number; // 1 to 12
+  monthIndex: number;
   monthName: string;
   monthShort: string;
   
   // 1. IMSD In-Charge (APM / Civil Shri Vivek Kumar Azad)
   incharge: {
+    officialName: string;
     mainLinePoints: {
       station: 'GVGN' | 'SBJN' | 'CHAN' | 'SMUN' | 'KNNN' | 'NSIR';
       stationName: string;
@@ -49,17 +59,14 @@ export interface MonthlyInspectionPlan {
     lcGates?: string[];
   };
 
-  // 2. Sectional In-Charge (SSE / JE / Field Officials)
+  // 2. Sectional In-Charge (Shri Arjun Kumar, Executive/Civil)
   sectional: {
+    officialName: string;
     curves: {
       rangeText: string;
       curveNumbers: number[];
       count: number;
       description: string;
-    };
-    loopLinePoints?: {
-      station: string;
-      pointsCount: number;
     };
     routineTasks: string[];
   };
@@ -72,17 +79,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'January',
     monthShort: 'Jan',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'GVGN',
         stationName: 'Govindgarh (GVGN)',
         pointsCount: 7,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 1',
-        turnoutSummary: 'Pt 101, 102, 201, 202, 203, 204, 205 (Main UP/DN)'
+        turnoutSummary: 'Pt 201, 205b, 246b, 250b, 254a, 296b, 299 (7 Points Main UP/DN)'
       },
       jointST: {
         station: 'CHAN',
         stationName: 'Chawa Pail (CHAN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / CHAN',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 1',
         focusItems: 'Obstruction test (5mm gauge), switch motor throw, lock slide lubrication'
       },
@@ -96,11 +104,12 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 321 & 322',
         curveNumbers: [321, 322],
         count: 2,
-        description: 'Km 1174.826 to 1176.010 (Radius 800m & 1200m)'
+        description: 'Km 1174.826 to 1175.815 (Radius 800m & 700m)'
       },
       routineTasks: [
         'SEJ Gap measurement at mean rail temp (Winter destressing verification)',
@@ -116,17 +125,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'February',
     monthShort: 'Feb',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'SBJN',
         stationName: 'Sarai Banjara (SBJN)',
         pointsCount: 7,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 1',
-        turnoutSummary: 'Pt 201, 202, 203, 204, 205, 206, 207 (Main UP/DN)'
+        turnoutSummary: 'Pt 201b, 243a, 244b, 246a, 290b, 291a, 295b (7 Points Main UP/DN)'
       },
       jointST: {
         station: 'SBJN',
         stationName: 'Sarai Banjara (SBJN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / UBCD',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 1',
         focusItems: 'Detection slide clearance, switch rail housing, insulated joints'
       },
@@ -139,6 +149,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 325 to 329',
         curveNumbers: [325, 326, 327, 328, 329],
@@ -147,7 +158,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       },
       routineTasks: [
         'SBJN Yard yard-drain cleaning & switch packing',
-        'Check rail wear measurement on turnouts 201-207',
+        'Check rail wear measurement on turnouts 201b-295b',
         'Fishplate bolt torque checking with 1m torque wrench'
       ]
     }
@@ -159,12 +170,13 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'March',
     monthShort: 'Mar',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'CHAN',
         stationName: 'Chawa Pail (CHAN)',
         pointsCount: 6,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 1',
-        turnoutSummary: 'Pt 101, 102, 201, 202, 203, 204 (Main UP/DN)'
+        turnoutSummary: 'Pt 201b, 206b, 245b, 248a, 297b, 298b (6 Points Main UP/DN)'
       },
       loopLinePoints: {
         station: 'SBJN',
@@ -176,7 +188,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       jointST: {
         station: 'NSIR',
         stationName: 'Sirhind Detour (NSIR)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'JPM / S&T / NSIR',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 1',
         focusItems: 'Point machine gear clearances, facing point lock test (3.25mm test)'
       },
@@ -189,6 +201,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 335 to 339',
         curveNumbers: [335, 336, 337, 338, 339],
@@ -209,17 +222,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'April',
     monthShort: 'Apr',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'SMUN',
         stationName: 'New Shambhu (SMUN)',
         pointsCount: 9,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 1',
-        turnoutSummary: 'Pt 201b, 205b, 206a, 207b, 208b, 211b, 212b, 215b, 216b'
+        turnoutSummary: 'Pt 201b, 205b, 243a, 245b, 248a, 249a, 295b, 298b, 299a (9 Points Main UP/DN)'
       },
       jointST: {
         station: 'GVGN',
         stationName: 'Govindgarh (GVGN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'JPM / S&T / NSIR',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 1',
         focusItems: 'Facing point lock, switch detection, spring loaded piroller lubrication'
       },
@@ -233,6 +247,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 348 to 350',
         curveNumbers: [348, 349, 350],
@@ -253,17 +268,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'May',
     monthShort: 'May',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'KNNN',
         stationName: 'Khanna (KNNN)',
         pointsCount: 4,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 1',
-        turnoutSummary: 'Pt 101, 102, 201, 202 (Main UP/DN)'
+        turnoutSummary: 'Pt 201b, 245a, 247b, 298b (4 Points Main UP/DN)'
       },
       jointST: {
         station: 'KNNN',
         stationName: 'Khanna (KNNN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / CHAN',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 1',
         focusItems: 'Point machine throw, check rail clearances, insulated rail joints'
       },
@@ -276,6 +292,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curve 352',
         curveNumbers: [352],
@@ -296,17 +313,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'June',
     monthShort: 'Jun',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'NSIR',
         stationName: 'Sirhind Detour (NSIR)',
         pointsCount: 8,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 1 (Completion of 6-Month Cycle)',
-        turnoutSummary: 'Pt 101, 102, 103, 104, 201, 202, 203, 204'
+        turnoutSummary: 'Pt 201b, 243b, 244a, 245a, 295b, 296b, 297a, 299b (8 Points Main UP/DN)'
       },
       jointST: {
         station: 'SMUN',
         stationName: 'New Shambhu (SMUN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / UBCD',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 1 (Completion of 6-Month Cycle)',
         focusItems: 'Switch motor throw, track circuit bonding, detection gap tolerance'
       },
@@ -319,6 +337,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 354 & 355',
         curveNumbers: [354, 355],
@@ -339,12 +358,13 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'July',
     monthShort: 'Jul',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'GVGN',
         stationName: 'Govindgarh (GVGN)',
         pointsCount: 7,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 2',
-        turnoutSummary: 'Pt 101, 102, 201, 202, 203, 204, 205 (Main UP/DN)'
+        turnoutSummary: 'Pt 201, 205b, 246b, 250b, 254a, 296b, 299 (7 Points Main UP/DN)'
       },
       loopLinePoints: {
         station: 'GVGN',
@@ -356,7 +376,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       jointST: {
         station: 'CHAN',
         stationName: 'Chawa Pail (CHAN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / CHAN',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 2',
         focusItems: 'Water ingress protection in point machines, obstruction test'
       },
@@ -370,6 +390,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 360 to 364',
         curveNumbers: [360, 361, 362, 363, 364],
@@ -390,17 +411,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'August',
     monthShort: 'Aug',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'SBJN',
         stationName: 'Sarai Banjara (SBJN)',
         pointsCount: 7,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 2',
-        turnoutSummary: 'Pt 201, 202, 203, 204, 205, 206, 207 (Main UP/DN)'
+        turnoutSummary: 'Pt 201b, 243a, 244b, 246a, 290b, 291a, 295b (7 Points Main UP/DN)'
       },
       jointST: {
         station: 'SBJN',
         stationName: 'Sarai Banjara (SBJN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / UBCD',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 2',
         focusItems: 'Insulation testing, switch lock integrity, motor operating voltage'
       },
@@ -413,6 +435,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 370 to 374',
         curveNumbers: [370, 371, 372, 373, 374],
@@ -433,17 +456,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'September',
     monthShort: 'Sep',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'CHAN',
         stationName: 'Chawa Pail (CHAN)',
         pointsCount: 6,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 2',
-        turnoutSummary: 'Pt 101, 102, 201, 202, 203, 204 (Main UP/DN)'
+        turnoutSummary: 'Pt 201b, 206b, 245b, 248a, 297b, 298b (6 Points Main UP/DN)'
       },
       jointST: {
         station: 'NSIR',
         stationName: 'Sirhind Detour (NSIR)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'JPM / S&T / NSIR',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 2',
         focusItems: 'Slide lubrication, detector slides, lock bar clearance'
       },
@@ -456,6 +480,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 382 to 386',
         curveNumbers: [382, 383, 384, 385, 386],
@@ -476,17 +501,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'October',
     monthShort: 'Oct',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'SMUN',
         stationName: 'New Shambhu (SMUN)',
         pointsCount: 9,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 2',
-        turnoutSummary: 'Pt 201b, 205b, 206a, 207b, 208b, 211b, 212b, 215b, 216b'
+        turnoutSummary: 'Pt 201b, 205b, 243a, 245b, 248a, 249a, 295b, 298b, 299a (9 Points Main UP/DN)'
       },
       jointST: {
         station: 'GVGN',
         stationName: 'Govindgarh (GVGN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'JPM / S&T / NSIR',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 2',
         focusItems: 'Facing point lock testing, Piroller adjustment, tongue rail gap'
       },
@@ -500,6 +526,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 392 to 397',
         curveNumbers: [392, 393, 394, 395, 396, 397],
@@ -520,12 +547,13 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'November',
     monthShort: 'Nov',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'KNNN',
         stationName: 'Khanna (KNNN)',
         pointsCount: 4,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 2',
-        turnoutSummary: 'Pt 101, 102, 201, 202 (Main UP/DN)'
+        turnoutSummary: 'Pt 201b, 245a, 247b, 298b (4 Points Main UP/DN)'
       },
       loopLinePoints: {
         station: 'CHAN',
@@ -537,7 +565,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       jointST: {
         station: 'KNNN',
         stationName: 'Khanna (KNNN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / CHAN',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 2',
         focusItems: 'Point lock integrity, switch motor throw, lock slide lubrication'
       },
@@ -550,6 +578,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Curves 405 to 409',
         curveNumbers: [405, 406, 407, 408, 409],
@@ -570,17 +599,18 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
     monthName: 'December',
     monthShort: 'Dec',
     incharge: {
+      officialName: 'Shri Vivek Kumar Azad (APM / Civil - 101518)',
       mainLinePoints: {
         station: 'NSIR',
         stationName: 'Sirhind Detour (NSIR)',
         pointsCount: 8,
         frequencyRule: 'Quarterly (3-Month Cycle) • Round 2 (Full Annual Cycle Completed)',
-        turnoutSummary: 'Pt 101, 102, 103, 104, 201, 202, 203, 204'
+        turnoutSummary: 'Pt 201b, 243b, 244a, 245a, 295b, 296b, 297a, 299b (8 Points Main UP/DN)'
       },
       jointST: {
         station: 'SMUN',
         stationName: 'New Shambhu (SMUN)',
-        jointOfficial: 'ASTE / JE (Signal) DFCCIL',
+        jointOfficial: 'APM / S&T / UBCD',
         frequencyRule: 'Monthly Joint S&T Cycle • Round 2 (Full Annual Cycle Completed)',
         focusItems: 'Winter fog safety: signal visibility, detonator stock at gates, points heating/lubrication'
       },
@@ -594,6 +624,7 @@ export const ANNUAL_PWAY_INSPECTION_SCHEDULE: MonthlyInspectionPlan[] = [
       lcGates: ['LC-151', 'LC-159', 'LC-163', 'LC-164', 'LC-167']
     },
     sectional: {
+      officialName: 'Shri Arjun Kumar (IMSD Sectional / Exec. Civil - 101801)',
       curves: {
         rangeText: 'Zero Curves Scheduled',
         curveNumbers: [],

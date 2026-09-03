@@ -9,6 +9,7 @@ import { db } from '../services/database.ts';
 import { INITIAL_TRC_BLOCKS, type TrcBlockRecord } from '../data/trcData.ts';
 import { DefectManager } from './DefectManager.tsx';
 import { ANNUAL_PWAY_INSPECTION_SCHEDULE, type MonthlyInspectionPlan } from '../data/annualInspectionSchedule.ts';
+import { PWAY_ALL_CURVES, getCurvesForMonth, type PWayCurveRecord } from '../data/pwayCurveMaster.ts';
 import {
   Activity,
   Gauge,
@@ -329,6 +330,11 @@ export const PWayQualityInspections: React.FC = () => {
   };
   const [inspectionSubTab, setInspectionSubTab] = useState<string>('ALL');
   const [selectedScheduleMonth, setSelectedScheduleMonth] = useState<number>(new Date().getMonth() + 1);
+  const [isCurveDirectoryOpen, setIsCurveDirectoryOpen] = useState<boolean>(false);
+  const [curveDirFilter, setCurveDirFilter] = useState<'ALL' | 'IN_CHARGE' | 'SECTIONAL'>('ALL');
+  const [curveDirSearch, setCurveDirSearch] = useState<string>('');
+  const [showInchargeCurveTable, setShowInchargeCurveTable] = useState<boolean>(true);
+  const [showSectionalCurveTable, setShowSectionalCurveTable] = useState<boolean>(true);
 
   // TRC View Mode: 'LIST' vs 'CHART' vs 'COMPARE'
   const [trcViewMode, setTrcViewMode] = useState<'LIST' | 'CHART' | 'COMPARE'>('LIST');
@@ -1310,6 +1316,8 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
       {/* ========================================================================= */}
       {mainTab === 'INSPECTIONS' && (() => {
         const currentMonthPlan = ANNUAL_PWAY_INSPECTION_SCHEDULE.find(m => m.monthIndex === selectedScheduleMonth) || ANNUAL_PWAY_INSPECTION_SCHEDULE[0];
+        const monthInchargeCurves = getCurvesForMonth(selectedScheduleMonth, 'IN_CHARGE');
+        const monthSectionalCurves = getCurvesForMonth(selectedScheduleMonth, 'SECTIONAL');
 
         return (
           <div className="space-y-6">
@@ -1322,6 +1330,13 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
                       IRPWM &amp; DFCCIL Track Manual
                     </span>
                     <span className="text-xs text-blue-200 font-mono">IMSD SMUN Section 1167.210 – 1249.720</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsCurveDirectoryOpen(true)}
+                      className="ml-auto px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-[11px] font-black transition flex items-center gap-1.5 shadow"
+                    >
+                      <span>📑 Open 95 Curves Master Register (315-409)</span>
+                    </button>
                   </div>
                   <h2 className="text-lg md:text-xl font-black mt-1">
                     वार्षिक ट्रैक निरीक्षण कैलेंडर (Mandatory Annual Inspection Roster)
@@ -1468,28 +1483,64 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
                   </div>
 
                   {/* 4. In-Charge Curves */}
-                  <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl space-y-1.5">
-                    <div className="flex items-center justify-between">
+                  <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-[11px] font-black text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
                         <span>📐 इनचार्ज कर्व्स निरीक्षण (In-Charge Curves):</span>
-                        <span className="px-2 py-0.5 bg-indigo-600 text-white rounded-md text-[10px] font-mono">
+                        <span className="px-2 py-0.5 bg-indigo-600 text-white rounded-md text-[10px] font-mono font-bold">
                           {currentMonthPlan.incharge.curves.rangeText}
                         </span>
                       </span>
-                      <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
-                        {currentMonthPlan.incharge.curves.count} Curves
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                          {monthInchargeCurves.length} Curves
+                        </span>
+                        {monthInchargeCurves.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowInchargeCurveTable(!showInchargeCurveTable)}
+                            className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                          >
+                            {showInchargeCurveTable ? 'Hide Table ▲' : 'Show Parameters ▼'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
                       विवरण: {currentMonthPlan.incharge.curves.description}
                     </p>
-                    {currentMonthPlan.incharge.curves.curveNumbers.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {currentMonthPlan.incharge.curves.curveNumbers.map(cn => (
-                          <span key={cn} className="px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-800 font-mono text-[10px]">
-                            C-{cn}
-                          </span>
-                        ))}
+
+                    {/* Detailed Technical Table of In-Charge Curves */}
+                    {showInchargeCurveTable && monthInchargeCurves.length > 0 && (
+                      <div className="overflow-x-auto rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-white dark:bg-slate-900 shadow-inner">
+                        <table className="w-full text-left text-[11px]">
+                          <thead className="bg-indigo-100/70 dark:bg-indigo-950/80 text-indigo-950 dark:text-indigo-200 font-black border-b border-indigo-200 dark:border-indigo-800">
+                            <tr>
+                              <th className="p-2">Curve</th>
+                              <th className="p-2">From &ndash; To (Km)</th>
+                              <th className="p-2">Length</th>
+                              <th className="p-2">Deg (D)</th>
+                              <th className="p-2">Radius</th>
+                              <th className="p-2">Cant (SE)</th>
+                              <th className="p-2">Versine</th>
+                              <th className="p-2">Speed</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                            {monthInchargeCurves.map(c => (
+                              <tr key={c.curveNo} className="hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30">
+                                <td className="p-2 font-black text-indigo-700 dark:text-indigo-300">C-{c.curveNo}</td>
+                                <td className="p-2">{c.fromKm} &ndash; {c.toKm}</td>
+                                <td className="p-2">{c.lengthM}m</td>
+                                <td className="p-2">{c.degree}&deg;</td>
+                                <td className="p-2">{c.radiusM}m</td>
+                                <td className="p-2">{c.cantMm}mm</td>
+                                <td className="p-2">{c.designVersineMm}mm</td>
+                                <td className="p-2 text-emerald-600 font-bold">{c.speedKmph || 100} km/h</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>
@@ -1534,11 +1585,11 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
                 </div>
               </div>
 
-              {/* CARD 2: SECTIONAL IN-CHARGE (SSE / JE / FIELD STAFF) */}
+              {/* CARD 2: SECTIONAL IN-CHARGE (SHRI ARJUN KUMAR) */}
               <div className="p-5 bg-white dark:bg-slate-900 border-2 border-emerald-500/40 rounded-3xl shadow-sm space-y-4 hover:shadow-md transition relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-emerald-600 text-white px-4 py-1 rounded-bl-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
                   <ClipboardCheck className="w-3.5 h-3.5" />
-                  <span>Sectional Official (SSE / JE P-Way)</span>
+                  <span>IMSD Sectional (Executive / Civil)</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -1550,39 +1601,76 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
                       {currentMonthPlan.monthName} — सेक्शनल निरीक्षण कार्य
                     </h3>
                     <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">
-                      Sectional P-Way Engineers (SSE / JE Track)
+                      Shri Arjun Kumar (IMSD Sectional / Executive / Civil - 101801)
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-2">
                   {/* Sectional Complementary Curves */}
-                  <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl space-y-1.5">
-                    <div className="flex items-center justify-between">
+                  <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
                         <span>📐 सेक्शनल कर्व्स निरीक्षण (Sectional Curves):</span>
-                        <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-mono">
+                        <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-mono font-bold">
                           {currentMonthPlan.sectional.curves.rangeText}
                         </span>
                       </span>
-                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
-                        {currentMonthPlan.sectional.curves.count} Curves
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                          {monthSectionalCurves.length} Curves
+                        </span>
+                        {monthSectionalCurves.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowSectionalCurveTable(!showSectionalCurveTable)}
+                            className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                          >
+                            {showSectionalCurveTable ? 'Hide Table ▲' : 'Show Parameters ▼'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
                       विवरण: {currentMonthPlan.sectional.curves.description}
                     </p>
-                    {currentMonthPlan.sectional.curves.curveNumbers.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {currentMonthPlan.sectional.curves.curveNumbers.map(cn => (
-                          <span key={cn} className="px-1.5 py-0.5 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 rounded border border-emerald-200 dark:border-emerald-800 font-mono text-[10px]">
-                            C-{cn}
-                          </span>
-                        ))}
+
+                    {/* Detailed Technical Table of Sectional Curves */}
+                    {showSectionalCurveTable && monthSectionalCurves.length > 0 && (
+                      <div className="overflow-x-auto rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-white dark:bg-slate-900 shadow-inner">
+                        <table className="w-full text-left text-[11px]">
+                          <thead className="bg-emerald-100/70 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-200 font-black border-b border-emerald-200 dark:border-emerald-800">
+                            <tr>
+                              <th className="p-2">Curve</th>
+                              <th className="p-2">From &ndash; To (Km)</th>
+                              <th className="p-2">Length</th>
+                              <th className="p-2">Deg (D)</th>
+                              <th className="p-2">Radius</th>
+                              <th className="p-2">Cant (SE)</th>
+                              <th className="p-2">Versine</th>
+                              <th className="p-2">Speed</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                            {monthSectionalCurves.map(c => (
+                              <tr key={c.curveNo} className="hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30">
+                                <td className="p-2 font-black text-emerald-700 dark:text-emerald-300">C-{c.curveNo}</td>
+                                <td className="p-2">{c.fromKm} &ndash; {c.toKm}</td>
+                                <td className="p-2">{c.lengthM}m</td>
+                                <td className="p-2">{c.degree}&deg;</td>
+                                <td className="p-2">{c.radiusM}m</td>
+                                <td className="p-2">{c.cantMm}mm</td>
+                                <td className="p-2">{c.designVersineMm}mm</td>
+                                <td className="p-2 text-emerald-600 font-bold">{c.speedKmph || 100} km/h</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
+
                     <p className="text-[10px] text-emerald-800 dark:text-emerald-300 font-medium pt-0.5">
-                      ✓ इनचार्ज कर्व्स के मध्य छूटे हुए सभी कर्व्स सेक्शनल द्वारा 100% कवर किए जाते हैं।
+                      ✓ इनचार्ज कर्व्स के मध्य छूटे हुए सभी कर्व्स सेक्शनल (Shri Arjun Kumar) द्वारा 100% कवर किए जाते हैं।
                     </p>
                   </div>
 
@@ -2010,6 +2098,135 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: 95 CURVES MASTER REGISTER (CURVES 315 TO 409) */}
+      {/* ========================================================================= */}
+      {isCurveDirectoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-5xl shadow-2xl p-5 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-mono font-bold rounded">
+                    IMSD SMUN Official Registry
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">95 Curves (Km 1167.627 &ndash; 1249.720)</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                  📐 संपूर्ण 95 कर्व्स मास्टर रजिस्टर (Curves 315 to 409)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCurveDirectoryOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex items-center justify-between flex-wrap gap-2 shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                {(['ALL', 'IN_CHARGE', 'SECTIONAL'] as const).map(flt => (
+                  <button
+                    key={flt}
+                    type="button"
+                    onClick={() => setCurveDirFilter(flt)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      curveDirFilter === flt
+                        ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm font-black'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    {flt === 'ALL' ? 'All 95 Curves' : flt === 'IN_CHARGE' ? 'In-Charge (46)' : 'Sectional (49)'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Search Curve No, Km, Radius..."
+                  value={curveDirSearch}
+                  onChange={(e) => setCurveDirSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2" />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-y-auto flex-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700 z-10">
+                  <tr>
+                    <th className="p-2.5">Curve No</th>
+                    <th className="p-2.5">From &ndash; To (Km)</th>
+                    <th className="p-2.5">Length (m)</th>
+                    <th className="p-2.5">Degree (&deg;)</th>
+                    <th className="p-2.5">Radius (m)</th>
+                    <th className="p-2.5">Cant (SE)</th>
+                    <th className="p-2.5">Versine</th>
+                    <th className="p-2.5">Month</th>
+                    <th className="p-2.5">Authority</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  {PWAY_ALL_CURVES
+                    .filter(c => {
+                      if (curveDirFilter !== 'ALL' && c.assignedAuthority !== curveDirFilter) return false;
+                      if (curveDirSearch) {
+                        const q = curveDirSearch.toLowerCase();
+                        const matchNo = String(c.curveNo).includes(q);
+                        const matchKm = String(c.fromKm).includes(q) || String(c.toKm).includes(q);
+                        const matchR = String(c.radiusM).includes(q);
+                        if (!matchNo && !matchKm && !matchR) return false;
+                      }
+                      return true;
+                    })
+                    .map(c => (
+                      <tr key={c.curveNo} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                        <td className="p-2.5 font-black text-blue-600 dark:text-blue-400">Curve {c.curveNo}</td>
+                        <td className="p-2.5">{c.fromKm} &ndash; {c.toKm}</td>
+                        <td className="p-2.5">{c.lengthM} m</td>
+                        <td className="p-2.5">{c.degree}&deg;</td>
+                        <td className="p-2.5">{c.radiusM} m</td>
+                        <td className="p-2.5">{c.cantMm} mm</td>
+                        <td className="p-2.5">{c.designVersineMm} mm</td>
+                        <td className="p-2.5 font-sans font-bold text-slate-700 dark:text-slate-300">
+                          {ANNUAL_PWAY_INSPECTION_SCHEDULE.find(m => m.monthIndex === c.assignedMonth)?.monthShort || '-'}
+                        </td>
+                        <td className="p-2.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black font-sans ${
+                            c.assignedAuthority === 'IN_CHARGE'
+                              ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
+                              : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                          }`}>
+                            {c.assignedAuthority === 'IN_CHARGE' ? 'In-Charge (Azad)' : 'Sectional (Arjun)'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 shrink-0">
+              <span>Total 95 Curves uniquely distributed across 11 months (December zero curves)</span>
+              <button
+                type="button"
+                onClick={() => setIsCurveDirectoryOpen(false)}
+                className="px-4 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-white rounded-xl font-bold"
+              >
+                Close (बंद करें)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -50,7 +50,7 @@ export const DefectManager: React.FC = () => {
     severity: 'MEDIUM' as DefectSeverity,
     speedRestrictionKmph: 0,
     status: 'OPEN' as DefectStatus,
-    reportedByName: currentUser?.name || 'Shri Rajesh Sharma',
+    reportedByName: currentUser?.name || 'Shri Arjun Kumar',
     actionTaken: ''
   });
 

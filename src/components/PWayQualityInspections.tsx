@@ -232,7 +232,7 @@ const DEFAULT_INSPECTIONS: InspectionRecord[] = [
     location: 'Km 1184.200 to 1185.100 (Radius 1400m)',
     scheduledDate: '2026-08-20',
     conductedDate: '2026-08-21',
-    inspectingOfficial: 'SSE / P-Way (Rajesh Sharma)',
+    inspectingOfficial: 'Shri Arjun Kumar (IMSD Sectional / Executive / Civil)',
     status: 'COMPLETED',
     parametersChecked: 'Versine variation on 20m chord, Super-elevation (65mm), Transition smoothness',
     deficienciesFound: 'Versine variation of +4mm at Station 6',

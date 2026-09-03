@@ -445,13 +445,13 @@ export const LoginDashboard: React.FC<LoginDashboardProps> = ({ onOpenQRModal })
               >
                 <div>
                   <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>Shri Rajesh Sharma</span>
+                    <span>Shri Arjun Kumar</span>
                     <span className="text-[10px] px-1.5 py-0.2 bg-blue-500/20 text-blue-300 rounded font-mono">
                       OFFICER
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Sr. Section Engineer / P-Way (SSE In-Charge)
+                    Executive / Civil (IMSD Sectional)
                   </div>
                 </div>
                 {role === 'OFFICER' && <CheckCircle2 className="w-4 h-4 text-blue-400" />}

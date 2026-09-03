@@ -371,8 +371,9 @@ export const StoreInventoryManager: React.FC = () => {
             issueQty: tTxn.issue || undefined,
             balanceQty: Math.max(0, tTxn.balance ?? 0),
             tallyPageNo: tTxn.ledgerPage,
-            createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString()
-          };
+            createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString(),
+            orderIndex: idx
+          } as any;
         });
       } catch (e) {
         console.error('Error decoding tally data in loadStoreData:', e);
@@ -966,8 +967,13 @@ export const StoreInventoryManager: React.FC = () => {
       return false;
     });
 
-    // Sort by date ascending (oldest to newest)
+    // Sort preserving authentic physical ledger entry order (as written row-by-row in the departmental tally book)
     const sorted = [...rawTxns].sort((a, b) => {
+      const ordA = (a as any).orderIndex;
+      const ordB = (b as any).orderIndex;
+      if (ordA != null && ordB != null) return ordA - ordB;
+      if (ordA != null) return -1;
+      if (ordB != null) return 1;
       const timeA = parseDateToTimestamp(a.date || a.createdAt);
       const timeB = parseDateToTimestamp(b.date || b.createdAt);
       return timeA - timeB;
@@ -995,19 +1001,26 @@ export const StoreInventoryManager: React.FC = () => {
         totalTransfers += tQty;
       }
 
+      // If the official physical ledger already has a verified recorded balance on this row, use it!
+      const finalRowBalance = tx.balanceQty != null ? Number(tx.balanceQty) : runningBal;
+
       return {
         ...tx,
         formattedDate: formatDateDDMMYYYY(tx.date || tx.createdAt),
-        calculatedBalance: runningBal
+        calculatedBalance: finalRowBalance
       };
     });
+
+    const finalClosingBal = rows.length > 0 && rows[rows.length - 1].calculatedBalance != null
+      ? Number(rows[rows.length - 1].calculatedBalance)
+      : runningBal;
 
     return {
       rows,
       totalReceipts,
       totalTransfers,
       totalIssues,
-      closingBalance: runningBal
+      closingBalance: finalClosingBal
     };
   }, [transactions, selectedItemForTally]);
 
@@ -1929,7 +1942,9 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3 border border-slate-300 dark:border-slate-700 font-mono text-amber-600 font-bold bg-amber-50/20">
                         {tx.type === 'OUTWARD' ? Number(tx.quantity).toFixed(2) : '0.00'}
                       </td>
-                      <td className="p-3 border border-slate-300 dark:border-slate-700 text-red-600 font-black font-mono bg-blue-50/40 text-sm">
+                      <td className={`p-3 border border-slate-300 dark:border-slate-700 font-black font-mono bg-blue-50/40 text-sm ${
+                        Number(tx.calculatedBalance) < 0 ? 'text-red-600' : 'text-slate-900 dark:text-white'
+                      }`}>
                         {Number(tx.calculatedBalance).toFixed(2)}
                       </td>
                       <td className="p-2 border border-slate-300 dark:border-slate-700 text-center">

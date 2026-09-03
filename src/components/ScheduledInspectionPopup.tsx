@@ -18,11 +18,13 @@ import {
   Users,
   MapPin,
   Clock,
-  ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck
 } from 'lucide-react';
 import { IMSD_TALLY_GZIP_BASE64 } from '../data/imsdTallyLedgerCompressed.ts';
 import { db } from '../services/database.ts';
+import { ANNUAL_PWAY_INSPECTION_SCHEDULE } from '../data/annualInspectionSchedule.ts';
+import { ShieldCheck, Calendar } from 'lucide-react';
 import type { PatrolShiftRecord, KeymanRecord } from '../types/index.ts';
 
 interface ScheduledInspectionPopupProps {
@@ -55,7 +57,7 @@ export const ScheduledInspectionPopup: React.FC<ScheduledInspectionPopupProps> =
   onClose,
   onNavigateToInspections
 }) => {
-  const [activeTab, setActiveTab] = useState<'STOCK' | 'VACANT_BEATS'>('STOCK');
+  const [activeTab, setActiveTab] = useState<'STOCK' | 'VACANT_BEATS' | 'INSPECTIONS'>('STOCK');
   const [items, setItems] = useState<TallyItem[]>([]);
   const [activeStockFilter, setActiveStockFilter] = useState<'ZERO' | 'LOW' | 'ALL_CRITICAL'>('ALL_CRITICAL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -183,6 +185,18 @@ export const ScheduledInspectionPopup: React.FC<ScheduledInspectionPopupProps> =
           >
             <Users className="w-4 h-4" />
             <span>Unmanned / Vacant Beats ({totalVacantBeatsCount})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('INSPECTIONS')}
+            className={`px-4 py-2 text-xs font-black rounded-t-xl border-t border-x transition-all flex items-center gap-2 ${
+              activeTab === 'INSPECTIONS'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border-blue-500 shadow-sm'
+                : 'bg-transparent text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>P-Way Inspections Due ({new Date().toLocaleString('en-US', { month: 'short' })})</span>
           </button>
         </div>
 
@@ -408,6 +422,103 @@ export const ScheduledInspectionPopup: React.FC<ScheduledInspectionPopupProps> =
           </div>
         )}
 
+        {/* TAB 3: MONTHLY P-WAY INSPECTIONS DUE */}
+        {activeTab === 'INSPECTIONS' && (() => {
+          const currentMonthNum = new Date().getMonth() + 1;
+          const monthPlan = ANNUAL_PWAY_INSPECTION_SCHEDULE.find(m => m.monthIndex === currentMonthNum) || ANNUAL_PWAY_INSPECTION_SCHEDULE[8];
+
+          return (
+            <div className="p-5 overflow-y-auto space-y-4 max-h-[60vh]">
+              <div className="p-4 bg-gradient-to-r from-blue-900 to-[#123b72] text-white rounded-2xl shadow-md space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full uppercase">
+                    Current Active Month • {monthPlan.monthName}
+                  </span>
+                  <span className="text-xs font-mono text-blue-200">IRPWM &amp; DFCCIL Track Schedule</span>
+                </div>
+                <h4 className="text-sm md:text-base font-black">
+                  IMSD In-Charge (APM/Civil Shri Vivek Kumar Azad) &amp; Sectional Plan
+                </h4>
+                <p className="text-xs text-blue-100">
+                  मेन लाइन टर्नआउट्स (3 माह चक्रीय), लूप लाइन (वार्षिक संपूर्ण स्टेशन ऑडिट), जॉइंट S&amp;T व 100% कर्व्स का सटीक मासिक लक्ष्य।
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {/* In-Charge Plan */}
+                <div className="p-4 bg-blue-50/70 dark:bg-blue-950/40 border-2 border-blue-400/50 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-blue-200 dark:border-blue-800 pb-2">
+                    <span className="text-xs font-black text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-blue-600" />
+                      <span>In-Charge Obligations ({monthPlan.monthShort})</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">Shri Vivek Kumar Azad</span>
+                  </div>
+
+                  <div className="text-xs space-y-2">
+                    <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-blue-800">
+                      <strong className="text-blue-800 dark:text-blue-300 block">🔀 Main Line Points ({monthPlan.incharge.mainLinePoints.frequencyRule}):</strong>
+                      <span className="font-bold text-slate-800 dark:text-white">{monthPlan.incharge.mainLinePoints.stationName}</span>
+                      <span className="text-slate-500 font-mono text-[11px] block">{monthPlan.incharge.mainLinePoints.pointsCount} Points • {monthPlan.incharge.mainLinePoints.turnoutSummary}</span>
+                    </div>
+
+                    {monthPlan.incharge.loopLinePoints && (
+                      <div className="p-2 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl border border-emerald-300 dark:border-emerald-800">
+                        <strong className="text-emerald-800 dark:text-emerald-300 block">🔄 Loop Line Points (Annual Audit):</strong>
+                        <span className="font-bold text-slate-800 dark:text-white">{monthPlan.incharge.loopLinePoints.stationName} ({monthPlan.incharge.loopLinePoints.pointsCount} Points)</span>
+                        <span className="text-emerald-700 dark:text-emerald-400 text-[11px] block">{monthPlan.incharge.loopLinePoints.rationale}</span>
+                      </div>
+                    )}
+
+                    <div className="p-2 bg-cyan-50 dark:bg-cyan-950/50 rounded-xl border border-cyan-300 dark:border-cyan-800">
+                      <strong className="text-cyan-800 dark:text-cyan-300 block">📡 Joint P&amp;C with S&amp;T:</strong>
+                      <span className="font-bold text-slate-800 dark:text-white">{monthPlan.incharge.jointST.stationName}</span>
+                      <span className="text-slate-600 dark:text-slate-300 text-[11px] block">Joint Officer: {monthPlan.incharge.jointST.jointOfficial}</span>
+                    </div>
+
+                    <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl border border-indigo-300 dark:border-indigo-800">
+                      <strong className="text-indigo-800 dark:text-indigo-300 block">📐 In-Charge Curves:</strong>
+                      <span className="font-bold text-slate-800 dark:text-white">{monthPlan.incharge.curves.rangeText} ({monthPlan.incharge.curves.count} Curves)</span>
+                      <span className="text-slate-500 text-[11px] block">{monthPlan.incharge.curves.description}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sectional Plan */}
+                <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/40 border-2 border-emerald-400/50 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-emerald-200 dark:border-emerald-800 pb-2">
+                    <span className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                      <ClipboardCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Sectional Obligations ({monthPlan.monthShort})</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">SSE / JE P-Way</span>
+                  </div>
+
+                  <div className="text-xs space-y-2">
+                    <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                      <strong className="text-emerald-800 dark:text-emerald-300 block">📐 Sectional Complementary Curves:</strong>
+                      <span className="font-bold text-slate-800 dark:text-white">{monthPlan.sectional.curves.rangeText} ({monthPlan.sectional.curves.count} Curves)</span>
+                      <span className="text-slate-500 text-[11px] block">{monthPlan.sectional.curves.description}</span>
+                    </div>
+
+                    <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
+                      <strong className="text-slate-800 dark:text-slate-200 block">🛠️ Sectional Routine Duties:</strong>
+                      <ul className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                        {monthPlan.sectional.routineTasks.map((t, idx) => (
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="text-emerald-600 font-bold">✓</span>
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Footer Actions */}
         <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <div className="text-[11px] text-slate-500">
@@ -425,11 +536,23 @@ export const ScheduledInspectionPopup: React.FC<ScheduledInspectionPopupProps> =
               type="button"
               onClick={() => {
                 onClose();
-                onNavigateToInspections(activeTab === 'STOCK' ? 'store' : 'staff');
+                onNavigateToInspections(activeTab === 'STOCK' ? 'store' : activeTab === 'VACANT_BEATS' ? 'staff' : 'pway_work');
               }}
-              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black shadow-lg shadow-red-600/30 transition flex items-center gap-1.5"
+              className={`px-4 py-2 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-1.5 ${
+                activeTab === 'STOCK'
+                  ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30'
+                  : activeTab === 'VACANT_BEATS'
+                    ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30'
+                    : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
+              }`}
             >
-              <span>{activeTab === 'STOCK' ? 'Open Store ERP' : 'Open Staff Directory'}</span>
+              <span>
+                {activeTab === 'STOCK'
+                  ? 'Open Store ERP'
+                  : activeTab === 'VACANT_BEATS'
+                    ? 'Open Staff Directory'
+                    : 'Open P-Way Annual Inspections'}
+              </span>
               <ArrowUpRight className="w-4 h-4" />
             </button>
           </div>

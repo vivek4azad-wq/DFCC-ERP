@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { db } from '../services/database.ts';
 import { INITIAL_TRC_BLOCKS, type TrcBlockRecord } from '../data/trcData.ts';
 import { DefectManager } from './DefectManager.tsx';
+import { ANNUAL_PWAY_INSPECTION_SCHEDULE, type MonthlyInspectionPlan } from '../data/annualInspectionSchedule.ts';
 import {
   Activity,
   Gauge,
@@ -37,7 +38,8 @@ import {
   X,
   BarChart3,
   List,
-  GitCompare
+  GitCompare,
+  ShieldCheck
 } from 'lucide-react';
 
 export interface OmsRecord {
@@ -315,6 +317,7 @@ export const PWayQualityInspections: React.FC = () => {
   const { currentUser, role } = useAuth();
   const [mainTab, setMainTab] = useState<'OMS' | 'TRC' | 'INSPECTIONS' | 'DFWO'>('OMS');
   const [inspectionSubTab, setInspectionSubTab] = useState<string>('ALL');
+  const [selectedScheduleMonth, setSelectedScheduleMonth] = useState<number>(new Date().getMonth() + 1);
 
   // TRC View Mode: 'LIST' vs 'CHART' vs 'COMPARE'
   const [trcViewMode, setTrcViewMode] = useState<'LIST' | 'CHART' | 'COMPARE'>('LIST');
@@ -1292,96 +1295,431 @@ Tamping Reqd: ${block.tampingRequired ? 'YES' : 'NO'}`}
       )}
 
       {/* ========================================================================= */}
-      {/* 3. INSPECTIONS SUB-MODULE */}
+      {/* 3. INSPECTIONS SUB-MODULE (DFCCIL / IRPWM MANDATORY ANNUAL SCHEDULE) */}
       {/* ========================================================================= */}
-      {mainTab === 'INSPECTIONS' && (
-        <div className="space-y-6">
-          <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'ALL', label: 'All Inspections' },
-              { id: 'POINT_CROSSING', label: 'Point & Crossing' },
-              { id: 'CURVE', label: 'Curve' },
-              { id: 'LWR', label: 'LWR' },
-              { id: 'LEVEL_CROSSING', label: 'LC Gates' },
-              { id: 'JOINT_ST', label: 'Joint P&C (with S&T)' },
-              { id: 'MOTOR_TROLLEY', label: 'Motor Trolley' },
-              { id: 'CUSTOM', label: 'Custom' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setInspectionSubTab(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                  inspectionSubTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      {mainTab === 'INSPECTIONS' && (() => {
+        const currentMonthPlan = ANNUAL_PWAY_INSPECTION_SCHEDULE.find(m => m.monthIndex === selectedScheduleMonth) || ANNUAL_PWAY_INSPECTION_SCHEDULE[0];
 
-            {canEdit && (
-              <button
-                onClick={() => setIsInspModalOpen(true)}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow ml-auto shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Inspection</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredInspections.map(insp => (
-              <div
-                key={insp.id}
-                className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-3 hover:shadow-md transition"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded text-[10px] font-bold font-mono uppercase">
-                      {insp.typeName}
+        return (
+          <div className="space-y-6">
+            {/* Regulatory Rules Banner */}
+            <div className="p-4 bg-gradient-to-r from-[#0d2a58] via-[#123b72] to-[#1e4d8c] text-white rounded-3xl shadow-lg border border-blue-400/30">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-amber-400 text-slate-900 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      IRPWM &amp; DFCCIL Track Manual
                     </span>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5 leading-snug">
-                      {insp.title}
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      📍 {insp.location} ({insp.assetIdOrKm})
+                    <span className="text-xs text-blue-200 font-mono">IMSD SMUN Section 1167.210 – 1249.720</span>
+                  </div>
+                  <h2 className="text-lg md:text-xl font-black mt-1">
+                    वार्षिक ट्रैक निरीक्षण कैलेंडर (Mandatory Annual Inspection Roster)
+                  </h2>
+                  <p className="text-xs text-blue-100 mt-0.5 max-w-3xl">
+                    इनचार्ज (APM/Civil) व सेक्शनल अधिकारियों का 100% अनुपालन शेड्यूलिंग: मेन लाइन टर्नआउट्स (त्रैमासिक), लूप लाइन्स (वार्षिक स्टेशन ऑडिट), जॉइंट S&amp;T (मासिक चक्रीय), और 95 कर्व्स का संपूर्ण कवरेज।
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto shrink-0 text-center">
+                  <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                    <span className="block text-[10px] text-blue-200 uppercase font-bold">Main Line P&amp;C</span>
+                    <span className="text-sm font-black text-amber-300">3 Month</span>
+                    <span className="block text-[9px] text-blue-300">Quarterly Rotation</span>
+                  </div>
+                  <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                    <span className="block text-[10px] text-blue-200 uppercase font-bold">Loop Line P&amp;C</span>
+                    <span className="text-sm font-black text-emerald-300">1 Year</span>
+                    <span className="block text-[9px] text-blue-300">Full Station Audit</span>
+                  </div>
+                  <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                    <span className="block text-[10px] text-blue-200 uppercase font-bold">Joint with S&amp;T</span>
+                    <span className="text-sm font-black text-cyan-300">Monthly</span>
+                    <span className="block text-[9px] text-blue-300">6-Month Repeat</span>
+                  </div>
+                  <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                    <span className="block text-[10px] text-blue-200 uppercase font-bold">Curves (315-409)</span>
+                    <span className="text-sm font-black text-white">95 Curves</span>
+                    <span className="block text-[9px] text-blue-300">100% Coverage</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 12-Month Selector Pills */}
+              <div className="mt-4 pt-3 border-t border-white/15 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <span className="text-[11px] font-bold text-blue-200 mr-1 shrink-0">माह चुनें:</span>
+                {ANNUAL_PWAY_INSPECTION_SCHEDULE.map(m => {
+                  const isSelected = selectedScheduleMonth === m.monthIndex;
+                  return (
+                    <button
+                      key={m.monthIndex}
+                      type="button"
+                      onClick={() => setSelectedScheduleMonth(m.monthIndex)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition shrink-0 ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 shadow-md scale-105 ring-2 ring-white/50'
+                          : 'bg-white/10 hover:bg-white/20 text-white'
+                      }`}
+                    >
+                      {m.monthShort}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected Month Dual Master Plan: In-Charge & Sectional */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* CARD 1: IMSD IN-CHARGE (APM/CIVIL SHRI VIVEK KUMAR AZAD) */}
+              <div className="p-5 bg-white dark:bg-slate-900 border-2 border-blue-500/40 rounded-3xl shadow-sm space-y-4 hover:shadow-md transition relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 rounded-bl-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>IMSD In-Charge (APM / Civil)</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-blue-100 dark:bg-blue-950/80 border border-blue-300 dark:border-blue-800 flex items-center justify-center text-blue-700 dark:text-blue-300 font-black text-lg">
+                    {currentMonthPlan.monthShort}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      {currentMonthPlan.monthName} — इनचार्ज निरीक्षण कार्य
+                    </h3>
+                    <p className="text-xs text-blue-700 dark:text-blue-400 font-bold">
+                      Shri Vivek Kumar Azad (APM / Civil - 101518)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {/* 1. Main Line Points & Crossings */}
+                  <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                        <span>🔀 मेन लाइन टर्नआउट्स (Main Line Points):</span>
+                        <span className="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-mono">
+                          {currentMonthPlan.incharge.mainLinePoints.station} ({currentMonthPlan.incharge.mainLinePoints.pointsCount} Points)
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                        {currentMonthPlan.incharge.mainLinePoints.frequencyRule}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                      स्टेशन: <strong>{currentMonthPlan.incharge.mainLinePoints.stationName}</strong>
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      टारगेट पॉइंट्स: {currentMonthPlan.incharge.mainLinePoints.turnoutSummary}
                     </p>
                   </div>
 
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
-                    insp.status === 'COMPLETED'
-                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                  }`}>
-                    {insp.status}
+                  {/* 2. Loop Line Points (If Scheduled for Incharge this month) */}
+                  {currentMonthPlan.incharge.loopLinePoints ? (
+                    <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500/60 rounded-2xl space-y-1.5 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                          <span>🔄 लूप लाइन टर्नआउट्स (100% Station Loop Points Audit):</span>
+                          <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-mono">
+                            {currentMonthPlan.incharge.loopLinePoints.station} ({currentMonthPlan.incharge.loopLinePoints.pointsCount} Points)
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                          {currentMonthPlan.incharge.loopLinePoints.frequencyRule}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                        स्टेशन: <strong>{currentMonthPlan.incharge.loopLinePoints.stationName}</strong>
+                      </p>
+                      <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                        💡 {currentMonthPlan.incharge.loopLinePoints.rationale}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {/* 3. Joint P&C with S&T */}
+                  <div className="p-3.5 bg-cyan-50/70 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/60 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-cyan-900 dark:text-cyan-200 flex items-center gap-1.5">
+                        <span>📡 जॉइंट S&amp;T टर्नआउट निरीक्षण (Joint with S&amp;T):</span>
+                        <span className="px-2 py-0.5 bg-cyan-700 text-white rounded-md text-[10px] font-mono">
+                          {currentMonthPlan.incharge.jointST.station}
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-bold text-cyan-700 dark:text-cyan-300">
+                        {currentMonthPlan.incharge.jointST.frequencyRule}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                      स्टेशन: <strong>{currentMonthPlan.incharge.jointST.stationName}</strong> • संयुक्त अधिकारी: <strong>{currentMonthPlan.incharge.jointST.jointOfficial}</strong>
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      चेकलिस्ट: {currentMonthPlan.incharge.jointST.focusItems}
+                    </p>
+                  </div>
+
+                  {/* 4. In-Charge Curves */}
+                  <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
+                        <span>📐 इनचार्ज कर्व्स निरीक्षण (In-Charge Curves):</span>
+                        <span className="px-2 py-0.5 bg-indigo-600 text-white rounded-md text-[10px] font-mono">
+                          {currentMonthPlan.incharge.curves.rangeText}
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                        {currentMonthPlan.incharge.curves.count} Curves
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                      विवरण: {currentMonthPlan.incharge.curves.description}
+                    </p>
+                    {currentMonthPlan.incharge.curves.curveNumbers.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {currentMonthPlan.incharge.curves.curveNumbers.map(cn => (
+                          <span key={cn} className="px-1.5 py-0.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-800 font-mono text-[10px]">
+                            C-{cn}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 5. Level Crossings & Motor Trolley */}
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">🚦 LC Gates (5):</span>
+                      <span className="text-[11px] font-mono text-slate-600 dark:text-slate-400">
+                        {currentMonthPlan.incharge.lcGates?.join(', ') || 'LC-151, 159, 163, 164, 167'}
+                      </span>
+                    </div>
+                    {currentMonthPlan.incharge.trolley && (
+                      <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded-md text-[10px] font-bold">
+                        🚊 {currentMonthPlan.incharge.trolley}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] text-slate-500 font-medium">DFCCIL IMSD SMUN In-Charge Roster</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewInsp({
+                        type: 'POINT_CROSSING',
+                        title: `In-Charge Audit - ${currentMonthPlan.incharge.mainLinePoints.station} Main Line Turnouts`,
+                        assetIdOrKm: currentMonthPlan.incharge.mainLinePoints.station,
+                        location: currentMonthPlan.incharge.mainLinePoints.stationName,
+                        scheduledDate: new Date().toISOString().split('T')[0],
+                        inspectingOfficial: 'Shri Vivek Kumar Azad (APM / Civil)',
+                        status: 'COMPLETED'
+                      });
+                      setIsInspModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Record In-Charge Audit</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* CARD 2: SECTIONAL IN-CHARGE (SSE / JE / FIELD STAFF) */}
+              <div className="p-5 bg-white dark:bg-slate-900 border-2 border-emerald-500/40 rounded-3xl shadow-sm space-y-4 hover:shadow-md transition relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-emerald-600 text-white px-4 py-1 rounded-bl-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                  <ClipboardCheck className="w-3.5 h-3.5" />
+                  <span>Sectional Official (SSE / JE P-Way)</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-black text-lg">
+                    {currentMonthPlan.monthShort}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      {currentMonthPlan.monthName} — सेक्शनल निरीक्षण कार्य
+                    </h3>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">
+                      Sectional P-Way Engineers (SSE / JE Track)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {/* Sectional Complementary Curves */}
+                  <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                        <span>📐 सेक्शनल कर्व्स निरीक्षण (Sectional Curves):</span>
+                        <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-mono">
+                          {currentMonthPlan.sectional.curves.rangeText}
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                        {currentMonthPlan.sectional.curves.count} Curves
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                      विवरण: {currentMonthPlan.sectional.curves.description}
+                    </p>
+                    {currentMonthPlan.sectional.curves.curveNumbers.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {currentMonthPlan.sectional.curves.curveNumbers.map(cn => (
+                          <span key={cn} className="px-1.5 py-0.5 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 rounded border border-emerald-200 dark:border-emerald-800 font-mono text-[10px]">
+                            C-{cn}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-emerald-800 dark:text-emerald-300 font-medium pt-0.5">
+                      ✓ इनचार्ज कर्व्स के मध्य छूटे हुए सभी कर्व्स सेक्शनल द्वारा 100% कवर किए जाते हैं।
+                    </p>
+                  </div>
+
+                  {/* Sectional Routine Tasks */}
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                      🛠️ सेक्शनल मासिक नियमित अनुरक्षण एवं सुरक्षा ऑडिट:
+                    </span>
+                    <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                      {currentMonthPlan.sectional.routineTasks.map((task, tIdx) => (
+                        <li key={tIdx} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>{task}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] text-slate-500 font-medium">DFCCIL Sectional Quality Roster</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewInsp({
+                        type: 'CURVE',
+                        title: `Sectional Curve Audit - ${currentMonthPlan.sectional.curves.rangeText}`,
+                        assetIdOrKm: currentMonthPlan.sectional.curves.rangeText,
+                        location: currentMonthPlan.sectional.curves.description,
+                        scheduledDate: new Date().toISOString().split('T')[0],
+                        inspectingOfficial: 'Sectional SSE / JE (Civil)',
+                        status: 'COMPLETED'
+                      });
+                      setIsInspModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Record Sectional Audit</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Logged Inspections & Compliance Filter */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    निरीक्षण लॉग एवं अनुपालन रिकॉर्ड (Inspection Log &amp; Compliance Register)
+                  </h3>
+                  <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs font-mono font-bold">
+                    {filteredInspections.length}
                   </span>
                 </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-1.5">
-                  <div className="text-slate-700 dark:text-slate-300">
-                    <span className="font-bold">Parameters Checked:</span> {insp.parametersChecked}
-                  </div>
-                  {insp.deficienciesFound && (
-                    <div className="text-amber-700 dark:text-amber-300 font-medium">
-                      <span className="font-bold">Deficiencies:</span> {insp.deficienciesFound}
-                    </div>
-                  )}
-                  <div className="text-slate-600 dark:text-slate-400">
-                    <span className="font-bold">Compliance Action:</span> {insp.complianceRemarks}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <span>Auditor: <strong className="text-slate-800 dark:text-slate-200">{insp.inspectingOfficial}</strong></span>
-                  <span>Date: {insp.conductedDate || insp.scheduledDate}</span>
-                </div>
+                {canEdit && (
+                  <button
+                    onClick={() => setIsInspModalOpen(true)}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ New Custom Inspection</span>
+                  </button>
+                )}
               </div>
-            ))}
+
+              {/* Filter Pills */}
+              <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {[
+                  { id: 'ALL', label: 'All Inspections' },
+                  { id: 'POINT_CROSSING', label: 'Point & Crossing' },
+                  { id: 'CURVE', label: 'Curves' },
+                  { id: 'JOINT_ST', label: 'Joint with S&T' },
+                  { id: 'LEVEL_CROSSING', label: 'LC Gates' },
+                  { id: 'LWR', label: 'LWR / SEJ' },
+                  { id: 'MOTOR_TROLLEY', label: 'Motor Trolley' },
+                  { id: 'CUSTOM', label: 'Custom' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setInspectionSubTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                      inspectionSubTab === tab.id
+                        ? 'bg-[#123b72] text-white shadow-sm font-black'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Grid of Inspections */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredInspections.map(insp => (
+                  <div
+                    key={insp.id}
+                    className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-3 hover:shadow-md transition"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded text-[10px] font-bold font-mono uppercase">
+                          {insp.typeName}
+                        </span>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5 leading-snug">
+                          {insp.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          📍 {insp.location} ({insp.assetIdOrKm})
+                        </p>
+                      </div>
+
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
+                        insp.status === 'COMPLETED'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                          : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                      }`}>
+                        {insp.status}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-1.5">
+                      <div className="text-slate-700 dark:text-slate-300">
+                        <span className="font-bold">Parameters Checked:</span> {insp.parametersChecked}
+                      </div>
+                      {insp.deficienciesFound && (
+                        <div className="text-amber-700 dark:text-amber-300 font-medium">
+                          <span className="font-bold">Deficiencies:</span> {insp.deficienciesFound}
+                        </div>
+                      )}
+                      <div className="text-slate-600 dark:text-slate-400">
+                        <span className="font-bold">Compliance Action:</span> {insp.complianceRemarks}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <span>Auditor: <strong className="text-slate-800 dark:text-slate-200">{insp.inspectingOfficial}</strong></span>
+                      <span>Date: {insp.conductedDate || insp.scheduledDate}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* 4. DFWO DEFECTS SUB-MODULE */}

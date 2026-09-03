@@ -315,7 +315,18 @@ const DEFAULT_INSPECTIONS: InspectionRecord[] = [
 
 export const PWayQualityInspections: React.FC = () => {
   const { currentUser, role } = useAuth();
-  const [mainTab, setMainTab] = useState<'OMS' | 'TRC' | 'INSPECTIONS' | 'DFWO'>('OMS');
+  const [mainTab, setMainTabState] = useState<'OMS' | 'TRC' | 'INSPECTIONS' | 'DFWO'>(() => {
+    const saved = localStorage.getItem('pway_quality_last_tab');
+    if (saved && ['OMS', 'TRC', 'INSPECTIONS', 'DFWO'].includes(saved)) {
+      return saved as any;
+    }
+    return 'INSPECTIONS';
+  });
+
+  const setMainTab = (tab: 'OMS' | 'TRC' | 'INSPECTIONS' | 'DFWO') => {
+    setMainTabState(tab);
+    localStorage.setItem('pway_quality_last_tab', tab);
+  };
   const [inspectionSubTab, setInspectionSubTab] = useState<string>('ALL');
   const [selectedScheduleMonth, setSelectedScheduleMonth] = useState<number>(new Date().getMonth() + 1);
 

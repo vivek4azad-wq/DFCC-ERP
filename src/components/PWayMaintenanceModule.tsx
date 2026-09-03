@@ -45,13 +45,15 @@ export const PWayMaintenanceModule: React.FC = () => {
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
-  // MTS / Civil Staff List for Supervising Authority
+  // MTS / Civil Staff List for Supervising Authority (Official Employee IDs from Staff_Master_DATA)
   const MTS_CIVIL_STAFF_LIST = [
-    { id: 'OFF-101804', name: 'Gautam Kumar (MTS / Civil - 101804)', phone: '9729851608' },
-    { id: 'OFF-101805', name: 'Ranjeet Kumar (MTS / Civil - 101805)', phone: '9467657954' },
-    { id: 'OFF-101806', name: 'Sudhir Kumar (MTS / Civil - 101806)', phone: '8528994503' },
-    { id: 'OFF-101807', name: 'Suraj Verma (MTS / Civil - 101807)', phone: '9812401826' },
-    { id: 'OFF-101808', name: 'Sanni Kumar Sharma (MTS / Civil - 101808)', phone: '8199990812' }
+    { id: 'OFF-103259', name: 'Gautam Kumar (MTS / Civil - 103259)', phone: '7011209332' },
+    { id: 'OFF-103258', name: 'Ranjeet Kumar (MTS / Civil - 103258)', phone: '9570703677' },
+    { id: 'OFF-103257', name: 'Sudhir Kumar (MTS / Civil - 103257)', phone: '8210018687' },
+    { id: 'OFF-102623', name: 'Suraj Verma (MTS / Civil - 102623)', phone: '9239845014' },
+    { id: 'OFF-102431', name: 'Sanni Kumar Sharma (MTS / Civil - 102431)', phone: '7870056089' },
+    { id: 'OFF-102924', name: 'Lal Chand (MTS / Civil - 102924)', phone: '9649218216' },
+    { id: 'OFF-102460', name: 'Amar Molana (MTS / Civil - 102460)', phone: '7788020121' }
   ];
 
   // Form State for new Maintenance Entry

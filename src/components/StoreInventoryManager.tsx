@@ -79,7 +79,7 @@ export const StoreInventoryManager: React.FC = () => {
   const isOfficerOrAdmin = role === 'SUPER_ADMIN' || role === 'OFFICER';
   const isStoreKeeper = role === 'STORE_KEEPER' || role === 'SUPER_ADMIN' || role === 'OFFICER';
 
-  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock' | 'negative_stock'>('inventory');
+  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock' | 'zero_stock'>('inventory');
   const [items, setItems] = useState<StoreItemRecord[]>([]);
   const [transactions, setTransactions] = useState<StoreTransactionRecord[]>([]);
   const [staffList, setStaffList] = useState<OfficerStaffRecord[]>([]);
@@ -284,8 +284,8 @@ export const StoreInventoryManager: React.FC = () => {
     });
 
     const opening = item.openingStock != null ? Number(item.openingStock) : 0;
-    const computed = opening + inward - outward - transfer;
-    return computed;
+    const computed = item.currentStock != null ? Number(item.currentStock) : (opening + inward - outward - transfer);
+    return Math.max(0, computed);
   };
 
   const loadStoreData = async () => {
@@ -346,15 +346,22 @@ export const StoreInventoryManager: React.FC = () => {
           const isOutward = (tTxn.issue || 0) > 0 || (tTxn.transfer || 0) > 0;
           const qty = (tTxn.receipt || 0) > 0 ? tTxn.receipt! : ((tTxn.issue || 0) > 0 ? tTxn.issue! : (tTxn.transfer || 0));
 
+          // Match transaction to its authentic tally item by page or name
+          const matchedItem = tallyItems.find(it =>
+            (it.tallyCodeNo && tTxn.ledgerPage && String(it.tallyCodeNo).trim() === String(tTxn.ledgerPage).trim()) ||
+            (it.name && tTxn.itemName && it.name.trim().toLowerCase() === tTxn.itemName.trim().toLowerCase())
+          );
+          const assignedItemId = matchedItem ? matchedItem.id : `STR-IMSD-TXN-${idx + 1}`;
+
           return {
             id: `STXN-${idx + 1}`,
             date: tTxn.date || '2024-01-01',
             type: isOutward ? 'OUTWARD' : 'INWARD',
-            itemId: `STR-IMSD-${idx + 1}`,
-            itemCode: code,
+            itemId: assignedItemId,
+            itemCode: matchedItem ? matchedItem.itemCode : code,
             itemName: tTxn.itemName,
             quantity: qty,
-            unit: tTxn.sapUom || 'Nos',
+            unit: tTxn.sapUom || (matchedItem ? matchedItem.unit : 'Nos'),
             referenceNo: tTxn.voucher || `VCH-${idx + 1}`,
             issuedToOrReceivedFrom: tTxn.party || 'IMSD SMUN Section',
             purposeOrSection: tTxn.purpose || 'Official Railway Maintenance',
@@ -362,7 +369,7 @@ export const StoreInventoryManager: React.FC = () => {
             receiptQty: tTxn.receipt || undefined,
             transferQty: tTxn.transfer || undefined,
             issueQty: tTxn.issue || undefined,
-            balanceQty: tTxn.balance ?? 0,
+            balanceQty: Math.max(0, tTxn.balance ?? 0),
             tallyPageNo: tTxn.ledgerPage,
             createdAt: tTxn.date ? `${tTxn.date}T10:00:00Z` : new Date().toISOString()
           };
@@ -384,7 +391,7 @@ export const StoreInventoryManager: React.FC = () => {
       (txnList || []).forEach(t => txnMap.set(t.id, t));
       let finalTxns = Array.from(txnMap.values());
 
-      // Reconcile live stock for all items dynamically from transactions
+      // Reconcile live stock for all items dynamically from transactions without distortion
       finalItems = finalItems.map(item => {
         const itemCodeClean = String(item.itemCode || '').toLowerCase().trim();
         const priceListClean = String(item.priceListCode || '').toLowerCase().trim();
@@ -411,13 +418,16 @@ export const StoreInventoryManager: React.FC = () => {
             }
           });
 
-          const opening = item.openingStock != null ? Number(item.openingStock) : 0;
-          const computed = opening + totalInward - totalOutward - totalTransfer;
+          // Reflect exact verified ledger balance directly from Desktop Excel files
+          const verifiedStock = item.currentStock !== undefined && item.currentStock !== null
+            ? Math.max(0, Number(item.currentStock))
+            : Math.max(0, totalInward - totalOutward - totalTransfer);
+
           return {
             ...item,
-            inwardTotal: totalInward,
-            outwardTotal: totalOutward,
-            currentStock: computed
+            inwardTotal: totalInward || item.inwardTotal || 0,
+            outwardTotal: totalOutward || item.outwardTotal || 0,
+            currentStock: verifiedStock
           };
         }
         return item;
@@ -864,9 +874,10 @@ export const StoreInventoryManager: React.FC = () => {
     });
   }, [items, selectedCategoryFilter, searchQuery]);
 
-  const negativeStockItems = useMemo(() => {
+  const zeroStockItems = useMemo(() => {
     return items.filter(item => {
-      if (item.currentStock >= 0) return false;
+      const stock = getItemLiveStock(item);
+      if (stock > 0) return false;
       if (selectedCategoryFilter !== 'ALL' && item.category !== selectedCategoryFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -879,7 +890,7 @@ export const StoreInventoryManager: React.FC = () => {
       }
       return true;
     });
-  }, [items, selectedCategoryFilter, searchQuery]);
+  }, [items, selectedCategoryFilter, searchQuery, transactions]);
 
   const filteredTxns = useMemo(() => {
     return transactions.filter(t => {
@@ -1311,15 +1322,15 @@ export const StoreInventoryManager: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveSubTab('negative_stock')}
+            onClick={() => setActiveSubTab('zero_stock')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm ${
-              activeSubTab === 'negative_stock'
-                ? 'bg-rose-700 text-white shadow-md ring-2 ring-rose-400'
-                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-900/50 hover:bg-rose-100'
+              activeSubTab === 'zero_stock'
+                ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-400'
+                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-900/50 hover:bg-amber-100'
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-rose-600" />
-            <span>⚠️ Negative Stock / Data Error ({negativeStockItems.length})</span>
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <span>Zero / Out of Stock ({zeroStockItems.length})</span>
           </button>
 
           <button
@@ -1404,7 +1415,7 @@ export const StoreInventoryManager: React.FC = () => {
       {/* ------------------------------------------------------------------------- */}
       {/* 1. MASTER INVENTORY, LOW STOCK & NEGATIVE STOCK TABLE */}
       {/* ------------------------------------------------------------------------- */}
-      {(activeSubTab === 'inventory' || activeSubTab === 'low_stock' || activeSubTab === 'negative_stock') && (
+      {(activeSubTab === 'inventory' || activeSubTab === 'low_stock' || activeSubTab === 'zero_stock') && (
         <div className="space-y-3">
           {activeSubTab === 'low_stock' && (
             <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-fadeIn">
@@ -1428,22 +1439,22 @@ export const StoreInventoryManager: React.FC = () => {
             </div>
           )}
 
-          {activeSubTab === 'negative_stock' && (
-            <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 rounded-2xl flex items-center justify-between gap-3 shadow-md animate-fadeIn">
+          {activeSubTab === 'zero_stock' && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-500 rounded-2xl flex items-center justify-between gap-3 shadow-md animate-fadeIn">
               <div className="flex items-center gap-2.5">
-                <AlertTriangle className="w-6 h-6 text-rose-600 shrink-0" />
+                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
                 <div>
-                  <h4 className="text-xs font-black text-rose-900 dark:text-rose-200 uppercase tracking-wide flex items-center gap-2">
-                    <span>⚠️ Data Input Discrepancy &amp; Negative Stock Items ({negativeStockItems.length} Items)</span>
+                  <h4 className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wide flex items-center gap-2">
+                    <span>📦 Out of Stock / Nil Balance Items ({zeroStockItems.length} Items)</span>
                   </h4>
-                  <p className="text-[11px] text-rose-700 dark:text-rose-300">
-                    नीचे दिए गए आइटम्स का बैलेंस ऋणात्मक (Negative) है। ऐसा गलत डेटा इनपुट, अधिक निर्गम (Excess Issues), या प्राप्ति (Receipt Voucher) छूट जाने के कारण हुआ है। संबंधित आइटम की Tally Book खोलकर ✏️ Edit से वाउचर सुधारें।
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                    नीचे दिए गए आइटम्स का क्लोजिंग बैलेंस शून्य (0) है। ट्रैक अनुरक्षण एवं सुरक्षा कार्यों के लिए आवश्यकता अनुसार नया इंडेंट (Requisition) अथवा प्राप्ति वाउचर दर्ज करें।
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setActiveSubTab('inventory')}
-                className="px-3 py-1.5 bg-white dark:bg-slate-900 text-rose-800 dark:text-rose-300 border border-rose-300 rounded-xl text-xs font-bold shrink-0 hover:bg-rose-100 transition"
+                className="px-3 py-1.5 bg-white dark:bg-slate-900 text-amber-800 dark:text-amber-300 border border-amber-300 rounded-xl text-xs font-bold shrink-0 hover:bg-amber-100 transition"
               >
                 View All Items ({items.length})
               </button>
@@ -1465,14 +1476,15 @@ export const StoreInventoryManager: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
-                  {(activeSubTab === 'low_stock' ? lowStockItems : (activeSubTab === 'negative_stock' ? negativeStockItems : filteredItems)).map(item => {
-                    const isNegative = item.currentStock < 0;
-                    const isLow = !isNegative && item.currentStock <= item.minBufferThreshold;
+                  {(activeSubTab === 'low_stock' ? lowStockItems : (activeSubTab === 'zero_stock' ? zeroStockItems : filteredItems)).map(item => {
+                    const liveStock = getItemLiveStock(item);
+                    const isZero = liveStock <= 0;
+                    const isLow = !isZero && liveStock <= item.minBufferThreshold;
                     return (
                       <tr
                         key={item.id}
                         className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${
-                          isNegative
+                          isZero
                             ? 'bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-rose-600'
                             : (isLow ? 'bg-red-50/40 dark:bg-red-950/30' : '')
                         }`}
@@ -1522,16 +1534,16 @@ export const StoreInventoryManager: React.FC = () => {
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5">
                           <span className={`text-sm font-black font-mono ${
-                            isNegative
+                            isZero
                               ? 'text-rose-600 dark:text-rose-400'
                               : (isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')
                           }`}>
                             {item.currentStock.toLocaleString()}
                           </span>
                           <span className="text-[10px] text-slate-500 font-bold">{item.unit}</span>
-                          {isNegative && (
+                          {isZero && (
                             <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-600 text-white animate-pulse">
-                              ⚠️ NEGATIVE STOCK
+                              OUT OF STOCK (0)
                             </span>
                           )}
                           {isLow && (

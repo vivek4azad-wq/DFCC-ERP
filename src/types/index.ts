@@ -268,6 +268,7 @@ export type EmploymentType =
   | 'PATROLMAN_DAY'
   | 'PATROLMAN_NIGHT'
   | 'GATEMAN'
+  | 'RE_EMPLOYED'
   | 'BR_WATCHMAN';
 
 export interface LeaveBalance {

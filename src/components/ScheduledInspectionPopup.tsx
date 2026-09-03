@@ -170,7 +170,7 @@ export const ScheduledInspectionPopup: React.FC<ScheduledInspectionPopupProps> =
             }`}
           >
             <Package className="w-4 h-4" />
-            <span>Low &amp; Negative Stock ({totalCritical.length})</span>
+            <span>Critical Low &amp; Zero Stock ({totalCritical.length})</span>
           </button>
 
           <button

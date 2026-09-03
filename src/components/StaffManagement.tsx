@@ -59,7 +59,8 @@ import type {
   StaffDutyType,
   PermanentDesignation,
   UserRole,
-  EmploymentType
+  EmploymentType,
+  LevelCrossingRecord
 } from '../types/index.ts';
 
 const PERMANENT_DESIGNATIONS: PermanentDesignation[] = [
@@ -462,7 +463,7 @@ export const StaffManagement: React.FC = () => {
           mobile: formData.phone.trim(),
           phone: formData.phone.trim(),
           fatherName: formData.fatherName?.trim() || '',
-          residence: formData.residence?.trim() || 'Gate Lodge',
+          residence: (formData as any).residence?.trim() || 'Gate Lodge',
           gateNo: selectedGate,
           shift: '07:00 to 19:00 (12h Shift)',
           photoUrl: formData.photoUrl
@@ -488,9 +489,9 @@ export const StaffManagement: React.FC = () => {
           console.warn('Level crossing update warning:', e);
         }
 
-        await db.addDocument('gatemen', {
-          id: `GM_${docId}`,
+        await db.addDocument('gatemen' as any, {
           ...newGatemanObj,
+          id: `GM_${docId}`,
           lcNo: selectedGate
         }, currentUser).catch(() => {});
       }

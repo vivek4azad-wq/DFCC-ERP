@@ -1580,9 +1580,9 @@ export const StaffDirectory: React.FC<StaffDirectoryProps> = ({ initialTab = 'ma
             console.warn('LC gatemen sync warning:', e);
           }
 
-          await db.addDocument('gatemen', {
-            id: `GM_${newGatemanObj.id}`,
+          await db.addDocument('gatemen' as any, {
             ...newGatemanObj,
+            id: `GM_${newGatemanObj.id}`,
             lcNo: selectedLcCode
           }, currentUser).catch(() => {});
         }

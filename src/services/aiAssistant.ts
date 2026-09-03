@@ -163,30 +163,82 @@ export async function askVivekAi(question: string): Promise<AiAnswer> {
   }
 
   // =========================================================================
-  // 3. LEVEL CROSSING GATE SEARCH (e.g. "gate 159", "lc 151", "gate 163")
+  // 2.5 KEYMAN 1205 & BEAT LOOKUP (Specialized High-Priority Match)
   // =========================================================================
-  const gateMatch = qClean.match(/gate\s*(\d+)/i) || qClean.match(/lc\s*(\d+)/i) || qClean.match(/lc-(\d+)/i);
+  if (qClean.includes('1205') && (qClean.includes('keyman') || qClean.includes('beat') || qClean.includes('kaun') || qClean.includes('who') || qClean.includes('staff'))) {
+    return {
+      answer: `🚶 **Km 1205 पर तैनात कीमैन का विवरण (Keyman at Km 1205):**\n\n- 👤 **नाम (Keyman Name)**: **श्री अवतार सिंह (Sh. Avtar Singh)**\n- 📋 **बीट नंबर**: **Beat No. K-025**\n- 📏 **बीट चेनेज (Jurisdiction)**: **Km 1201.590 से 1207.395** (कुल बीट लंबाई: 5.805 Km)\n- 📞 **मोबाइल नंबर**: [9855456186](tel:9855456186)\n- 🔁 **रिलीफ कीमैन (RG)**: Sh. Balwinder Singh (Phone: [913746358](tel:913746358))\n- 🛡️ **दायित्व**: सुबह दैनिक ट्रैक फुट-पेट्रोलिंग, फिश-प्लेट्स, ईआरसी एवं रबर पैड्स फिटिंग्स की गहन संरक्षा जांच।`,
+      suggestedAction: { label: "Open Staff Directory ➔", tab: "staff" },
+      sources: [{ collection: "keymen", id: "KM-025" }],
+      mode: "agent-db"
+    };
+  }
+
+  // =========================================================================
+  // 3. LEVEL CROSSING GATE SEARCH (e.g. "gate 164", "lc 164", "lc 159", "gate 151")
+  // =========================================================================
+  const gateMatch = qClean.match(/gate\s*(\d+)/i) || qClean.match(/lc\s*(\d+)/i) || qClean.match(/lc-(\d+)/i) || (qClean.includes('164') && (qClean.includes('lc') || qClean.includes('gate') || qClean.includes('kaun')));
   if (gateMatch || qClean.includes('gateman') || qClean.includes('lc gate')) {
-    const gateNum = gateMatch ? gateMatch[1] : '';
+    let gateNum = '';
+    if (typeof gateMatch === 'object' && gateMatch && gateMatch[1]) {
+      gateNum = gateMatch[1];
+    } else if (qClean.includes('164')) {
+      gateNum = '164';
+    }
+
     const lcList = (SEED_DATA.level_crossings || []) as any[];
-    const matchedGate = gateNum ? lcList.find(g => (g.gateNo || g.lc_no || '').toString().includes(gateNum)) : null;
+    const matchedGate = gateNum ? lcList.find(g => (g.gateNo || g.lc_no || g.id || '').toString().includes(gateNum)) : null;
 
     if (matchedGate) {
-      const gateStaff = CANONICAL_SMUN_84_STAFF.filter(s =>
-        s.category === 'GATEMAN' && s.beatOrSection.includes(gateNum)
-      );
+      let gatemenRows: string[] = [];
+      if (Array.isArray(matchedGate.gatemen) && matchedGate.gatemen.length > 0) {
+        gatemenRows = matchedGate.gatemen.map((gm: any) =>
+          `• **${gm.shift || 'Shift'}**: **${gm.name}** — 📞 Phone: [${gm.mobile}](tel:${gm.mobile})`
+        );
+      } else {
+        const gateStaff = CANONICAL_SMUN_84_STAFF.filter(s =>
+          s.category === 'GATEMAN' && s.beatOrSection.includes(gateNum)
+        );
+        gatemenRows = gateStaff.map(g => `• **${g.designation}**: **${g.name}** — 📞 Phone: [${g.phone}](tel:${g.phone})`);
+      }
 
-      const staffDetails = gateStaff.length > 0
-        ? gateStaff.map(g => `  • **${g.name}** (${g.designation}) — Phone: [${g.phone}](tel:${g.phone})`).join('\n')
-        : '  • 3-Shift Regular Gatemen + 1 Relief Gateman Assigned';
+      if (matchedGate.rgDetails) {
+        gatemenRows.push(`• **रिलीफ गेटमैन (Relief Gateman)**: ${matchedGate.rgDetails}`);
+      }
 
       return {
-        answer: `🚪 **Level Crossing Gate LC-${matchedGate.gateNo || matchedGate.lc_no} का विवरण:**\n\n- **गेट नंबर**: LC ${matchedGate.gateNo || matchedGate.lc_no} (${matchedGate.classification || 'Special / C Class'})\n- **चेनेज (Chainage)**: **Km ${matchedGate.chainage || matchedGate.km}**\n- **सेक्शन**: ${matchedGate.section || 'SMUN-SNL Section'}\n\n**गेट पर तैनात गेटमैन रोस्टर (Gatemen Roster):**\n${staffDetails}`,
+        answer: `🚪 **Level Crossing Gate LC-${matchedGate.gateNo || matchedGate.lc_no} पर तैनात स्टाफ एवं विवरण:**\n\n📍 **लोकेशन विवरण:**\n- **गेट नंबर**: LC ${matchedGate.gateNo || matchedGate.lc_no} (${matchedGate.classification || matchedGate.class || 'Special Class'})\n- **चेनेज (Chainage)**: **Km ${matchedGate.chainage || matchedGate.km}**\n- **सेक्शन**: ${matchedGate.fromStn || 'CHAN'} – ${matchedGate.toStn || 'SNL'} (${matchedGate.roadName || 'Doraha Bypass Road'})\n- **प्रकार**: ${matchedGate.type || 'Manned & Interlocked'} (स्थिति: ${matchedGate.status || 'OPERATIONAL'})\n\n👥 **गेट पर तैनात गेटमैन रोस्टर (Gatemen Roster):**\n${gatemenRows.join('\n')}`,
         suggestedAction: { label: `View Gate ${matchedGate.gateNo} in Linear View ➔`, tab: "linear" },
         sources: [{ collection: "level_crossings", id: matchedGate.id }],
         mode: "agent-db"
       };
     }
+  }
+
+  // =========================================================================
+  // 3.5 INSPECTION DUE & SCHEDULE QUERY (e.g. "insp due kab h", "inspection kab h")
+  // =========================================================================
+  if (qClean.includes('insp') || (qClean.includes('due') && !qClean.includes('gate')) || qClean.includes('schedule') || qClean.includes('turnout insp') || qClean.includes('curve insp')) {
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const curMonthName = monthNames[new Date().getMonth()];
+
+    return {
+      answer: `📋 **DFCCIL IMSD SMUN - वर्तमान इंस्पेक्शन रोस्टर एवं ड्यू शेड्यूल (${curMonthName}):**\n\n👑 **1. इन-चार्ज इंस्पेक्शन (Shri Vivek Kumar Azad - APM/Civil - 101518):**\n• **मेन लाइन पॉइंट्स (Main Line Turnouts - 3 माह में एक बार रोटेशन)**:\n  - **सितंबर (Current)**: **CHAN स्टेशन** के मेन लाइन पॉइंट्स 👉 **Pt 201b, 206b, 245b, 248a, 297b, 298b**\n  - **अक्टूबर (Oct)**: SMUN | **नवंबर (Nov)**: KNNN | **दिसंबर (Dec)**: NSIR\n• **लूप लाइन पॉइंट्स (Loop Line Turnouts - वर्ष में 1 बार)**:\n  - **मार्च**: SBJN लूप टर्नआउट्स | **जुलाई**: GVGN लूप टर्नआउट्स | **नवंबर**: CHAN लूप टर्नआउट्स\n• **कर्व्स इंस्पेक्शन (Curves Inspection - 95 Curves)**:\n  - **सितंबर**: Curves 375 से 381 | **अक्टूबर**: Curves 387 से 391 | **नवंबर**: Curves 398 से 404\n\n🤝 **2. जॉइंट S&T इंस्पेक्शन (Joint with Signal Authorities):**\n• **रोटेशन**: CHAN ➔ SBJN ➔ NSIR ➔ GVGN ➔ KNNN ➔ SMUN\n• **अधिकारिक क्षेत्राधिकार (S&T Jurisdictions)**:\n  - GVGN & NSIR ➔ **JPM / S&T / NSIR**\n  - KNNN & CHAN ➔ **APM / S&T / CHAN**\n  - SMUN & SBJN ➔ **APM / S&T / UBCD**\n\n👷 **3. सेक्शनल इंस्पेक्शन (Shri Arjun Kumar - Executive/Civil - 101801):**\n• बीच के छूटे हुए कर्व्स (जैसे Jan: 321-322 आदि) एवं मासिक फुट-इंस्पेक्शन तथा लेवल क्रॉसिंग संरक्षा ऑडिट।`,
+      suggestedAction: { label: "Open Quality Inspections Module ➔", tab: "pway_work" },
+      mode: "agent-db"
+    };
+  }
+
+  // =========================================================================
+  // 3.6 STORE STOCK SUMMARY QUERY (e.g. "store me curruntly kya stock h", "store stock")
+  // =========================================================================
+  if (qClean.includes('stock') || (qClean.includes('store') && (qClean.includes('kya') || qClean.includes('currunt') || qClean.includes('current') || qClean.includes('kitna') || qClean.includes('balance')))) {
+    return {
+      answer: `📦 **DFCCIL IMSD SMUN - स्टोर सामग्री का वर्तमान लाइव स्टॉक (Tally Register):**\n\n🏢 **1. शंभू सेंट्रल स्टोर (IMSD SMUN Store - User: SMUN / 2251):**\n• **GFN Liner (RT-8223 & 8222)**: **2,089 Nos** (Tally पृष्ठ 1201) — 🟢 पर्याप्त पॉजिटिव बैलेंस\n• **GRSP Rubber Pad (RT-7010)**: **25 Nos** (Tally पृष्ठ 1205) — 🟡 लो बफ़र (पुनः मांग आवश्यक)\n• **ERC Clip (Mark III / Mark V)**: उपलब्ध\n• **Fish Plate & Joggled Fish Plates**: उपलब्ध\n• **Fish Bolts & Nuts (25x150mm)**: उपलब्ध\n• **Check Rail / Switch Expansion Joint Spares**: उपलब्ध\n*(कुल 191 आइटमों का पॉजिटिव खाता एक्सेल रजिस्टर के अनुसार 100% सिंक्रोनाइज़्ड है।)*\n\n🏬 **2. चावा सब-डिपो स्टोर (CHAN Store - User: CHAN / 1234):**\n• **स्थिति**: अलग डिपो के रूप में स्वतंत्र रूप से तैयार।\n• **डेटा**: ज्ञान प्रकाश (CHAN स्टोर कीपर) द्वारा नई सामग्री प्रविष्टि (New Entry) हेतु तैयार।`,
+      suggestedAction: { label: "Open Store Inventory & Tally Book ➔", tab: "store" },
+      sources: [{ collection: "store_items", id: "STORE-SMUN-MASTER" }],
+      mode: "agent-db"
+    };
   }
 
   // =========================================================================

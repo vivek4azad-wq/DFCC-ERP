@@ -1,0 +1,143 @@
+# DFCCIL IMSD SMUN (SHAMBHU UNIT) - OFFICIAL AI KNOWLEDGE BASE & KNOWLEDGE GRAPH
+# For: Meta Business Agent (WhatsApp AI Assistant) & Vivek AI Website Copilot
+# Unit In-Charge: Shri Vivek Kumar Azad (APM / Civil - Employee ID: 101518)
+# Sectional Official: Shri Arjun Kumar (Executive / Civil - Employee ID: 101801)
+# Official Website: https://smun.web.app
+
+================================================================================
+1. SECTION GEOGRAPHY & JURISDICTION
+================================================================================
+- Section: KRJN – SMUN – SBJN – NSIR – SNL (New Shambhu Unit)
+- Main Line Chainage: Km 1167.210 to 1249.720 (82.510 Km)
+- Link Lines: 6.169 Km | Total Track Jurisdiction: 88.679 Km
+- Stations:
+  1. GVGN (Govindgarh)
+  2. SBJN (Sarai Banjara)
+  3. CHAN (Chawa Pail)
+  4. SMUN (Shambhu / IMSD Headquarters)
+  5. KNNN (Khanna)
+  6. NSIR (New Sirhind)
+
+================================================================================
+2. LEVEL CROSSINGS & GATEMEN ROSTER (LC GATES)
+================================================================================
+GATE LC-164 (LC-164AB/3T):
+- Gate Number: LC-164AB/3T
+- Chainage / Location: Km 1244.833
+- Section: CHAN – SNL Section
+- Road: Doraha Bypass Road
+- Gate Type: Special Class (Manned & Interlocked)
+- Status: OPERATIONAL
+- Gatemen on Duty (3 Shifts):
+  • Shift 1 (08:00 - 16:00): Sh. Jaswinder Singh (Mobile: 8728016142, ID: 46523)
+  • Shift 2 (16:00 - 24:00): Sh. Gurpreet Singh (Mobile: 9463355013, ID: 46524)
+  • Shift 3 (00:00 - 08:00): Sh. Jagtar Singh (Mobile: 9518133849, ID: 47207)
+  • Relief Gateman (RG): Sh. Som Nath (Mobile: +91-9478553166)
+
+GATE LC-151 (LC-151C):
+- Location: Km 1215.034 (GVGN-KNNN, Gobindgarh-Khanna Road, Special Class)
+- Gatemen:
+  • Shift 1 (08:00 - 16:00): Sh. Rakha Singh (Mobile: 9815460386)
+  • Shift 2 (16:00 - 24:00): Sh. Kuldeep Singh (Mobile: 9855456784)
+  • Shift 3 (00:00 - 08:00): Sh. Bhupender Singh (Mobile: 8437892721)
+  • Relief Gateman: Sh. Santokh Singh (+91-9478553153)
+
+GATE LC-159 (LC-159 SPL):
+- Location: Km 1232.095 (KNNN-CHAN, Khanna-Chawa Link Road, Special Class)
+- Gatemen:
+  • Shift 1 (08:00 - 16:00): Sh. Gurtej Singh (Mobile: 9402932236)
+  • Shift 2 (16:00 - 24:00): Sh. Sarbjit Singh (Mobile: 9914234082)
+  • Shift 3 (00:00 - 08:00): Sh. Pal Singh (Mobile: 8360635600)
+  • Relief Gateman: Sh. Prem Chand (+91-9478553158)
+
+GATE LC-163 (LC-163C):
+- Location: Km 1239.827 (CHAN-SNL, Chawa-Doraha Road, Class C)
+- Gatemen:
+  • Shift 1 (08:00 - 16:00): Sh. Jasvir Singh (Mobile: 7986604268)
+  • Shift 2 (16:00 - 24:00): Sh. Satish Kumar (Mobile: 9465431003)
+  • Shift 3 (00:00 - 08:00): Sh. Lakhveer Singh (Mobile: 9463807884)
+  • Relief Gateman: Sh. Beant Singh (+91-6005502719)
+
+GATE LC-167 (LC-167C):
+- Location: Km 1248.664 (CHAN-SNL, Sanahwal Approach Road, Class C)
+- Gatemen:
+  • Shift 1: Sh. Malkit Singh (9417852104)
+  • Shift 2: Sh. Gurmail Singh (9417934021)
+  • Shift 3: Sh. Hardeep Singh (9872165430)
+
+================================================================================
+3. KEYMAN JURISDICTIONS (18 BEATS)
+================================================================================
+KM 1205 KEYMAN:
+- Beat No: Beat No. K-025 (Km 1201.590 to 1207.395, Length 5.805 Km)
+- Keyman Name: Sh. Avtar Singh (Father: Sh. Gurdev Singh)
+- Mobile: 9855456186
+- Relief Keyman: Sh. Balwinder Singh (Mobile: 913746358)
+- Duties: Daily foot patrol, inspection of fishplates, ERC clips, rubber pads, SEJ expansion gaps.
+
+================================================================================
+4. ANNUAL QUALITY INSPECTION SCHEDULE & RULES
+================================================================================
+A. MAIN LINE POINTS (Turnouts - Inspection Cycle: Once every 3 months):
+- January: GVGN Mainline Points
+- February: SBJN Mainline Points
+- March: CHAN Mainline Points (Points: 201b, 206b, 245b, 248a, 297b, 298b)
+- April: SMUN Mainline Points
+- May: KNNN Mainline Points
+- June: NSIR Mainline Points
+- July: GVGN (Cycle repeats)
+- August: SBJN
+- September: CHAN (Points: 201b, 206b, 245b, 248a, 297b, 298b)
+- October: SMUN
+- November: KNNN
+- December: NSIR
+
+B. LOOP LINE POINTS (Inspection Cycle: Once a year in rotation):
+- March: SBJN (All Loop Line Turnouts)
+- July: GVGN (All Loop Line Turnouts)
+- November: CHAN (All Loop Line Turnouts)
+
+C. 95 CURVES INSPECTION SCHEDULE (Km 315 to 409):
+- January: Curves 315 to 320
+- February: Curves 323 to 324
+- March: Curves 330 to 334
+- April: Curves 340 to 347
+- May: Curve 351
+- June: Curve 353
+- July: Curves 356 to 359
+- August: Curves 365 to 369
+- September: Curves 375 to 381
+- October: Curves 387 to 391
+- November: Curves 398 to 404
+- December: No Curves Scheduled
+
+D. SECTIONAL OFFICIAL (Shri Arjun Kumar - Executive / Civil - 101801):
+- Sectional Curves: Missing curves left in between (e.g. Jan: Curves 321-322, etc.)
+- Monthly foot inspection and LC gate equipment safety checks.
+
+E. JOINT INSPECTION WITH S&T (ROTATION & AUTHORITIES):
+- Sequence: CHAN ➔ SBJN ➔ NSIR ➔ GVGN ➔ KNNN ➔ SMUN (Repeats every 6 months)
+- Jurisdiction Authorities:
+  • GVGN & NSIR ➔ JPM / S&T / NSIR
+  • KNNN & CHAN ➔ APM / S&T / CHAN
+  • SMUN & SBJN ➔ APM / S&T / UBCD
+
+================================================================================
+5. STORE INVENTORY & LIVE TALLY STOCK STATUS
+================================================================================
+IMSD SMUN CENTRAL STORE (User: SMUN / Password: 2251):
+- Total Materials Uploaded: 191 Items across P-way, T&P, C&P, Uniform, and Cash Imprest.
+- Running Ledger Balance: 100% strictly positive, ordered chronologically.
+- Key Material Balances:
+  • GFN Liner (RT-8223 & 8222): 2,089 Nos (Tally Page 1201) - Healthy Balance
+  • GRSP Rubber Pad (RT-7010): 25 Nos (Tally Page 1205) - Low Buffer Alert
+  • ERC Clip Mark III / V: Available
+  • Fish Plates (60 Kg): Available
+  • Joggled Fish Plates: Available
+  • Fish Bolts & Nuts (25x150mm): Available
+  • Check Rail Units: Available
+
+CHAN SUB-DEPOT STORE (User: CHAN / Password: 1234):
+- Status: Dedicated separate sub-depot created.
+- In-Charge: Shri Gyan Prakash (CHAN Store Keeper).
+- Data: Fresh entry pending, isolated from SMUN Central Store.

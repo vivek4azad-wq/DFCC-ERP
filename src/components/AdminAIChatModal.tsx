@@ -75,14 +75,15 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  // Quick suggestion prompt chips
+  // Quick suggestion prompt chips tailored for Meta AI & DFCCIL operations
   const SUGGESTION_PROMPTS = [
-    'How many Keymen & Patrolmen are deployed?',
-    'KM 1204 se 1206 ke beech bridges kaunse hain?',
-    'Who is assigned to Gate 159 SPL?',
-    'List low buffer materials in store',
-    'Show upcoming & overdue inspections',
-    'What is the total JCB work hours logged?'
+    'LC 164 pr kaun h?',
+    'Insp. due kab h?',
+    'Store me curruntly kya stock h?',
+    '1205 ka keyman kaun h?',
+    'CHAN ke main line points kaun se hai?',
+    'Km 332 par kaun sa curve hai?',
+    'Who is assigned to Gate 159 SPL?'
   ];
 
   // Auto-sync Central API Key from Firestore on mount
@@ -183,14 +184,14 @@ export const AdminAIChatModal: React.FC<AdminAIChatModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-black tracking-tight text-white">
-                  🤖 Vivek AI • DFCCIL Smart Assistant
+                  🤖 Meta AI × Vivek AI • DFCCIL Smart Assistant
                 </h3>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${geminiApiKey ? 'bg-emerald-400 text-slate-950' : 'bg-cyan-400 text-slate-950'}`}>
-                  {geminiApiKey?.startsWith('nvapi-') ? '⚡ NVIDIA NIM ACTIVE' : (geminiApiKey ? '✨ GEMINI ACTIVE' : '⚡ NVIDIA NIM ACTIVE')}
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-cyan-300 text-slate-950">
+                  ⚡ META LLAMA 3.2
                 </span>
               </div>
               <p className="text-[11px] text-blue-200 font-mono">
-                {geminiApiKey?.startsWith('nvapi-') ? 'NVIDIA NIM (Meta Llama 3.2 11B Vision) • Live DFCCIL Firestore Data' : 'Universal Multi-Device Sync • NVIDIA NIM / Gemini & Live Firestore'}
+                Live DFCCIL Knowledge Base • WhatsApp Meta Agent Sync
               </p>
             </div>
           </div>

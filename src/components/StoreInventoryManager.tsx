@@ -79,6 +79,26 @@ export const StoreInventoryManager: React.FC = () => {
   const isOfficerOrAdmin = role === 'SUPER_ADMIN' || role === 'OFFICER';
   const isStoreKeeper = role === 'STORE_KEEPER' || role === 'SUPER_ADMIN' || role === 'OFFICER';
 
+  const isGyanChan = currentUser?.userId === 'CHAN' ||
+                     currentUser?.unit === 'CHAN' ||
+                     currentUser?.name?.toLowerCase().includes('gyan');
+
+  const [selectedDepot, setSelectedDepot] = useState<'SMUN' | 'CHAN'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dfccil_store_active_depot');
+      if (saved === 'CHAN' || saved === 'SMUN') return isGyanChan ? 'CHAN' : (saved as 'SMUN' | 'CHAN');
+    }
+    return isGyanChan ? 'CHAN' : 'SMUN';
+  });
+
+  const handleSwitchDepot = (depot: 'SMUN' | 'CHAN') => {
+    if (isGyanChan && depot === 'SMUN') return;
+    setSelectedDepot(depot);
+    try {
+      localStorage.setItem('dfccil_store_active_depot', depot);
+    } catch {}
+  };
+
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'tally_book' | 'source_tally' | 'inward' | 'outward' | 'low_stock' | 'zero_stock'>('inventory');
   const [items, setItems] = useState<StoreItemRecord[]>([]);
   const [transactions, setTransactions] = useState<StoreTransactionRecord[]>([]);
@@ -860,6 +880,11 @@ export const StoreInventoryManager: React.FC = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
+      // Depot isolation: CHAN vs SMUN
+      const isChanItem = (item as any).depot === 'CHAN' || item.location?.includes('CHAN') || item.categoryLabel?.includes('CHAN');
+      if (selectedDepot === 'CHAN' && !isChanItem) return false;
+      if (selectedDepot === 'SMUN' && isChanItem) return false;
+
       if (selectedCategoryFilter !== 'ALL' && item.category !== selectedCategoryFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -873,7 +898,7 @@ export const StoreInventoryManager: React.FC = () => {
       }
       return true;
     });
-  }, [items, selectedCategoryFilter, searchQuery]);
+  }, [items, selectedDepot, selectedCategoryFilter, searchQuery]);
 
   const zeroStockItems = useMemo(() => {
     return items.filter(item => {
@@ -910,32 +935,69 @@ export const StoreInventoryManager: React.FC = () => {
     });
   }, [transactions, activeSubTab, searchQuery]);
 
-  // Helper to parse any date string to timestamp for ascending sort (oldest to newest)
-  const parseDateToTimestamp = (dStr: string): number => {
-    if (!dStr) return 0;
-    const clean = dStr.trim();
-    if (/^\d{2}[-/.]\d{2}[-/.]\d{4}$/.test(clean)) {
-      const [d, m, y] = clean.split(/[-/.]/).map(Number);
-      return new Date(y, m - 1, d).getTime();
+  // Robust Universal Date Parser: Normalizes dd//mm/yyyy, d./m/yy, d/m/yy, dd.mm.yy, etc. to DD/MM/YYYY
+  const parseAnyDateDetails = (dStr: string | null | undefined): { timestamp: number; formatted: string } => {
+    if (!dStr) return { timestamp: 0, formatted: '-' };
+    let clean = String(dStr).trim();
+
+    // 1. ISO format: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(clean)) {
+      const [y, m, d] = clean.substring(0, 10).split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      const dd = String(d).padStart(2, '0');
+      const mm = String(m).padStart(2, '0');
+      return {
+        timestamp: dt.getTime(),
+        formatted: `${dd}/${mm}/${y}`
+      };
     }
-    const t = new Date(clean).getTime();
-    return isNaN(t) ? 0 : t;
+
+    // 2. Normalize multiple slashes (// -> /), dot-slashes (./ -> /), dots, dashes
+    clean = clean.replace(/[/.-]+/g, '/');
+
+    const parts = clean.split('/').filter(Boolean);
+    if (parts.length >= 3) {
+      let day = parseInt(parts[0], 10);
+      let month = parseInt(parts[1], 10);
+      let year = parseInt(parts[2], 10);
+
+      // Handle 2-digit year (e.g. 24 -> 2024, 25 -> 2025, 26 -> 2026)
+      if (year < 100) {
+        year = 2000 + year;
+      }
+
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year) && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const dt = new Date(year, month - 1, day);
+        const dd = String(day).padStart(2, '0');
+        const mm = String(month).padStart(2, '0');
+        return {
+          timestamp: dt.getTime(),
+          formatted: `${dd}/${mm}/${year}`
+        };
+      }
+    }
+
+    // Fallback parsing
+    const fallback = new Date(dStr);
+    if (!isNaN(fallback.getTime())) {
+      const dd = String(fallback.getDate()).padStart(2, '0');
+      const mm = String(fallback.getMonth() + 1).padStart(2, '0');
+      const y = fallback.getFullYear();
+      return {
+        timestamp: fallback.getTime(),
+        formatted: `${dd}/${mm}/${y}`
+      };
+    }
+
+    return { timestamp: 0, formatted: String(dStr) };
   };
 
-  // Helper to format any date to DD-MM-YYYY strictly
+  const parseDateToTimestamp = (dStr: string): number => {
+    return parseAnyDateDetails(dStr).timestamp;
+  };
+
   const formatDateDDMMYYYY = (dStr: string): string => {
-    if (!dStr) return '-';
-    const clean = dStr.trim();
-    if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean;
-    if (/^\d{2}[/.]\d{2}[/.]\d{4}$/.test(clean)) {
-      return clean.replace(/[/.]/g, '-');
-    }
-    const dt = new Date(clean);
-    if (isNaN(dt.getTime())) return clean;
-    const day = String(dt.getDate()).padStart(2, '0');
-    const month = String(dt.getMonth() + 1).padStart(2, '0');
-    const year = dt.getFullYear();
-    return `${day}-${month}-${year}`;
+    return parseAnyDateDetails(dStr).formatted;
   };
 
   // Selected item transactions for Departmental Ledger & Tally Book (Sorted Oldest to Newest with Running Balance)
@@ -967,16 +1029,15 @@ export const StoreInventoryManager: React.FC = () => {
       return false;
     });
 
-    // Sort preserving authentic physical ledger entry order (as written row-by-row in the departmental tally book)
+    // Sort strictly by oldest first (ascending chronological timestamp)
     const sorted = [...rawTxns].sort((a, b) => {
+      const timeA = parseDateToTimestamp(a.date || a.createdAt);
+      const timeB = parseDateToTimestamp(b.date || b.createdAt);
+      if (timeA !== timeB) return timeA - timeB;
       const ordA = (a as any).orderIndex;
       const ordB = (b as any).orderIndex;
       if (ordA != null && ordB != null) return ordA - ordB;
-      if (ordA != null) return -1;
-      if (ordB != null) return 1;
-      const timeA = parseDateToTimestamp(a.date || a.createdAt);
-      const timeB = parseDateToTimestamp(b.date || b.createdAt);
-      return timeA - timeB;
+      return 0;
     });
 
     const opening = selectedItemForTally.openingStock != null ? Number(selectedItemForTally.openingStock) : 0;

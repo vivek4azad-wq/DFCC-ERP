@@ -479,6 +479,29 @@ export const LoginDashboard: React.FC<LoginDashboardProps> = ({ onOpenQRModal })
                 </div>
                 {role === 'STAFF' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
               </button>
+
+              {/* CHAN Store Keeper (Gyan) */}
+              <button
+                onClick={() => login('CHAN', '1234')}
+                className={`w-full p-3 rounded-xl border transition flex items-center justify-between text-left ${
+                  currentUser?.userId === 'CHAN'
+                    ? 'bg-amber-950/40 border-amber-500/60 text-amber-200 shadow-md shadow-amber-950/30'
+                    : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Shri Gyan Prakash</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold">
+                      CHAN STORE
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Store In-Charge (CHAN Sub-Depot) • User: CHAN / PIN: 1234
+                  </div>
+                </div>
+                {currentUser?.userId === 'CHAN' && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
+              </button>
             </div>
           </div>
 

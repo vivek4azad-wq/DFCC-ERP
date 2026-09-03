@@ -1051,7 +1051,23 @@ function MainAppShell() {
   // -------------------------------------------------------------------------
   // IF AUTHENTICATED: RENDER MAIN DASHBOARD SHELL
   // -------------------------------------------------------------------------
-  const currentTab = activeTab === 'admin' && role !== 'SUPER_ADMIN' ? 'analytics' : activeTab;
+  const isArjun = currentUser?.name?.toLowerCase().includes('arjun') ||
+                  currentUser?.employeeId === '101801' ||
+                  currentUser?.userId?.toLowerCase().includes('arjun');
+
+  const isGyanChan = currentUser?.userId === 'CHAN' ||
+                     currentUser?.unit === 'CHAN' ||
+                     currentUser?.name?.toLowerCase().includes('gyan');
+
+  let currentTab = activeTab === 'admin' && role !== 'SUPER_ADMIN' ? 'analytics' : activeTab;
+
+  // 🔒 Gyan (CHAN): Strictly ONLY Store module!
+  if (isGyanChan) {
+    currentTab = 'store';
+  } else if (isArjun && currentTab === 'store') {
+    // 🔒 Arjun: Everything EXCEPT store
+    currentTab = 'pway_work';
+  }
 
   const renderActiveScreen = () => {
     switch (currentTab) {

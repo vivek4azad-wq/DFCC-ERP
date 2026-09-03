@@ -266,6 +266,72 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
+      // User CHAN / Gyan (CHAN Store Keeper)
+      const isChanUser = cleanId === 'chan' || cleanId === 'gyan' || cleanId === 'chan store';
+      if (isChanUser) {
+        if (cleanSecret === '1234') {
+          const chanSession: UserAccount = {
+            id: 'USR-CHAN-STORE-GYAN',
+            userId: 'CHAN',
+            email: 'chan.store@dfcc.co.in',
+            pin: '1234',
+            name: 'Shri Gyan Prakash (CHAN Store)',
+            role: 'STORE_KEEPER',
+            designation: 'Store In-Charge / CHAN Sub-Depot',
+            department: 'Civil Engineering / CHAN Store',
+            unit: 'CHAN',
+            phone: '9876543210',
+            employeeId: 'CHAN-1234',
+            awpoId: null,
+            isActive: true,
+            qrCodeId: 'RD-CHAN-STORE',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setCurrentUser(chanSession);
+          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(chanSession));
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            message: 'गलत पासवर्ड! कृपया CHAN स्टोर हेतु पासवर्ड 1234 दर्ज करें।'
+          };
+        }
+      }
+
+      // User Shri Arjun Kumar (IMSD Sectional / Executive Civil)
+      const isArjunId = cleanId === '101801' || cleanId === 'arjun' || cleanId === 'arjun kumar';
+      if (isArjunId) {
+        if (cleanSecret === '1234' || cleanSecret === '1801' || cleanSecret === '101801') {
+          const arjunSession: UserAccount = {
+            id: 'EMP-101801',
+            userId: '101801',
+            email: 'arjun.kumar@dfcc.co.in',
+            pin: '1234',
+            name: 'Shri Arjun Kumar',
+            role: 'OFFICER',
+            designation: 'Executive / Civil (IMSD Sectional)',
+            department: 'Civil Engineering / P-Way',
+            unit: 'IMSD SMUN',
+            phone: '9417800000',
+            employeeId: '101801',
+            awpoId: null,
+            isActive: true,
+            qrCodeId: 'RD-EXEC-101801',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setCurrentUser(arjunSession);
+          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(arjunSession));
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            message: 'गलत पासवर्ड! कृपया श्री अर्जुन कुमार का पिन 1234 दर्ज करें।'
+          };
+        }
+      }
+
       // 1. Check in Database users and staff collections
       const [users, staffMembers] = await Promise.all([
         db.getCollection<UserAccount>('users').catch(() => []),

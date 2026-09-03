@@ -87,6 +87,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const visibleTabs = React.useMemo(() => {
+    const isArjun = currentUser?.name?.toLowerCase().includes('arjun') ||
+                    currentUser?.employeeId === '101801' ||
+                    currentUser?.userId?.toLowerCase().includes('arjun');
+
+    const isGyanChan = currentUser?.userId === 'CHAN' ||
+                       currentUser?.unit === 'CHAN' ||
+                       currentUser?.name?.toLowerCase().includes('gyan');
+
+    if (isGyanChan) {
+      // 🔒 Strictly visible for Gyan (CHAN Store): ONLY Store and nothing else
+      return [
+        { id: 'store', label: 'CHAN Store', icon: '📦', count: null }
+      ];
+    }
+
+    if (isArjun) {
+      // 🔒 Arjun: sara dikhe EXCEPT store
+      return allTabs.filter(t => t.id !== 'store');
+    }
+
     if (currentAppRole === 'MTS' || role === 'STAFF') {
       // 🔒 Strictly visible for MTS: KM Finder, P.way, Maintenance, Staff, and own attendance
       return [

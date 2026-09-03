@@ -36,7 +36,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const { role, currentAppRole } = useAuth();
+  const { role, currentAppRole, currentUser } = useAuth();
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const isSuperAdmin = role === 'SUPER_ADMIN' || currentAppRole === 'APM';
 
@@ -165,6 +165,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
   // Strictly enforce role-based menu items
   const navItems = useMemo(() => {
+    const isArjun = currentUser?.name?.toLowerCase().includes('arjun') ||
+                    currentUser?.employeeId === '101801' ||
+                    currentUser?.userId?.toLowerCase().includes('arjun');
+
+    const isGyanChan = currentUser?.userId === 'CHAN' ||
+                       currentUser?.unit === 'CHAN' ||
+                       currentUser?.name?.toLowerCase().includes('gyan');
+
+    if (isGyanChan) {
+      // 🔒 Strictly visible for Gyan (CHAN Store): ONLY Store and nothing else
+      return [
+        {
+          id: 'store',
+          label: 'CHAN Store Depot (चावा स्टोर)',
+          shortLabel: 'CHAN Store',
+          icon: Package,
+          badge: 'CHAN'
+        }
+      ];
+    }
+
+    if (isArjun) {
+      // 🔒 Arjun: sara dikhe EXCEPT store
+      return masterNavItems.filter(item => item.id !== 'store');
+    }
+
     if (currentAppRole === 'MTS' || role === 'STAFF') {
       // 🔒 Strictly visible for MTS: KM Finder, P.Way, Maintenance, Staff, and own attendance (No inspection tab)
       return [

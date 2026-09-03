@@ -83,16 +83,22 @@ export const StoreInventoryManager: React.FC = () => {
                      currentUser?.unit === 'CHAN' ||
                      currentUser?.name?.toLowerCase().includes('gyan');
 
+  const isSmunStore = currentUser?.userId === 'SMUN' ||
+                      (currentUser?.unit === 'SMUN' && currentUser?.role === 'STORE_KEEPER');
+
   const [selectedDepot, setSelectedDepot] = useState<'SMUN' | 'CHAN'>(() => {
+    if (isGyanChan) return 'CHAN';
+    if (isSmunStore) return 'SMUN';
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('dfccil_store_active_depot');
-      if (saved === 'CHAN' || saved === 'SMUN') return isGyanChan ? 'CHAN' : (saved as 'SMUN' | 'CHAN');
+      if (saved === 'CHAN' || saved === 'SMUN') return saved as 'SMUN' | 'CHAN';
     }
-    return isGyanChan ? 'CHAN' : 'SMUN';
+    return 'SMUN';
   });
 
   const handleSwitchDepot = (depot: 'SMUN' | 'CHAN') => {
     if (isGyanChan && depot === 'SMUN') return;
+    if (isSmunStore && depot === 'CHAN') return;
     setSelectedDepot(depot);
     try {
       localStorage.setItem('dfccil_store_active_depot', depot);
@@ -1181,10 +1187,39 @@ export const StoreInventoryManager: React.FC = () => {
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-slate-950">
                 📦 STORE &amp; DEPOT ERP
               </span>
-              <span className="text-xs text-cyan-300 font-mono">IMSD SMUN Central Store</span>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-900/80 text-blue-200 border border-blue-700/50">
-                विभागीय खाता मिलान पुस्तक
-              </span>
+              {/* Depot Selector Toggle with SMUN (2251) and CHAN (1234) */}
+              <div className="inline-flex p-1 bg-black/40 rounded-2xl border border-white/20 shadow-inner">
+                <button
+                  type="button"
+                  disabled={isGyanChan}
+                  onClick={() => handleSwitchDepot('SMUN')}
+                  className={`px-3 py-1 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
+                    selectedDepot === 'SMUN'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-slate-300 hover:text-white'
+                  } ${isGyanChan ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  <span>🏢 IMSD SMUN Store (2251)</span>
+                  {selectedDepot === 'SMUN' && (
+                    <span className="px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded text-[9px] font-bold">Uploaded</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={isSmunStore}
+                  onClick={() => handleSwitchDepot('CHAN')}
+                  className={`px-3 py-1 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
+                    selectedDepot === 'CHAN'
+                      ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-white/50'
+                      : 'text-slate-300 hover:text-white'
+                  } ${isSmunStore ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  <span>🏬 CHAN Store (1234)</span>
+                  {selectedDepot === 'CHAN' && (
+                    <span className="px-1.5 py-0.2 bg-slate-950 text-amber-300 rounded text-[9px] font-bold">Entry Pending</span>
+                  )}
+                </button>
+              </div>
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
               P-Way Store &amp; Departmental Tally Ledger

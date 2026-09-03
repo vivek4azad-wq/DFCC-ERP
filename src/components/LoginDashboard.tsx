@@ -480,6 +480,32 @@ export const LoginDashboard: React.FC<LoginDashboardProps> = ({ onOpenQRModal })
                 {role === 'STAFF' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
               </button>
 
+              {/* IMSD SMUN Store Keeper */}
+              <button
+                onClick={() => login('SMUN', '2251')}
+                className={`w-full p-3 rounded-xl border transition flex items-center justify-between text-left ${
+                  currentUser?.userId === 'SMUN'
+                    ? 'bg-blue-950/40 border-blue-500/60 text-blue-200 shadow-md shadow-blue-950/30'
+                    : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>IMSD SMUN Store</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-blue-500/20 text-blue-300 rounded font-mono font-bold">
+                      SMUN STORE
+                    </span>
+                    <span className="text-[9px] px-1 bg-emerald-500/30 text-emerald-300 rounded">
+                      Data Uploaded
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    User: <strong className="text-white font-mono">SMUN</strong> • Password: <strong className="text-white font-mono">2251</strong>
+                  </div>
+                </div>
+                {currentUser?.userId === 'SMUN' && <CheckCircle2 className="w-4 h-4 text-blue-400" />}
+              </button>
+
               {/* CHAN Store Keeper (Gyan) */}
               <button
                 onClick={() => login('CHAN', '1234')}
@@ -491,13 +517,16 @@ export const LoginDashboard: React.FC<LoginDashboardProps> = ({ onOpenQRModal })
               >
                 <div>
                   <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>Shri Gyan Prakash</span>
+                    <span>Shri Gyan Prakash (CHAN Store)</span>
                     <span className="text-[10px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold">
                       CHAN STORE
                     </span>
+                    <span className="text-[9px] px-1 bg-amber-500/30 text-amber-300 rounded">
+                      Entry Pending
+                    </span>
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Store In-Charge (CHAN Sub-Depot) • User: CHAN / PIN: 1234
+                    User: <strong className="text-white font-mono">CHAN</strong> • Password: <strong className="text-white font-mono">1234</strong>
                   </div>
                 </div>
                 {currentUser?.userId === 'CHAN' && <CheckCircle2 className="w-4 h-4 text-amber-400" />}

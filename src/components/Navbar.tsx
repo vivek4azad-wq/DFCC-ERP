@@ -95,10 +95,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                        currentUser?.unit === 'CHAN' ||
                        currentUser?.name?.toLowerCase().includes('gyan');
 
+    const isSmunStore = currentUser?.userId === 'SMUN' ||
+                        (currentUser?.unit === 'SMUN' && currentUser?.role === 'STORE_KEEPER');
+
     if (isGyanChan) {
       // 🔒 Strictly visible for Gyan (CHAN Store): ONLY Store and nothing else
       return [
         { id: 'store', label: 'CHAN Store', icon: '📦', count: null }
+      ];
+    }
+
+    if (isSmunStore) {
+      // 🔒 Strictly visible for SMUN Store Keeper: ONLY Store
+      return [
+        { id: 'store', label: 'SMUN Store', icon: '📦', count: null }
       ];
     }
 

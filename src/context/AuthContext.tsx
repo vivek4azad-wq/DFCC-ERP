@@ -266,6 +266,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
+      // User SMUN (IMSD SMUN Store Keeper)
+      const isSmunStoreUser = cleanId === 'smun' || cleanId === 'smun store';
+      if (isSmunStoreUser) {
+        if (cleanSecret === '2251') {
+          const smunStoreSession: UserAccount = {
+            id: 'USR-SMUN-STORE',
+            userId: 'SMUN',
+            email: 'smun.store@dfcc.co.in',
+            pin: '2251',
+            name: 'Store Keeper (IMSD SMUN Store)',
+            role: 'STORE_KEEPER',
+            designation: 'Store In-Charge / IMSD SMUN Central Store',
+            department: 'Civil Engineering / SMUN Store',
+            unit: 'SMUN',
+            phone: '8872671873',
+            employeeId: 'SMUN-2251',
+            awpoId: null,
+            isActive: true,
+            qrCodeId: 'RD-SMUN-STORE',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setCurrentUser(smunStoreSession);
+          safeStorageSet(AUTH_STORAGE_KEY, JSON.stringify(smunStoreSession));
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            message: 'गलत पासवर्ड! कृपया SMUN स्टोर हेतु पासवर्ड 2251 दर्ज करें।'
+          };
+        }
+      }
+
       // User CHAN / Gyan (CHAN Store Keeper)
       const isChanUser = cleanId === 'chan' || cleanId === 'gyan' || cleanId === 'chan store';
       if (isChanUser) {

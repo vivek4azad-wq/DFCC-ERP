@@ -173,6 +173,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                        currentUser?.unit === 'CHAN' ||
                        currentUser?.name?.toLowerCase().includes('gyan');
 
+    const isSmunStore = currentUser?.userId === 'SMUN' ||
+                        (currentUser?.unit === 'SMUN' && currentUser?.role === 'STORE_KEEPER');
+
     if (isGyanChan) {
       // 🔒 Strictly visible for Gyan (CHAN Store): ONLY Store and nothing else
       return [
@@ -182,6 +185,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           shortLabel: 'CHAN Store',
           icon: Package,
           badge: 'CHAN'
+        }
+      ];
+    }
+
+    if (isSmunStore) {
+      // 🔒 Strictly visible for SMUN Store Keeper: ONLY SMUN Store
+      return [
+        {
+          id: 'store',
+          label: 'IMSD SMUN Store (शंभू स्टोर)',
+          shortLabel: 'SMUN Store',
+          icon: Package,
+          badge: 'SMUN'
         }
       ];
     }

@@ -1059,10 +1059,13 @@ function MainAppShell() {
                      currentUser?.unit === 'CHAN' ||
                      currentUser?.name?.toLowerCase().includes('gyan');
 
+  const isSmunStore = currentUser?.userId === 'SMUN' ||
+                      (currentUser?.unit === 'SMUN' && currentUser?.role === 'STORE_KEEPER');
+
   let currentTab = activeTab === 'admin' && role !== 'SUPER_ADMIN' ? 'analytics' : activeTab;
 
-  // 🔒 Gyan (CHAN): Strictly ONLY Store module!
-  if (isGyanChan) {
+  // 🔒 Store Keepers: Strictly ONLY Store module!
+  if (isGyanChan || isSmunStore) {
     currentTab = 'store';
   } else if (isArjun && currentTab === 'store') {
     // 🔒 Arjun: Everything EXCEPT store

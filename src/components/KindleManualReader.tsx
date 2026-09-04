@@ -37,7 +37,7 @@ import {
 export interface ManualItem {
   id: string;
   title: string;
-  category: 'Core' | 'Track' | 'Installation';
+  category: 'Core' | 'Track' | 'Installation' | 'Bridge' | 'Inspection';
   badge: string;
   date: string;
   url: string;
@@ -49,10 +49,12 @@ interface KindleManualReaderProps {
   onSelectManual: (manual: ManualItem) => void;
   onOpenAcsModal?: () => void;
   onSwitchTo3DFlipbook?: () => void;
+  onClose?: () => void;
 }
 
 type ReadingTheme = 'paper-white' | 'warm-sepia' | 'oled-dark' | 'mint-green';
-type ReadingMode = 'single' | 'continuous' | 'two-page';
+type ReadingMode = 'single' | 'two-page';
+type FitMode = 'fit-page' | 'fit-width';
 
 interface TOCItem {
   title: string;
@@ -74,6 +76,14 @@ const MANUAL_TOC_DATA: Record<string, TOCItem[]> = {
     { title: 'Chapter 7: IMSD SMUN Yard, Level Crossings & Safety Devices', page: 172, part: 'Part VII' },
     { title: 'Annexures, Inspection Formats & Correction Slips', page: 192, part: 'Annexures' }
   ],
+  dfc_bridge_manual_2025: [
+    { title: 'DFC Bridge Manual 2025 Cover', page: 1, part: 'Cover' },
+    { title: 'General Principles & Classification of Bridges', page: 5, part: 'Chapter 1' },
+    { title: 'Inspection & Maintenance of Superstructure & Bearings', page: 28, part: 'Chapter 2' },
+    { title: 'Substructure, Foundations & Waterway Maintenance', page: 64, part: 'Chapter 3' },
+    { title: 'Special Major & Important Bridges Inspection Schedules', page: 112, part: 'Chapter 4' },
+    { title: 'Bridge Inspection Register & Safety Audit Formats', page: 160, part: 'Annexures' }
+  ],
   dfc_track_manual_2025: [
     { title: 'Title & Edition 2025 Summary', page: 1, part: 'Cover' },
     { title: 'Table of Contents & Revisions', page: 3, part: 'Contents' },
@@ -94,6 +104,13 @@ const MANUAL_TOC_DATA: Record<string, TOCItem[]> = {
     { title: 'Section APL-01: Km 1167.210 – 1249.720 IMSD SMUN', page: 5, part: 'Section' },
     { title: 'P-Way Asset Commissioning & Acceptance Norms', page: 22, part: 'Commissioning' },
     { title: 'Bridge Joints, Expansion Breathers & Level Crossing Layouts', page: 54, part: 'Structures' }
+  ],
+  imsd_field_guide_vivek: [
+    { title: 'IMSD SMUN In-charge Field Inspection Guide - Vivek Kumar Azad', page: 1, part: 'Cover' },
+    { title: 'Daily, Weekly & Monthly Inspection Mandates (Para 266)', page: 3, part: 'Mandates' },
+    { title: 'Point & Crossing 35 No. Specific Inspection Protocols', page: 7, part: 'Turnouts' },
+    { title: 'Major/Minor Bridge Inspection & Monsoon Preparedness', page: 14, part: 'Bridges' },
+    { title: 'Store Inventory, Asset Registry & Track Safety Standards', page: 20, part: 'Store & Safety' }
   ]
 };
 
@@ -102,7 +119,8 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
   manualList,
   onSelectManual,
   onOpenAcsModal,
-  onSwitchTo3DFlipbook
+  onSwitchTo3DFlipbook,
+  onClose
 }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -111,6 +129,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [theme, setTheme] = useState<ReadingTheme>('warm-sepia');
   const [readingMode, setReadingMode] = useState<ReadingMode>('single');
+  const [fitMode, setFitMode] = useState<FitMode>('fit-page');
   const [zoomScale, setZoomScale] = useState<number>(1.0);
   const [controlsVisible, setControlsVisible] = useState<boolean>(true);
   const [isTocOpen, setIsTocOpen] = useState<boolean>(false);
@@ -122,7 +141,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [bookmarks, setBookmarks] = useState<number[]>([]);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isFullWindow, setIsFullWindow] = useState<boolean>(false);
   const [flipAnimation, setFlipAnimation] = useState<'flip-next' | 'flip-prev' | null>(null);
   const [is3DFlipEffect, setIs3DFlipEffect] = useState<boolean>(true);
 
@@ -233,9 +252,9 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
     };
   }, [manual.url]);
 
-  // Render Current Page on Canvas
+  // Render Current Page on Canvas with High-Resolution & Crisp Scaling
   const renderSinglePage = useCallback(
-    async (pageNum: number, targetCanvas: HTMLCanvasElement | null, extraScale = 1) => {
+    async (pageNum: number, targetCanvas: HTMLCanvasElement | null) => {
       if (!pdfDoc || !targetCanvas || pageNum < 1 || pageNum > totalPages) return;
 
       try {
@@ -244,15 +263,26 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
         const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
 
         const unscaledViewport = page.getViewport({ scale: 1 });
-        const widthScale = (containerWidth - 32) / unscaledViewport.width;
-        const heightScale = (containerHeight - 120) / unscaledViewport.height;
-
-        let baseScale = Math.min(widthScale, heightScale);
+        
+        // Calculate generous readable scaling
+        const availableHeight = Math.max(300, containerHeight - (controlsVisible ? 120 : 30));
+        let widthTarget = containerWidth - 28;
         if (readingMode === 'two-page') {
-          baseScale = Math.min((containerWidth / 2 - 32) / unscaledViewport.width, heightScale);
+          widthTarget = (containerWidth - 48) / 2;
         }
 
-        const finalScale = Math.max(0.6, baseScale * zoomScale * extraScale);
+        const widthScale = widthTarget / unscaledViewport.width;
+        const heightScale = availableHeight / unscaledViewport.height;
+
+        // In fit-width mode, scale strictly to width so font is large and bold
+        let baseScale = fitMode === 'fit-width' ? widthScale : Math.min(widthScale, heightScale);
+        
+        // Ensure scale is never tiny (minimum baseline scale 0.9 on desktop, 0.75 on mobile)
+        const isMobile = window.innerWidth < 640;
+        const minComfortableScale = isMobile ? 0.75 : 0.95;
+        baseScale = Math.max(minComfortableScale, baseScale);
+
+        const finalScale = baseScale * zoomScale;
         const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
         const viewport = page.getViewport({ scale: finalScale * dpr });
 
@@ -276,7 +306,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
         console.warn(`Kindle page ${pageNum} render error:`, err);
       }
     },
-    [pdfDoc, totalPages, readingMode, zoomScale, theme]
+    [pdfDoc, totalPages, readingMode, fitMode, zoomScale, theme, controlsVisible]
   );
 
   useEffect(() => {
@@ -285,6 +315,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
     if (readingMode === 'single') {
       renderSinglePage(currentPage, canvasRef.current);
     } else if (readingMode === 'two-page') {
+      // Facing pages spread: Odd on Left, Even on Right (e.g. 1 & 2, 3 & 4)
       const leftPage = currentPage % 2 === 0 ? currentPage - 1 : currentPage;
       const rightPage = leftPage + 1;
       renderSinglePage(leftPage, canvasRef.current);
@@ -292,7 +323,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
         renderSinglePage(rightPage, secondCanvasRef.current);
       }
     }
-  }, [pdfDoc, currentPage, readingMode, zoomScale, theme, loading, renderSinglePage, totalPages]);
+  }, [pdfDoc, currentPage, readingMode, fitMode, zoomScale, theme, loading, renderSinglePage, totalPages]);
 
   // Page Navigation with 3D Flip Physics
   const goToNextPage = useCallback(() => {
@@ -444,24 +475,36 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full flex flex-col overflow-hidden select-none transition-colors duration-300 ${currentTheme.containerBg}`}
+      className={`relative w-full h-full flex flex-col overflow-hidden select-none transition-colors duration-300 ${
+        isFullWindow ? 'fixed inset-0 z-[9999] w-screen h-screen' : 'w-full h-full'
+      } ${currentTheme.containerBg}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* 1. TOP KINDLE HEADER TOOLBAR (Auto-Hideable) */}
       <div
-        className={`absolute top-0 left-0 right-0 z-30 px-3 py-2.5 backdrop-blur-md border-b transition-all duration-300 flex items-center justify-between gap-2 ${
+        className={`absolute top-0 left-0 right-0 z-30 px-3 py-2 backdrop-blur-md border-b transition-all duration-300 flex items-center justify-between gap-2 ${
           currentTheme.headerBg
         } ${controlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}
       >
-        {/* Left: Table of Contents & Manual Switcher */}
+        {/* Left: Table of Contents & Manual Title */}
         <div className="flex items-center gap-2 min-w-0">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-400 hover:text-slate-800 dark:hover:text-white"
+              title="Close Reader"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+
           <button
             onClick={() => setIsTocOpen(true)}
-            className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-1.5"
+            className="p-1.5 px-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-1.5 border border-black/10 dark:border-white/10"
             title="Table of Contents & Chapters (TOC)"
           >
-            <List className="w-5 h-5" />
+            <List className="w-4 h-4 text-amber-500" />
             <span className="text-xs font-bold hidden sm:inline">Contents</span>
           </button>
 
@@ -469,18 +512,57 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
             <span className="text-xs sm:text-sm font-black truncate leading-tight">
               {manual.title}
             </span>
-            <span className="text-[10px] opacity-75 font-semibold">
-              Kindle Mobile View &bull; {manual.date}
+            <span className="text-[10px] opacity-75 font-semibold hidden sm:inline">
+              Kindle Reader &bull; {manual.date}
             </span>
           </div>
         </div>
 
-        {/* Right: Kindle Reader Action Controls */}
+        {/* Right: Quick Page Layout Toggles & Kindle Tools */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Quick Toggle: 1-Page vs 2-Page Spread */}
+          <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-xl p-0.5 border border-black/10 dark:border-white/10">
+            <button
+              onClick={() => setReadingMode('single')}
+              className={`px-2 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                readingMode === 'single'
+                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="1-Page Mode (एकल पृष्ठ - बड़ा और स्पष्ट)"
+            >
+              <span>1-Page</span>
+            </button>
+            <button
+              onClick={() => setReadingMode('two-page')}
+              className={`px-2 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                readingMode === 'two-page'
+                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="2-Page Spread Mode (दो पृष्ठ - आमने-सामने)"
+            >
+              <span>2-Page</span>
+            </button>
+          </div>
+
+          {/* Quick Toggle: Fit Width vs Fit Page */}
+          <button
+            onClick={() => setFitMode(prev => (prev === 'fit-page' ? 'fit-width' : 'fit-page'))}
+            className={`px-2 py-1 rounded-xl text-xs font-black transition-all border hidden md:flex items-center gap-1 ${
+              fitMode === 'fit-width'
+                ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                : 'bg-black/5 dark:bg-white/10 text-slate-700 dark:text-slate-200 border-transparent hover:bg-black/10'
+            }`}
+            title={fitMode === 'fit-width' ? 'Currently: Fit Width (चौड़ाई अनुसार)' : 'Currently: Fit Page (पूरा पेज)'}
+          >
+            <span>{fitMode === 'fit-width' ? '↔ Fit Width' : '↕ Fit Page'}</span>
+          </button>
+
           {/* In-Book Search */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             title="Search inside manual"
           >
             <Search className="w-4 h-4" />
@@ -489,7 +571,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
           {/* Bookmark Button */}
           <button
             onClick={() => toggleBookmark(currentPage)}
-            className={`p-2 rounded-xl transition-colors ${
+            className={`p-1.5 rounded-xl transition-colors ${
               bookmarks.includes(currentPage)
                 ? 'text-amber-500 bg-amber-500/10'
                 : 'hover:bg-black/5 dark:hover:bg-white/10'
@@ -506,25 +588,38 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
           {/* Appearance & Themes 'Aa' Menu */}
           <button
             onClick={() => setIsAppearanceOpen(prev => !prev)}
-            className={`px-2.5 py-1.5 rounded-xl font-serif text-sm font-black transition-colors border flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-xl font-serif text-xs font-black transition-colors border flex items-center gap-1 ${
               isAppearanceOpen
                 ? 'bg-amber-400 text-slate-950 border-amber-500'
-                : 'hover:bg-black/5 dark:hover:bg-white/10 border-transparent'
+                : 'hover:bg-black/5 dark:hover:bg-white/10 border-black/10 dark:border-white/10'
             }`}
             title="Reading Themes & Display (Aa)"
           >
             <span>Aa</span>
           </button>
 
+          {/* Full-Window Immersion Mode Toggle */}
+          <button
+            onClick={() => setIsFullWindow(prev => !prev)}
+            className={`p-1.5 rounded-xl border transition-colors ${
+              isFullWindow
+                ? 'bg-amber-400 text-slate-950 border-amber-500'
+                : 'hover:bg-black/5 dark:hover:bg-white/10 border-black/10 dark:border-white/10'
+            }`}
+            title={isFullWindow ? 'Exit Full Window' : 'Full Window Immersion (फुल विंडो)'}
+          >
+            {isFullWindow ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
           {/* 3D Flipbook Mode Switcher */}
           {onSwitchTo3DFlipbook && (
             <button
               onClick={onSwitchTo3DFlipbook}
-              className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all"
+              className="px-2 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-sm hidden lg:flex items-center gap-1 transition-all"
               title="Switch to 3D Realistic Flipbook"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">3D Flipbook</span>
+              <span>3D Flipbook</span>
             </button>
           )}
 
@@ -532,7 +627,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
           {onOpenAcsModal && (
             <button
               onClick={onOpenAcsModal}
-              className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm flex items-center gap-1 transition-all"
+              className="px-2 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm flex items-center gap-1 transition-all"
               title="ACS Correction Slips (1-5)"
             >
               <Download className="w-3.5 h-3.5" />
@@ -559,7 +654,7 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
 
         {/* Page Render Canvas Area with 3D Page Turn Physics */}
         <div
-          className={`flex items-center justify-center gap-4 max-w-full max-h-full transition-all duration-300 ease-out select-none ${
+          className={`flex items-center justify-center gap-3 sm:gap-6 max-w-full max-h-full transition-all duration-300 ease-out select-none ${
             flipAnimation === 'flip-next'
               ? 'scale-[0.98] -rotate-1 shadow-2xl opacity-90'
               : flipAnimation === 'flip-prev'
@@ -576,17 +671,28 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
               : 'none'
           }}
         >
-          <canvas
-            ref={canvasRef}
-            className={`rounded-lg transition-shadow duration-300 ${currentTheme.canvasClass}`}
-          />
-
-          {/* Second Canvas for Two-Page Spread */}
-          {readingMode === 'two-page' && currentPage < totalPages && (
+          {/* First / Left Canvas */}
+          <div className="relative flex flex-col items-center">
             <canvas
-              ref={secondCanvasRef}
-              className={`rounded-lg transition-shadow duration-300 hidden md:block ${currentTheme.canvasClass}`}
+              ref={canvasRef}
+              className={`rounded-lg transition-shadow duration-300 max-w-full ${currentTheme.canvasClass}`}
             />
+            <span className="text-[10px] font-mono text-slate-400 mt-1 opacity-75">
+              Page {readingMode === 'two-page' && currentPage % 2 === 0 ? currentPage - 1 : currentPage}
+            </span>
+          </div>
+
+          {/* Second Canvas for Two-Page Spread (Facing Page) */}
+          {readingMode === 'two-page' && (
+            <div className={`relative flex-col items-center hidden md:flex ${currentPage < totalPages ? '' : 'opacity-20'}`}>
+              <canvas
+                ref={secondCanvasRef}
+                className={`rounded-lg transition-shadow duration-300 ${currentTheme.canvasClass}`}
+              />
+              <span className="text-[10px] font-mono text-slate-400 mt-1 opacity-75">
+                Page {(currentPage % 2 === 0 ? currentPage - 1 : currentPage) + 1}
+              </span>
+            </div>
           )}
         </div>
 

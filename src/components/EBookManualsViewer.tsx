@@ -10,11 +10,14 @@ import {
   Search
 } from 'lucide-react';
 
+import { KindleManualReader, ManualItem } from './KindleManualReader.tsx';
+import { Download, FileText } from 'lucide-react';
+
 export interface ManualDoc {
   id: string;
   title: string;
   shortTitle: string;
-  category: 'CORE' | 'TRACK' | 'TURNOUT' | 'WELDING' | 'ACS' | 'KEYPLAN';
+  category: 'CORE' | 'TRACK' | 'BRIDGE' | 'INSTALLATION' | 'GUIDE';
   badge: string;
   edition: string;
   size: string;
@@ -23,8 +26,8 @@ export interface ManualDoc {
   accentColor: string;
 }
 
-const ALL_MANUALS: ManualDoc[] = [
-  // 1. CORE RAILROAD MANUAL
+const OFFICIAL_MANUALS: ManualDoc[] = [
+  // 1. DFC RAILROAD MANUAL
   {
     id: 'dfc_rrm_final',
     title: 'DFC Railroad Manual (Final Official Edition)',
@@ -32,13 +35,27 @@ const ALL_MANUALS: ManualDoc[] = [
     category: 'CORE',
     badge: 'Statutory Core Manual',
     edition: '2024 / 2025 Final Edition',
-    size: '14.8 MB',
-    description: 'IMD/IMSD सेटअप, अधिकारियों के अधिकार, 100% निरीक्षण अनुसूची (Para 266), आपातकालीन रिस्पांस एवं सुरक्षा नियम।',
+    size: '12.3 MB',
+    description: 'IMD/IMSD संगठन, अधिकारियों के अधिकार, 100% निरीक्षण अनुसूची (Para 266), आपातकालीन प्रबंधन एवं सुरक्षा नियम।',
     url: '/manuals/DFC_RAILROAD_MANUAL_Final.pdf',
     accentColor: 'from-blue-600 to-indigo-700'
   },
 
-  // 2. TRACK MANUAL 2025
+  // 2. DFC BRIDGE MANUAL 2025
+  {
+    id: 'dfc_bridge_manual_2025',
+    title: 'DFC Bridge Manual (2025 Official)',
+    shortTitle: 'DFC Bridge Manual 2025',
+    category: 'BRIDGE',
+    badge: 'Official Bridge Manual',
+    edition: '2025 Edition',
+    size: '24.1 MB',
+    description: 'मेजर व माइनर ब्रिजेस, गर्डर, आरसीसी स्लैब, बेयरिंग, वॉटरवे, फाउंडेशन एवं मानसून पूर्व/पश्चात निरीक्षण मानक।',
+    url: '/manuals/DFC_Bridge_Manual_2025.pdf',
+    accentColor: 'from-sky-600 to-cyan-700'
+  },
+
+  // 3. DFC TRACK MANUAL 2025
   {
     id: 'dfc_track_manual_2025',
     title: 'DFC Track Manual (July 2025 Final)',
@@ -46,13 +63,13 @@ const ALL_MANUALS: ManualDoc[] = [
     category: 'TRACK',
     badge: 'Latest Track Manual',
     edition: 'July 2025 Final',
-    size: '22.4 MB',
-    description: 'ट्रैक ज्योमेट्री, हेवी एक्सल लोड (32.5t), रेल टॉलरेंस, कर्व्स, वेल्डिंग, USFD एवं मशीनीकृत अनुरक्षण के संपूर्ण मानक।',
+    size: '22.0 MB',
+    description: '32.5T हेवी एक्सल लोड ट्रैक ज्योमेट्री, रेल टॉलरेंस, कर्व्स, वेल्डिंग, USFD एवं मशीनीकृत अनुरक्षण के संपूर्ण मानक।',
     url: '/manuals/DFC_Track_manual_2025_Final.pdf',
     accentColor: 'from-emerald-600 to-teal-700'
   },
 
-  // 3. WDFC L&T TRACK MANUAL
+  // 4. L&T TRACK MANUAL FOR WDFC
   {
     id: 'lt_wdfc_manual',
     title: 'L&T Track Manual Applicable for WDFC',
@@ -60,248 +77,141 @@ const ALL_MANUALS: ManualDoc[] = [
     category: 'TRACK',
     badge: 'Heavy Haul Track',
     edition: 'WDFC Applicable',
-    size: '18.2 MB',
+    size: '19.2 MB',
     description: 'वेस्टर्न एवं ईस्टर्न फ्रेट कॉरिडोर हेतु हेवी हॉल ट्रैक स्पेसिफिकेशन, ब्लास्ट एवं फॉर्मेशन गाइडलाइन्स।',
     url: '/manuals/LT_Track_Manual_Applicable_for_WDFC.pdf',
     accentColor: 'from-cyan-600 to-blue-700'
   },
 
-  // 4. INSTALLATION MANUAL APL-01
+  // 5. INSTALLATION MANUAL EDFCC APL-01
   {
     id: 'edfcc_installation_manual',
     title: 'Installation Manual EDFCC APL-01 (Rev 03)',
     shortTitle: 'Installation Manual EDFCC',
-    category: 'TRACK',
+    category: 'INSTALLATION',
     badge: 'EDFCC Standards',
     edition: 'APL-01 Revision 3',
-    size: '11.5 MB',
-    description: 'ईस्टर्न डेडिकेटेड फ्रेट कॉरिडोर पैकेज APL-01 हेतु ट्रैक लेइंग, SEJ, टर्नआउट्स एवं ग्लूड इंसुलेटेड जॉइंट्स स्थापना।',
+    size: '3.5 MB',
+    description: 'ईस्टर्न डेडिकेटेड फ्रेट कॉरिडोर पैकेज APL-01 (Km 1167.210 – 1249.720) ट्रैक लेइंग, SEJ एवं ग्लूड जॉइंट्स स्थापना।',
     url: '/manuals/Installation_Manual_EDFCC_APL_01.pdf',
     accentColor: 'from-slate-700 to-slate-900'
   },
 
-  // 5. VOSSLOH TURNOUT MANUAL
+  // 6. IMSD MAINTENANCE MANUAL BY VIVEK KUMAR AZAD
   {
-    id: 'vossloh_turnout',
-    title: 'Vossloh Turnout Maintenance & Installation Manual',
-    shortTitle: 'Vossloh Turnout Manual',
-    category: 'TURNOUT',
-    badge: 'P&C Maintenance',
-    edition: 'Vossloh Cogifer Special',
-    size: '8.4 MB',
-    description: '1 in 12 Thick Web Switch (TWS) एवं CMS क्रॉसिंग का इंस्टॉलेशन, टॉलरेंस, टॉर्क एवं रखरखाव।',
-    url: '/manuals/Vossloh_TO_Maintenance_Manual.pdf',
-    accentColor: 'from-amber-600 to-orange-700'
-  },
-
-  // 6. RECONDITIONING OF POINTS & CROSSING
-  {
-    id: 'reconditioning_pnc',
-    title: 'Booklet on Reconditioning of Points & Crossings',
-    shortTitle: 'P&C Reconditioning Booklet',
-    category: 'TURNOUT',
-    badge: 'RDSO / DFCCIL Guide',
-    edition: 'Technical Guidelines',
-    size: '4.2 MB',
-    description: 'CMS क्रॉसिंग एवं टंग रेल की वेल्डिंग द्वारा रिकंडीशनिंग, इलेक्ट्रोड चयन एवं सुरक्षा सावधानियां।',
-    url: '/manuals/Booklet_on_Reconditioning_of_Points_and_Crossing.pdf',
-    accentColor: 'from-amber-700 to-red-800'
-  },
-
-  // 7. MM STEEL POINTS & CROSSINGS
-  {
-    id: 'mm_steel_pnc',
-    title: 'Manual for Reconditioning of MM Steel Points & Crossings',
-    shortTitle: 'MM Steel P&C Manual',
-    category: 'TURNOUT',
-    badge: 'Reconditioning Manual',
-    edition: 'Special Steel Edition',
-    size: '5.1 MB',
-    description: 'मीडियम मैंगनीज (MM) स्टील पॉइंट्स एवं क्रॉसिंग्स की रीकंडीशनिंग प्रक्रिया एवं टेस्टिंग मानक।',
-    url: '/manuals/Manual_for_Reconditioning_of_MM_Steel_Points_and_Crossings.pdf',
-    accentColor: 'from-red-600 to-rose-800'
-  },
-
-  // 8. PROFORMA CROSSING INSPECTION
-  {
-    id: 'proforma_crossing',
-    title: 'Proforma of Crossing Inspection of Railway',
-    shortTitle: 'Crossing Inspection Proforma',
-    category: 'TURNOUT',
-    badge: 'Inspection Checklist',
-    edition: 'Standard Proforma',
-    size: '1.2 MB',
-    description: 'क्रॉसिंग इंस्पेक्शन हेतु आधिकारिक प्रोफार्मा: मैक्सिमम वियर, चेक रेल क्लीयरेंस, विंग रेल गैप आदि।',
-    url: '/manuals/Performa_of_crossing_inspection_of_railway.pdf',
-    accentColor: 'from-purple-600 to-indigo-800'
-  },
-
-  // 9. ACS 01
-  {
-    id: 'acs_01',
-    title: 'ACS-01: DFC Railroad Manual Correction Slip',
-    shortTitle: 'Correction Slip ACS-01',
-    category: 'ACS',
-    badge: 'ACS-01 (dt. 25.06.2025)',
-    edition: '25-Jun-2025',
-    size: '790 KB',
-    description: 'Advance Correction Slip No. 01 to DFC Railroad Manual.',
-    url: '/manuals/ACS_01_DFC_RRM_25.06.2025.pdf',
-    accentColor: 'from-emerald-700 to-green-900'
-  },
-
-  // 10. ACS 02
-  {
-    id: 'acs_02',
-    title: 'ACS-02: DFC Railroad Manual Correction Slip',
-    shortTitle: 'Correction Slip ACS-02',
-    category: 'ACS',
-    badge: 'ACS-02 (2025)',
-    edition: '2025',
-    size: '2.1 MB',
-    description: 'Advance Correction Slip No. 02 to DFC Railroad Manual.',
-    url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf',
-    accentColor: 'from-emerald-700 to-green-900'
-  },
-
-  // 11. ACS 03
-  {
-    id: 'acs_03',
-    title: 'ACS-03: DFC Railroad Manual Correction Slip',
-    shortTitle: 'Correction Slip ACS-03',
-    category: 'ACS',
-    badge: 'ACS-03 (2025)',
-    edition: '2025',
-    size: '1.4 MB',
-    description: 'Advance Correction Slip No. 03 to DFC Railroad Manual.',
-    url: '/manuals/ACS_03_to_DFC_RRM.pdf',
-    accentColor: 'from-emerald-700 to-green-900'
-  },
-
-  // 12. ACS 04
-  {
-    id: 'acs_04',
-    title: 'ACS-04: DFC Railroad Manual Correction Slip (16.10.2025)',
-    shortTitle: 'Correction Slip ACS-04',
-    category: 'ACS',
-    badge: 'ACS-04 (dt. 16.10.2025)',
-    edition: '16-Oct-2025',
-    size: '850 KB',
-    description: 'Advance Correction Slip No. 04 to DFC Railroad Manual.',
-    url: '/manuals/ACS_04_dt_16.10.2025.pdf',
-    accentColor: 'from-emerald-700 to-green-900'
-  },
-
-  // 13. ACS 05
-  {
-    id: 'acs_05',
-    title: 'ACS-05: DFC Railroad Manual Correction Slip (02.12.2025)',
-    shortTitle: 'Correction Slip ACS-05',
-    category: 'ACS',
-    badge: 'ACS-05 (dt. 02.12.2025)',
-    edition: '02-Dec-2025',
-    size: '1.2 MB',
-    description: 'Advance Correction Slip No. 05 to DFC Railroad Manual.',
-    url: '/manuals/ACS_05_dt_02.12.25_RRM.pdf',
-    accentColor: 'from-emerald-700 to-green-900'
-  },
-
-  // 14-19. STATION KEY PLANS
-  {
-    id: 'keyplan_smun',
-    title: 'New Shambhu (SMUN) Official Station Key-Plan',
-    shortTitle: 'SMUN Key-Plan (Km 1177)',
-    category: 'KEYPLAN',
-    badge: 'IMSD Headquarter Yard',
-    edition: 'CAD Final Approved',
-    size: '3.1 MB',
-    description: 'SMUN यार्ड का विस्तृत इंजीनियरिंग की-प्लान: सभी 35 पॉइंट्स, लाइन नंबर, क्रॉसओवर एवं चेनिएज।',
-    url: '/keyplans/SMUN Keyplan.pdf',
-    accentColor: 'from-indigo-600 to-blue-800'
-  },
-  {
-    id: 'keyplan_chan',
-    title: 'Chawa Pail (CHAN) Official Station Key-Plan',
-    shortTitle: 'CHAN Key-Plan (Km 1237)',
-    category: 'KEYPLAN',
-    badge: 'Station Yard Plan',
-    edition: 'CAD Final Approved',
-    size: '2.8 MB',
-    description: 'CHAN यार्ड का विस्तृत की-प्लान: मेन लाइन एवं लूप लाइन टर्नआउट्स।',
-    url: '/keyplans/CHAN Keyplan.pdf',
-    accentColor: 'from-indigo-600 to-blue-800'
-  },
-  {
-    id: 'keyplan_knnn',
-    title: 'Khanna (KNNN) Official Station Key-Plan',
-    shortTitle: 'KNNN Key-Plan (Km 1216)',
-    category: 'KEYPLAN',
-    badge: 'Station Yard Plan',
-    edition: 'CAD Final Approved',
-    size: '2.6 MB',
-    description: 'KNNN यार्ड का इंजीनियरिंग की-प्लान एवं क्रॉसओवर लेआउट।',
-    url: '/keyplans/KNNN Keyplan.pdf',
-    accentColor: 'from-indigo-600 to-blue-800'
-  },
-  {
-    id: 'keyplan_sbjn',
-    title: 'Sarai Banjara (SBJN) Official Station Key-Plan',
-    shortTitle: 'SBJN Key-Plan (Km 1192)',
-    category: 'KEYPLAN',
-    badge: 'Station Yard Plan',
-    edition: 'CAD Final Approved',
-    size: '2.9 MB',
-    description: 'SBJN यार्ड का विस्तृत की-प्लान: 26 पॉइंट्स एवं क्रॉसओवर्स।',
-    url: '/keyplans/SBJN Keyplan.pdf',
-    accentColor: 'from-indigo-600 to-blue-800'
-  },
-  {
-    id: 'keyplan_nsir',
-    title: 'Sirhind Detour (NSIR) Official Station Key-Plan',
-    shortTitle: 'NSIR Key-Plan (Km 1205)',
-    category: 'KEYPLAN',
-    badge: 'Station Yard Plan',
-    edition: 'CAD Final Approved',
-    size: '2.7 MB',
-    description: 'NSIR सरहिंद डिटूर यार्ड का आधिकारिक इंजीनियरिंग लेआउट प्लान।',
-    url: '/keyplans/NSIR Keyplan.pdf',
-    accentColor: 'from-indigo-600 to-blue-800'
-  },
-  {
-    id: 'keyplan_gvgn',
-    title: 'Govindgarh (GVGN) Official Station Key-Plan',
-    shortTitle: 'GVGN Key-Plan (Km 1226)',
-    category: 'KEYPLAN',
-    badge: 'Station Yard Plan',
-    edition: 'CAD Final Approved',
-    size: '3.0 MB',
-    description: 'GVGN मंडी गोबिंदगढ़ यार्ड का आधिकारिक इंजीनियरिंग की-प्लान।',
-    url: '/keyplans/GVGN Keyplan.pdf',
-    accentColor: 'from-indigo-600 to-blue-800'
+    id: 'imsd_field_guide_vivek',
+    title: 'IMSD SMUN P-Way Inspection & Maintenance Guide',
+    shortTitle: 'Vivek Azad IMSD Guide',
+    category: 'GUIDE',
+    badge: 'IMSD SMUN In-Charge Guide',
+    edition: 'By Shri Vivek Kumar Azad (APM/Civil)',
+    size: '1.6 MB',
+    description: 'IMSD SMUN (Km 1167–1250) हेतु दैनिक, साप्ताहिक एवं मासिक 100% निरीक्षण, पॉइंट्स एवं क्रॉसिंग्स 35 No. व सुरक्षा प्रोटोकॉल।',
+    url: '/manuals/IMSD_Maintenance_Manual_Vivek_Azad.pdf',
+    accentColor: 'from-amber-600 to-rose-700'
   }
 ];
 
-export const EBookManualsViewer: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+const ACS_CORRECTION_SLIPS = [
+  { id: 'acs_01', name: 'ACS-01 (dt. 25.06.2025)', size: '809 KB', url: '/manuals/ACS_01_DFC_RRM_25.06.2025.pdf' },
+  { id: 'acs_02', name: 'ACS-02 (2025)', size: '2.2 MB', url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf' },
+  { id: 'acs_03', name: 'ACS-03 (2025)', size: '831 KB', url: '/manuals/ACS_03_to_DFC_RRM.pdf' },
+  { id: 'acs_04', name: 'ACS-04 (dt. 16.10.2025)', size: '3.0 MB', url: '/manuals/ACS_04_dt_16.10.2025.pdf' },
+  { id: 'acs_05', name: 'ACS-05 (dt. 02.12.2025)', size: '814 KB', url: '/manuals/ACS_05_dt_02.12.25_RRM.pdf' }
+];
 
-  const filteredManuals = ALL_MANUALS.filter(m => {
-    if (selectedCategory !== 'ALL' && m.category !== selectedCategory) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        m.title.toLowerCase().includes(q) ||
-        m.shortTitle.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q) ||
-        m.badge.toLowerCase().includes(q)
-      );
-    }
-    return true;
+export const EBookManualsViewer: React.FC = () => {
+  const [selectedManual, setSelectedManual] = useState<ManualDoc | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isAcsModalOpen, setIsAcsModalOpen] = useState<boolean>(false);
+
+  const filteredManuals = OFFICIAL_MANUALS.filter(m => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      m.title.toLowerCase().includes(q) ||
+      m.shortTitle.toLowerCase().includes(q) ||
+      m.description.toLowerCase().includes(q) ||
+      m.badge.toLowerCase().includes(q)
+    );
   });
 
-  const handleOpenPdfDirectly = (url: string) => {
-    window.open(url, '_blank');
-  };
+  const kindleManualList: ManualItem[] = OFFICIAL_MANUALS.map(m => ({
+    id: m.id,
+    title: m.title,
+    category: (m.category === 'CORE' ? 'Core' : m.category === 'BRIDGE' ? 'Bridge' : m.category === 'GUIDE' ? 'Inspection' : m.category === 'INSTALLATION' ? 'Installation' : 'Track') as any,
+    badge: m.badge,
+    date: m.edition,
+    url: m.url
+  }));
+
+  if (selectedManual) {
+    const activeKindleManual: ManualItem = {
+      id: selectedManual.id,
+      title: selectedManual.title,
+      category: (selectedManual.category === 'CORE' ? 'Core' : selectedManual.category === 'BRIDGE' ? 'Bridge' : selectedManual.category === 'GUIDE' ? 'Inspection' : selectedManual.category === 'INSTALLATION' ? 'Installation' : 'Track') as any,
+      badge: selectedManual.badge,
+      date: selectedManual.edition,
+      url: selectedManual.url
+    };
+
+    return (
+      <div className="w-full h-[calc(100vh-120px)] sm:h-[calc(100vh-90px)] flex flex-col rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl">
+        <KindleManualReader
+          manual={activeKindleManual}
+          manualList={kindleManualList}
+          onSelectManual={(item) => {
+            const found = OFFICIAL_MANUALS.find(m => m.id === item.id);
+            if (found) setSelectedManual(found);
+          }}
+          onOpenAcsModal={() => setIsAcsModalOpen(true)}
+          onClose={() => setSelectedManual(null)}
+        />
+
+        {isAcsModalOpen && (
+          <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-5 shadow-2xl text-white animate-in zoom-in-95">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <div>
+                  <h3 className="text-sm font-black text-amber-400">Advance Correction Slips (ACS 1–5)</h3>
+                  <p className="text-[11px] text-slate-400">DFC Railroad Manual Official Amendments</p>
+                </div>
+                <button
+                  onClick={() => setIsAcsModalOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {ACS_CORRECTION_SLIPS.map(slip => (
+                  <a
+                    key={slip.id}
+                    href={slip.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-3 rounded-2xl bg-slate-800/80 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-500/40 transition-colors flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="text-xs font-bold block text-white group-hover:text-emerald-300">
+                          {slip.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">{slip.size}</span>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 shrink-0" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fadeIn p-2 sm:p-4">
@@ -312,65 +222,45 @@ export const EBookManualsViewer: React.FC = () => {
             <span className="px-2.5 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full uppercase tracking-wider">
               DFCCIL Official Library
             </span>
-            <span className="text-xs font-mono text-blue-200">IMSD SMUN Digital Bookshelf</span>
+            <span className="text-xs font-mono text-blue-200">IMSD SMUN Authorized Collection</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black mt-1">
-            📖 डीएफसीसीआईएल आधिकारिक मैन्युअल्स एवं की-प्लान्स
+            📖 डीएफसीसीआईएल आधिकारिक मैन्युअल्स (Kindle Reader)
           </h1>
           <p className="text-xs text-blue-100 mt-1 max-w-2xl">
-            क्लिक करते ही पुस्तक सीधे नए ब्राउज़र टैब के <strong>फुल-स्क्रीन (Full Screen PDF Viewer)</strong> में खुलेगी, जहाँ आप टेक्स्ट सर्च, ज़ूम व डाउनलोड कर सकते हैं।
+            किसी भी पुस्तक पर क्लिक करें — वह तुरंत <strong>Kindle Reader (एकल पृष्ठ 1-Page / दो पृष्ठ 2-Page Spread)</strong> में बड़े, स्पष्ट एवं शार्प अक्षरों के साथ खुलेगी।
           </p>
         </div>
 
-        {/* Quick Search */}
-        <div className="relative w-full md:w-72 shrink-0">
-          <input
-            type="text"
-            placeholder="Search Manuals, ACS, Key-Plans..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/20 rounded-2xl text-xs text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
-          />
-          <Search className="w-4 h-4 text-blue-200 absolute left-3 top-2.5" />
+        {/* Quick Search & ACS Button */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search Manuals..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/20 rounded-2xl text-xs text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+            />
+            <Search className="w-4 h-4 text-blue-200 absolute left-3 top-2.5" />
+          </div>
+
+          <button
+            onClick={() => setIsAcsModalOpen(true)}
+            className="w-full sm:w-auto px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shrink-0"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>ACS Slips (1-5)</span>
+          </button>
         </div>
       </div>
 
-      {/* Category Pills Filter */}
-      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
-        {[
-          { id: 'ALL', label: 'All Publications', count: ALL_MANUALS.length },
-          { id: 'CORE', label: '📘 Railroad Manual (RRM)', count: ALL_MANUALS.filter(m => m.category === 'CORE').length },
-          { id: 'TRACK', label: '📗 Track Manuals', count: ALL_MANUALS.filter(m => m.category === 'TRACK').length },
-          { id: 'TURNOUT', label: '⚙️ Points & Crossings', count: ALL_MANUALS.filter(m => m.category === 'TURNOUT').length },
-          { id: 'ACS', label: '📑 Advance Correction Slips (1-5)', count: ALL_MANUALS.filter(m => m.category === 'ACS').length },
-          { id: 'KEYPLAN', label: '🗺️ Station Key-Plans', count: ALL_MANUALS.filter(m => m.category === 'KEYPLAN').length }
-        ].map(cat => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
-              selectedCategory === cat.id
-                ? 'bg-[#123b72] text-white shadow-md font-black'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <span>{cat.label}</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-              selectedCategory === cat.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-            }`}>
-              {cat.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Books Grid */}
+      {/* Manuals Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredManuals.map(manual => (
           <div
             key={manual.id}
-            onClick={() => handleOpenPdfDirectly(manual.url)}
+            onClick={() => setSelectedManual(manual)}
             className="group p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-1 relative overflow-hidden"
           >
             {/* Top Accent Stripe */}
@@ -391,7 +281,7 @@ export const EBookManualsViewer: React.FC = () => {
               <div className="flex items-start gap-3 pt-1">
                 <div className={`w-12 h-14 rounded-xl bg-gradient-to-br ${manual.accentColor} text-white flex flex-col items-center justify-center shadow-md shrink-0 group-hover:scale-105 transition`}>
                   <BookOpen className="w-6 h-6" />
-                  <span className="text-[8px] font-black uppercase mt-0.5">PDF</span>
+                  <span className="text-[8px] font-black uppercase mt-0.5">KINDLE</span>
                 </div>
 
                 <div className="min-w-0">
@@ -411,26 +301,69 @@ export const EBookManualsViewer: React.FC = () => {
             </div>
 
             {/* Bottom Action Button */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <span>Official Publication</span>
+                <span>1-Page / 2-Page Spread</span>
               </span>
 
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleOpenPdfDirectly(manual.url);
+                  setSelectedManual(manual);
                 }}
-                className="px-3.5 py-1.5 bg-[#123b72] hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow group-hover:shadow-blue-500/30"
+                className="px-3 py-1.5 bg-[#123b72] hover:bg-blue-600 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow group-hover:shadow-blue-500/30"
               >
-                <span>ब्राउज़र में खोलें (Full Screen)</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <span>किंडल में पढ़ें</span>
+                <BookOpen className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* ACS Modal for Main Grid view */}
+      {isAcsModalOpen && (
+        <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-5 shadow-2xl text-white animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <div>
+                <h3 className="text-sm font-black text-amber-400">Advance Correction Slips (ACS 1–5)</h3>
+                <p className="text-[11px] text-slate-400">DFC Railroad Manual Official Amendments</p>
+              </div>
+              <button
+                onClick={() => setIsAcsModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {ACS_CORRECTION_SLIPS.map(slip => (
+                <a
+                  key={slip.id}
+                  href={slip.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3 rounded-2xl bg-slate-800/80 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-500/40 transition-colors flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold block text-white group-hover:text-emerald-300">
+                        {slip.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">{slip.size}</span>
+                    </div>
+                  </div>
+                  <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 shrink-0" />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

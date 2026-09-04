@@ -26,7 +26,7 @@ export interface ManualDoc {
   accentColor: string;
 }
 
-const OFFICIAL_MANUALS: ManualDoc[] = [
+export const OFFICIAL_MANUALS: ManualDoc[] = [
   // 1. DFC RAILROAD MANUAL
   {
     id: 'dfc_rrm_final',
@@ -112,7 +112,7 @@ const OFFICIAL_MANUALS: ManualDoc[] = [
   }
 ];
 
-const ACS_CORRECTION_SLIPS = [
+export const ACS_CORRECTION_SLIPS = [
   { id: 'acs_01', name: 'ACS-01 (dt. 25.06.2025)', size: '809 KB', url: '/manuals/ACS_01_DFC_RRM_25.06.2025.pdf' },
   { id: 'acs_02', name: 'ACS-02 (2025)', size: '2.2 MB', url: '/manuals/ACS_02_DFC_Railroad_Manual.pdf' },
   { id: 'acs_03', name: 'ACS-03 (2025)', size: '831 KB', url: '/manuals/ACS_03_to_DFC_RRM.pdf' },
@@ -260,7 +260,9 @@ export const EBookManualsViewer: React.FC = () => {
         {filteredManuals.map(manual => (
           <div
             key={manual.id}
-            onClick={() => setSelectedManual(manual)}
+            onClick={() => {
+              window.open(`/flipbook/index.html?book=${manual.id}`, '_blank');
+            }}
             className="group p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-1 relative overflow-hidden"
           >
             {/* Top Accent Stripe */}
@@ -300,22 +302,34 @@ export const EBookManualsViewer: React.FC = () => {
               </p>
             </div>
 
-            {/* Bottom Action Button */}
+            {/* Bottom Action Buttons */}
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <span>1-Page / 2-Page Spread</span>
-              </span>
-
+              {/* 3D Realistic HTML5 Flipbook in New Window */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedManual(manual);
+                  window.open(`/flipbook/index.html?book=${manual.id}`, '_blank');
+                }}
+                className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow hover:shadow-amber-500/30"
+                title="3D पन्ने पलटने वाला Flipbook (नई विंडो में खोलें)"
+              >
+                <span>3D Flipbook</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Kindle Reader in New Window */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/?view=reader&book=${manual.id}&mode=kindle`, '_blank');
                 }}
                 className="px-3 py-1.5 bg-[#123b72] hover:bg-blue-600 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow group-hover:shadow-blue-500/30"
+                title="Kindle Reader (नई विंडो में खोलें)"
               >
-                <span>किंडल में पढ़ें</span>
-                <BookOpen className="w-3.5 h-3.5" />
+                <span>Kindle</span>
+                <ExternalLink className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

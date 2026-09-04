@@ -611,17 +611,21 @@ export const KindleManualReader: React.FC<KindleManualReaderProps> = ({
             {isFullWindow ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
-          {/* 3D Flipbook Mode Switcher */}
-          {onSwitchTo3DFlipbook && (
-            <button
-              onClick={onSwitchTo3DFlipbook}
-              className="px-2 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-sm hidden lg:flex items-center gap-1 transition-all"
-              title="Switch to 3D Realistic Flipbook"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>3D Flipbook</span>
-            </button>
-          )}
+          {/* 3D Flipbook Realistic View in New Window */}
+          <button
+            onClick={() => {
+              if (onSwitchTo3DFlipbook) {
+                onSwitchTo3DFlipbook();
+              } else {
+                window.open(`/flipbook/index.html?book=${manual.id}`, '_blank');
+              }
+            }}
+            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-sm flex items-center gap-1 transition-all"
+            title="Open Realistic 3D Flipbook in New Window (3D फ्लिपबुक नई विंडो में खोलें)"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">3D Flipbook</span>
+          </button>
 
           {/* ACS Correction Slips */}
           {onOpenAcsModal && (

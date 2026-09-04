@@ -14,6 +14,13 @@ const BOOKS = [
     url: '/manuals/DFC_RAILROAD_MANUAL_Final.pdf'
   },
   {
+    id: 'dfc_bridge_manual_2025',
+    title: 'DFC Bridge Manual (2025 Official)',
+    category: 'Bridge',
+    badge: 'Bridge 2025',
+    url: '/manuals/DFC_Bridge_Manual_2025.pdf'
+  },
+  {
     id: 'dfc_track_manual_2025',
     title: 'DFC Track Manual 2025 (Final)',
     category: 'Track',
@@ -33,6 +40,13 @@ const BOOKS = [
     category: 'Installation',
     badge: 'EDFCC APL-01',
     url: '/manuals/Installation_Manual_EDFCC_APL_01.pdf'
+  },
+  {
+    id: 'imsd_field_guide_vivek',
+    title: 'IMSD SMUN P-Way Inspection Guide (Vivek Azad)',
+    category: 'Guide',
+    badge: 'Vivek Azad Guide',
+    url: '/manuals/IMSD_Maintenance_Manual_Vivek_Azad.pdf'
   }
 ];
 

@@ -24,7 +24,8 @@ import { StoreItemPublicQRView } from './components/StoreItemPublicQRView.tsx';
 import { StoreMasterPublicQRView } from './components/StoreMasterPublicQRView.tsx';
 import { StaffPublicQRView } from './components/StaffPublicQRView.tsx';
 import { StationKeyPlanModal } from './components/StationKeyPlanModal.tsx';
-import { EBookManualsViewer } from './components/EBookManualsViewer.tsx';
+import { EBookManualsViewer, OFFICIAL_MANUALS, ACS_CORRECTION_SLIPS } from './components/EBookManualsViewer.tsx';
+import { KindleManualReader, ManualItem } from './components/KindleManualReader.tsx';
 import { TrackSoftwareViewer } from './components/TrackSoftwareViewer.tsx';
 import { ChangePinModal } from './components/ChangePinModal.tsx';
 import { Capacitor } from '@capacitor/core';
@@ -103,6 +104,17 @@ function MainAppShell() {
     if (typeof window !== 'undefined' && window.location.search) {
       const params = new URLSearchParams(window.location.search);
       return params.get('verify_staff') || params.get('staff_id') || params.get('qr_staff') || (params.get('view') === 'staff' ? params.get('id') : null);
+    }
+    return null;
+  });
+
+  // Standalone Book Reader Window View (Kindle / 3D Flipbook)
+  const [publicReaderBook, setPublicReaderBook] = useState<string | null>(() => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'reader') {
+        return params.get('book') || 'dfc_rrm_final';
+      }
     }
     return null;
   });
@@ -449,6 +461,59 @@ function MainAppShell() {
           }
         }}
       />
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // 1.7 IF STANDALONE READER WINDOW: RENDER FULL-SCREEN IMMERSIVE READER VIEW
+  // -------------------------------------------------------------------------
+  if (publicReaderBook) {
+    const activeDoc = OFFICIAL_MANUALS.find(m => m.id === publicReaderBook) || OFFICIAL_MANUALS[0];
+    const activeKindleManual: ManualItem = {
+      id: activeDoc.id,
+      title: activeDoc.title,
+      category: (activeDoc.category === 'CORE' ? 'Core' : activeDoc.category === 'BRIDGE' ? 'Bridge' : activeDoc.category === 'GUIDE' ? 'Inspection' : activeDoc.category === 'INSTALLATION' ? 'Installation' : 'Track') as any,
+      badge: activeDoc.badge,
+      date: activeDoc.edition,
+      url: activeDoc.url
+    };
+    const kindleManualList: ManualItem[] = OFFICIAL_MANUALS.map(m => ({
+      id: m.id,
+      title: m.title,
+      category: (m.category === 'CORE' ? 'Core' : m.category === 'BRIDGE' ? 'Bridge' : m.category === 'GUIDE' ? 'Inspection' : m.category === 'INSTALLATION' ? 'Installation' : 'Track') as any,
+      badge: m.badge,
+      date: m.edition,
+      url: m.url
+    }));
+
+    return (
+      <div className="w-screen h-screen overflow-hidden bg-slate-950 text-white fixed inset-0 z-[9999]">
+        <KindleManualReader
+          manual={activeKindleManual}
+          manualList={kindleManualList}
+          onSelectManual={(item) => {
+            setPublicReaderBook(item.id);
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+              url.searchParams.set('book', item.id);
+              window.history.replaceState({}, document.title, url.toString());
+            }
+          }}
+          onSwitchTo3DFlipbook={() => {
+            window.location.href = `/flipbook/index.html?book=${activeDoc.id}`;
+          }}
+          onClose={() => {
+            if (window.opener) {
+              window.close();
+            } else {
+              setPublicReaderBook(null);
+              if (typeof window !== 'undefined') {
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            }
+          }}
+        />
+      </div>
     );
   }
 
